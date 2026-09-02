@@ -140,8 +140,6 @@ class TaskOrchestrator(
             }
         }
 
-        ClawAccessibilityService.getInstance()?.pressHome()
-
         FloatingCircleManager.showTaskNotify(task, channel)
 
         // 每轮消息聚合缓冲：thinking + toolResult 攒成一条，减少发送次数

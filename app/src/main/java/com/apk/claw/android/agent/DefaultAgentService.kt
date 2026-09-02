@@ -45,6 +45,12 @@ class DefaultAgentService : AgentService {
         /** 死循环检测：滑动窗口大小 */
         private const val LOOP_DETECT_WINDOW = 4
 
+        /** 这些工具不改变设备状态，触发前无需重置到桌面 */
+        private val OBSERVATION_ONLY_TOOLS = setOf(
+            "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps",
+            "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill"
+        )
+
         /** 是否将网络请求/响应原始数据输出到沙盒缓存文件，方便调试 */
         @JvmField
         var FILE_LOGGING_ENABLED = false
@@ -345,6 +351,7 @@ class DefaultAgentService : AgentService {
         val maxIterations = config.maxIterations
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
+        var homeResetDone = false
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -409,6 +416,12 @@ class DefaultAgentService : AgentService {
                     HashMap()
                 }
                 if (params == null) params = HashMap()
+
+                // 第一个改状态工具执行前才重置到桌面，纯聊天/观察类任务不打扰当前应用
+                if (!homeResetDone && toolName !in OBSERVATION_ONLY_TOOLS) {
+                    ClawAccessibilityService.getInstance()?.pressHome()
+                    homeResetDone = true
+                }
 
                 val result = ToolRegistry.getInstance().executeTool(toolName, params)
                 val paramsString = if (params.isEmpty()) "" else params.toString()
