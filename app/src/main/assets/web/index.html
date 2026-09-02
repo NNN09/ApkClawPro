@@ -54,6 +54,7 @@ h1 {
 .telegram .dot { background: #26A5E4; }
 .llm .dot { background: #34C759; }
 .persona .dot { background: #FF9500; }
+.skills .dot { background: #AF52DE; }
 .field { margin-bottom: 16px; }
 .field:last-child { margin-bottom: 0; }
 label {
@@ -97,6 +98,20 @@ textarea:focus {
   border-color: #5856D6;
   background: #fff;
 }
+.card button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #5856D6;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.card button:hover { opacity: 0.9; }
+.card button:active { transform: scale(0.98); }
 .input-wrap {
   position: relative;
 }
@@ -171,6 +186,27 @@ textarea:focus {
         <textarea id="persona" rows="6" data-i18n-placeholder="ph_persona"></textarea>
       </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="persona_tip"></p>
+    </div>
+
+    <div class="card skills">
+      <div class="card-title"><span class="dot"></span><span data-i18n="skills_title"></span></div>
+      <div class="field">
+        <label data-i18n="skills_installed"></label>
+        <div id="skillList" style="font-size:13px;color:#86868b;white-space:pre-line;">...</div>
+      </div>
+      <div class="field">
+        <label data-i18n="skills_name"></label>
+        <input type="text" id="skillName" data-i18n-placeholder="ph_skills_name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="skills_desc"></label>
+        <input type="text" id="skillDesc" data-i18n-placeholder="ph_skills_desc" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="skills_body"></label>
+        <textarea id="skillBody" rows="6" data-i18n-placeholder="ph_skills_body"></textarea>
+      </div>
+      <button id="skillUploadBtn" type="button" data-i18n="skills_upload"></button>
     </div>
 
     <div class="card llm">
@@ -287,6 +323,19 @@ const i18nMessages = {
     persona_label: '人格设定（留空使用默认）',
     ph_persona: '例如：你是一只叫小爪的猫娘助手，说话带喵',
     persona_tip: '只影响语气与角色扮演，不能覆盖执行协议与安全约束',
+    skills_title: '技能库',
+    skills_installed: '已安装技能',
+    skills_name: '技能名（小写字母/数字/中划线）',
+    skills_desc: '一句话描述（做什么 + 何时用，模型据此决定何时调用）',
+    skills_body: '技能内容（分步操作说明，Markdown）',
+    ph_skills_name: 'order-coffee',
+    ph_skills_desc: '在美团下单咖啡；用户要点咖啡/外卖时使用',
+    ph_skills_body: '1. 打开美团\n2. 搜索咖啡\n3. 选第一家',
+    skills_upload: '添加 / 更新技能',
+    skills_empty: '暂无技能',
+    skills_load_failed: '加载失败',
+    skills_name_required: '请填写技能名',
+    skills_saved: '已保存',
     load_failed: '加载失败，请检查连接',
     dingtalk: '钉钉',
     feishu: '飞书',
@@ -323,6 +372,19 @@ const i18nMessages = {
     persona_label: 'Persona setting (leave empty for default)',
     ph_persona: 'e.g. You are a catgirl assistant named Xiaozhua who says meow',
     persona_tip: 'Affects tone and role-play only; cannot override execution protocol or safety constraints',
+    skills_title: 'Skills',
+    skills_installed: 'Installed skills',
+    skills_name: 'Skill name (lowercase letters, digits, hyphens)',
+    skills_desc: 'One-line description (what it does + when to use; the model decides from this)',
+    skills_body: 'Skill content (step-by-step instructions, Markdown)',
+    ph_skills_name: 'order-coffee',
+    ph_skills_desc: 'Order coffee on Meituan; use when the user asks for coffee/takeout',
+    ph_skills_body: '1. Open Meituan\n2. Search for coffee\n3. Pick the first',
+    skills_upload: 'Add / Update Skill',
+    skills_empty: 'No skills yet',
+    skills_load_failed: 'Failed to load',
+    skills_name_required: 'Please enter a skill name',
+    skills_saved: 'Saved',
     load_failed: 'Failed to load, please check connection',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -359,6 +421,19 @@ const i18nMessages = {
     persona_label: '人格設定（空欄でデフォルト）',
     ph_persona: '例: あなたは「小爪」という猫娘アシスタントです',
     persona_tip: '口調とロールプレイにのみ影響し、実行プロトコルと安全制約は上書きできません',
+    skills_title: 'スキル',
+    skills_installed: 'インストール済みスキル',
+    skills_name: 'スキル名（小文字・数字・ハイフン）',
+    skills_desc: '一言説明（何をするか + いつ使うか。モデルはこれで判断します）',
+    skills_body: 'スキル内容（手順説明、Markdown）',
+    ph_skills_name: 'order-coffee',
+    ph_skills_desc: '美団でコーヒーを注文。コーヒー/デリバリーの依頼時に使用',
+    ph_skills_body: '1. 美団を開く\n2. コーヒーを検索\n3. 1 件目を選ぶ',
+    skills_upload: 'スキルを追加 / 更新',
+    skills_empty: 'スキルはまだありません',
+    skills_load_failed: '読み込みに失敗しました',
+    skills_name_required: 'スキル名を入力してください',
+    skills_saved: '保存しました',
     load_failed: '読み込みに失敗しました。接続を確認してください',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -503,7 +578,40 @@ function showToast(msg, type) {
   setTimeout(() => { el.classList.remove('show'); }, 2500);
 }
 
+// ====== Skills ======
+async function refreshSkills() {
+  const el = document.getElementById('skillList');
+  try {
+    const r = await fetch('/api/skills');
+    const j = await r.json();
+    const list = (j.data && j.data.skills) || [];
+    el.textContent = list.length
+      ? list.map(s => s.name + ' — ' + s.description).join('\n')
+      : t('skills_empty');
+  } catch (e) {
+    el.textContent = t('skills_load_failed');
+  }
+}
+
+document.getElementById('skillUploadBtn').addEventListener('click', async () => {
+  const payload = {
+    name: document.getElementById('skillName').value.trim(),
+    description: document.getElementById('skillDesc').value.trim(),
+    content: document.getElementById('skillBody').value
+  };
+  if (!payload.name) { showToast(t('skills_name_required'), 'error'); return; }
+  try {
+    const r = await fetch('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('skills_saved') : j.message, j.code === 0 ? 'success' : 'error');
+    if (j.code === 0) refreshSkills();
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  }
+});
+
 load();
+refreshSkills();
 </script>
 </body>
 </html>

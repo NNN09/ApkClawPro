@@ -3,6 +3,7 @@ package com.apk.claw.android.server
 import android.content.Context
 import com.apk.claw.android.BuildConfig
 import com.apk.claw.android.agent.store.PersonaStore
+import com.apk.claw.android.agent.store.SkillStore
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.ToolResult
@@ -49,6 +50,8 @@ class ConfigServer(
                 uri == "/api/llm" && method == Method.POST -> handlePostLlm(session)
                 uri == "/api/persona" && method == Method.GET -> handleGetPersona()
                 uri == "/api/persona" && method == Method.POST -> handlePostPersona(session)
+                uri == "/api/skills" && method == Method.GET -> handleGetSkills()
+                uri == "/api/skills" && method == Method.POST -> handlePostSkill(session)
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -294,6 +297,52 @@ class ConfigServer(
             PersonaStore.set(json.get("persona").asString)
         }
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+    }
+
+    // ==================== Skills ====================
+
+    private fun handleGetSkills(): Response {
+        val skills = SkillStore.list().map {
+            JsonObject().apply {
+                addProperty("name", it.name)
+                addProperty("description", it.description)
+            }
+        }
+        val data = JsonObject().apply { add("skills", gson.toJsonTree(skills)) }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    private fun handlePostSkill(session: IHTTPSession): Response {
+        val files = mutableMapOf<String, String>()
+        session.parseBody(files)
+        val body = files["postData"] ?: ""
+        val json = try {
+            gson.fromJson(body, JsonObject::class.java)
+        } catch (e: Exception) {
+            return corsResponse(
+                newFixedLengthResponse(
+                    Response.Status.BAD_REQUEST, MIME_JSON,
+                    """{"code":-1,"message":"invalid json"}"""
+                )
+            )
+        }
+        val name = json.get("name")?.asString ?: ""
+        val description = json.get("description")?.asString ?: ""
+        val content = json.get("content")?.asString ?: ""
+        val ok = SkillStore.upsert(name, description, content)
+        return if (ok) {
+            corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+        } else {
+            corsResponse(newFixedLengthResponse(
+                Response.Status.BAD_REQUEST, MIME_JSON,
+                """{"code":-1,"message":"invalid skill name (a-z, 0-9, '-'; max 40)"}"""
+            ))
+        }
     }
 
     // ==================== Debug (仅 DEBUG 构建) ====================
