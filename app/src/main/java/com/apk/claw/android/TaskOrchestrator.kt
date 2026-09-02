@@ -4,6 +4,8 @@ import com.apk.claw.android.agent.AgentCallback
 import com.apk.claw.android.agent.AgentConfig
 import com.apk.claw.android.agent.AgentService
 import com.apk.claw.android.agent.AgentServiceFactory
+import com.apk.claw.android.agent.TaskRequest
+import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.channel.Channel
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.floating.FloatingCircleManager
@@ -115,7 +117,7 @@ class TaskOrchestrator(
         XLog.d(TAG, "Current task cancelled by user")
     }
 
-    fun startNewTask(channel: Channel, task: String, messageID: String) {
+    fun startNewTask(channel: Channel, senderId: String, task: String, messageID: String) {
         if (!::agentService.isInitialized) {
             XLog.e(TAG, "AgentService not initialized, attempting to initialize")
             try {
@@ -143,7 +145,7 @@ class TaskOrchestrator(
             }
         }
 
-        agentService.executeTask(task, object : AgentCallback {
+        agentService.executeTask(TaskRequest(task, channel, senderId), object : AgentCallback {
             override fun onLoopStart(round: Int) {
                 // 新一轮开始前，flush 上一轮积攒的消息
                 flushRoundBuffer()
@@ -186,6 +188,7 @@ class TaskOrchestrator(
 
             override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
                 XLog.i(TAG, "onComplete: 轮数=$round, totalTokens=$totalTokens, answer=$finalAnswer")
+                SessionStore.appendTurn(channel, senderId, task, finalAnswer)
                 flushRoundBuffer()
                 releaseTask()
                 ChannelManager.flushMessages(channel)

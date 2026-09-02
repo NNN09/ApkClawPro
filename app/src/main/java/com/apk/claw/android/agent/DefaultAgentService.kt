@@ -12,6 +12,7 @@ import com.apk.claw.android.agent.llm.LlmResponse
 import com.apk.claw.android.agent.llm.StreamingListener
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.PromptComposer
+import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.impl.GetScreenInfoTool
@@ -74,7 +75,7 @@ class DefaultAgentService : AgentService {
         XLog.i(TAG, "Agent config updated, new model: ${config.modelName}")
     }
 
-    override fun executeTask(userPrompt: String, callback: AgentCallback) {
+    override fun executeTask(request: TaskRequest, callback: AgentCallback) {
         if (running.get()) {
             callback.onError(0, IllegalStateException("Agent is already running a task"), 0)
             return
@@ -85,7 +86,7 @@ class DefaultAgentService : AgentService {
 
         executor?.submit {
             try {
-                runAgentLoop(userPrompt, callback)
+                runAgentLoop(request, callback)
             } catch (e: Exception) {
                 XLog.e(TAG, "Agent execution error", e)
                 callback.onError(0, e, 0)
@@ -312,7 +313,8 @@ class DefaultAgentService : AgentService {
 
     // ==================== 主执行循环 ====================
 
-    private fun runAgentLoop(userPrompt: String, callback: AgentCallback) {
+    private fun runAgentLoop(request: TaskRequest, callback: AgentCallback) {
+        val userPrompt = request.prompt
         // 环境预检
         preCheck()?.let {
             callback.onError(0, RuntimeException(it), 0)
@@ -330,6 +332,10 @@ class DefaultAgentService : AgentService {
 
         val messages = mutableListOf<ChatMessage>()
         messages.add(SystemMessage.from(fullSystemPrompt))
+        SessionStore.history(request.channel, request.senderId).forEach { turn ->
+            messages.add(UserMessage.from(turn.user))
+            messages.add(AiMessage.from(turn.assistant))
+        }
         messages.add(UserMessage.from(userPrompt))
 
         var iterations = 0

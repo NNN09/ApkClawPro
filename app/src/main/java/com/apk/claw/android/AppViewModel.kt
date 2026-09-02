@@ -139,8 +139,8 @@ class AppViewModel : ViewModel() {
 
     fun cancelCurrentTask() = taskOrchestrator.cancelCurrentTask()
 
-    fun startNewTask(channel: Channel, task: String, messageID: String) =
-        taskOrchestrator.startNewTask(channel, task, messageID)
+    fun startNewTask(channel: Channel, senderId: String, task: String, messageID: String) =
+        taskOrchestrator.startNewTask(channel, senderId, task, messageID)
 
     private fun trySendScreenshot(channel: Channel, filePath: String, messageID: String) {
         try {

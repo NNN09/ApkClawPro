@@ -3,6 +3,7 @@ package com.apk.claw.android.channel
 import com.apk.claw.android.ClawApplication
 import com.apk.claw.android.R
 import com.apk.claw.android.TaskOrchestrator
+import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
@@ -37,12 +38,21 @@ class ChannelSetup(
                     ChannelManager.flushMessages(channel)
                     return
                 }
+
+                val cmd = message.trim()
+                if (cmd == "新对话" || cmd == "/new") {
+                    SessionStore.reset(channel, senderId)
+                    ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_session_reset), messageID)
+                    ChannelManager.flushMessages(channel)
+                    return
+                }
+
                 if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
                     ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_task_in_progress), messageID)
                     ChannelManager.flushMessages(channel)
                     return
                 }
-                taskOrchestrator.startNewTask(channel, message, messageID)
+                taskOrchestrator.startNewTask(channel, senderId, message, messageID)
             }
         })
     }
