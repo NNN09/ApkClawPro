@@ -4,6 +4,7 @@ import com.apk.claw.android.agent.DefaultAgentService
 import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.SessionStore
+import com.apk.claw.android.agent.store.SkillStore
 import com.apk.claw.android.base.BaseApp
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.service.ForegroundService
@@ -38,6 +39,7 @@ class ClawApplication : BaseApp() {
         PersonaStore.init(agentDir)
         SessionStore.init(agentDir)
         MemoryStore.init(agentDir)
+        SkillStore.init(agentDir)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 

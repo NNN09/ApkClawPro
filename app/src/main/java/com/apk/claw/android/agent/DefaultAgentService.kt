@@ -14,6 +14,7 @@ import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.PromptComposer
 import com.apk.claw.android.agent.store.SessionStore
+import com.apk.claw.android.agent.store.SkillStore
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.impl.GetScreenInfoTool
@@ -327,7 +328,7 @@ class DefaultAgentService : AgentService {
             persona = PersonaStore.get(),
             protocol = config.systemPrompt,
             memorySection = MemoryStore.promptSection(),
-            skillsCatalog = "",        // T13 接入
+            skillsCatalog = SkillStore.catalogSection(),
             deviceContext = buildDeviceContext()
         )
 

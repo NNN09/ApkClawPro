@@ -41,6 +41,7 @@ object ToolRegistry {
         register(MemorySaveTool())
         register(MemoryDeleteTool())
         register(MemoryListTool())
+        register(LoadSkillTool())
     }
 
     private fun registerTvTools() {
