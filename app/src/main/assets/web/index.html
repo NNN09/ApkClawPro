@@ -550,7 +550,7 @@ async function save() {
     const [chanRes, llmRes, personaRes] = await Promise.all([
       fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
       fetch('/api/llm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(llmBody) }),
-      fetch('/api/persona', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ persona: document.getElementById('persona').value }) })
+      fetch('/api/persona', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ persona: document.getElementById('persona').value }) })
     ]);
     const chanJson = await chanRes.json();
     const llmJson = await llmRes.json();
@@ -601,7 +601,7 @@ document.getElementById('skillUploadBtn').addEventListener('click', async () => 
   };
   if (!payload.name) { showToast(t('skills_name_required'), 'error'); return; }
   try {
-    const r = await fetch('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const r = await fetch('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
     const j = await r.json();
     showToast(j.code === 0 ? t('skills_saved') : j.message, j.code === 0 ? 'success' : 'error');
     if (j.code === 0) refreshSkills();
