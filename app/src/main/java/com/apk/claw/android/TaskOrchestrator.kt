@@ -47,6 +47,10 @@ class TaskOrchestrator(
     @Volatile
     var onIdle: (() -> Unit)? = null
 
+    /** 查询某渠道某发送者当前排队中的任务文本（由 ChannelSetup 注入，避免反向依赖队列实现） */
+    @Volatile
+    var pendingTasksProvider: ((Channel, String) -> List<String>)? = null
+
     private fun notifyIdle() {
         try { onIdle?.invoke() } catch (e: Exception) { XLog.e(TAG, "onIdle callback failed", e) }
     }
@@ -153,6 +157,20 @@ class TaskOrchestrator(
         val roundActions = LinkedHashMap<String, Int>()
         var roundFailures = 0
 
+        /** 消息尾部任务列表：正在执行的本任务 + 本发送者的排队任务（无内容则返回 null） */
+        fun buildTaskListFooter(includeRunning: Boolean): String? {
+            val pending = pendingTasksProvider?.invoke(channel, senderId).orEmpty()
+            val sb = StringBuilder()
+            if (includeRunning) {
+                sb.append(ClawApplication.instance.getString(R.string.channel_task_running, task))
+            }
+            pending.forEach { p ->
+                if (sb.isNotEmpty()) sb.append("\n")
+                sb.append(ClawApplication.instance.getString(R.string.channel_task_pending, p))
+            }
+            return if (sb.isEmpty()) null else sb.toString()
+        }
+
         fun flushRoundBuffer() {
             if (roundActions.isNotEmpty()) {
                 val joined = roundActions.entries.joinToString("、") { e ->
@@ -167,7 +185,9 @@ class TaskOrchestrator(
                 roundFailures = 0
             }
             if (roundBuffer.isNotEmpty()) {
-                ChannelManager.sendMessage(channel, roundBuffer.toString().trim(), messageID)
+                val body = roundBuffer.toString().trim()
+                val footer = buildTaskListFooter(includeRunning = true)
+                ChannelManager.sendMessage(channel, if (footer == null) body else "$body\n$footer", messageID)
                 roundBuffer.clear()
             }
         }
@@ -201,9 +221,15 @@ class TaskOrchestrator(
                 }
                 XLog.e(TAG, "onToolResult: $toolName, $status $data")
                 if (toolId == "finish" && (result.data?.isNotEmpty() ?: false)) {
-                    // finish 的结果单独发，不合并（这是最终回复）
+                    // finish 的结果单独发，不合并（这是最终回复）；
+                    // 结尾只追加待执行项——本任务已完成，不再标"正在执行"
                     flushRoundBuffer()
-                    ChannelManager.sendMessage(channel, result.data, messageID)
+                    val pendingOnly = buildTaskListFooter(includeRunning = false)
+                    ChannelManager.sendMessage(
+                        channel,
+                        if (pendingOnly == null) result.data else "${result.data}\n$pendingOnly",
+                        messageID
+                    )
                 } else if (toolId !in PROGRESS_SILENT_TOOLS) {
                     // 只做本轮聚合计数，flush 时统一发一行摘要；观察类工具完全不上屏
                     if (!result.isSuccess) roundFailures++

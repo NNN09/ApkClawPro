@@ -78,6 +78,13 @@ class ChannelSetup(
         })
 
         taskOrchestrator.onIdle = { drainPending() }
+
+        // 供进度消息尾部任务列表查询排队任务（按渠道+发送者过滤，避免跨用户噪音）
+        taskOrchestrator.pendingTasksProvider = { channel, senderId ->
+            synchronized(queueLock) {
+                pendingQueue.filter { it.channel == channel && it.senderId == senderId }.map { it.message }
+            }
+        }
     }
 
     /**
