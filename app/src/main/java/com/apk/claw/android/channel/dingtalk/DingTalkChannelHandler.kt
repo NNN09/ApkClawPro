@@ -68,7 +68,7 @@ class DingTalkChannelHandler(
                         lastConversationType = message.conversationType
                         lastConversationId = message.conversationId
                         lastMsgId = message.msgId
-                        ChannelManager.dispatchMessage(channel, text, lastMsgId ?: "")
+                        ChannelManager.dispatchMessage(channel, text, lastMsgId ?: "", lastSenderStaffId ?: "")
                         return null
                     }
                 }

@@ -35,7 +35,7 @@ object ChannelManager {
      * 收到消息的回调接口
      */
     interface OnMessageReceivedListener {
-        fun onMessageReceived(channel: Channel, message: String, messageID: String)
+        fun onMessageReceived(channel: Channel, message: String, messageID: String, senderId: String)
     }
 
     @JvmStatic
@@ -215,7 +215,8 @@ object ChannelManager {
      * 供各 ChannelHandler 内部调用，将收到的消息分发给注册的监听器。
      */
     @JvmStatic
-    fun dispatchMessage(channel: Channel, message: String, messageID: String) {
-        messageListener?.onMessageReceived(channel, message, messageID)
+    fun dispatchMessage(channel: Channel, message: String, messageID: String, senderId: String) {
+        XLog.d(TAG, "dispatch from [${channel.displayName}] senderId=$senderId")
+        messageListener?.onMessageReceived(channel, message, messageID, senderId)
     }
 }

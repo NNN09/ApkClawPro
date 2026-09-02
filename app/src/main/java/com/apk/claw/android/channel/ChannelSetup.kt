@@ -5,6 +5,7 @@ import com.apk.claw.android.R
 import com.apk.claw.android.TaskOrchestrator
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.utils.KVUtils
+import com.apk.claw.android.utils.XLog
 
 /**
  * 通道初始化与消息路由。
@@ -28,7 +29,8 @@ class ChannelSetup(
             wechatApiBaseUrl = KVUtils.getWechatApiBaseUrl().ifEmpty { null }
         )
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
-            override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
+            override fun onMessageReceived(channel: Channel, message: String, messageID: String, senderId: String) {
+                XLog.i("ChannelSetup", "msg from ${channel.displayName} sender=$senderId")
                 val app = ClawApplication.instance
                 if (!ClawAccessibilityService.isRunning()) {
                     ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)

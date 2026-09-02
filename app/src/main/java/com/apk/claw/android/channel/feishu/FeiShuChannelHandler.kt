@@ -59,7 +59,7 @@ class FeiShuChannelHandler(
                                 rawContent
                             }
                             lastMessageId = messageId
-                            ChannelManager.dispatchMessage(channel, text, messageId)
+                            ChannelManager.dispatchMessage(channel, text, messageId, event.event.sender?.senderId?.openId ?: "")
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()

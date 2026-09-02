@@ -37,7 +37,7 @@ class DiscordChannelHandler(
                 override fun onDiscordMessage(channelId: String, messageId: String, content: String) {
                     lastChannelId = channelId
                     XLog.i(TAG, "[${channel.displayName}] 收到消息: $content, channelId=$channelId")
-                    ChannelManager.dispatchMessage(channel, content, messageId)
+                    ChannelManager.dispatchMessage(channel, content, messageId, channelId)
                 }
             }
         )

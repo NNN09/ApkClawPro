@@ -46,7 +46,7 @@ class QQChannelHandler(
             lastMessageId = messageId
             lastMsgSeq = 0
             XLog.i(TAG, "[${channel.displayName}] 收到消息: $content, isGroup=$isGroup, openId=$openId")
-            ChannelManager.dispatchMessage(channel, content, messageId)
+            ChannelManager.dispatchMessage(channel, content, messageId, openId)
         }
         scope.launch {
             try {

@@ -98,7 +98,7 @@ class TelegramChannelHandler(
                         lastChatId = chatId
 
                         XLog.i(TAG, "[${channel.displayName}] 收到消息: $text, chatId=$chatId")
-                        ChannelManager.dispatchMessage(channel, text, messageId.toString())
+                        ChannelManager.dispatchMessage(channel, text, messageId.toString(), chatId.toString())
                     }
                 } catch (_: java.net.SocketTimeoutException) {
                     XLog.d(TAG, "Telegram polling 超时，继续轮询")
