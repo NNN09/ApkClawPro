@@ -1,6 +1,7 @@
 package com.apk.claw.android
 
 import com.apk.claw.android.agent.DefaultAgentService
+import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.base.BaseApp
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.service.ForegroundService
@@ -8,6 +9,7 @@ import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
 import com.blankj.utilcode.util.NetworkUtils
+import java.io.File
 
 /**
  * Application 入口
@@ -30,6 +32,8 @@ class ClawApplication : BaseApp() {
         registerNetworkCallback()
         appViewModelInstance = getAppViewModelProvider()[AppViewModel::class.java]
         KVUtils.init(this)
+        val agentDir = File(filesDir, "agent")
+        PersonaStore.init(agentDir)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 
