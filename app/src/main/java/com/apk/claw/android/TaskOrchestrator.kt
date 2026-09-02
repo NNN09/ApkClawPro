@@ -224,15 +224,9 @@ class TaskOrchestrator(
                 }
                 XLog.e(TAG, "onToolResult: $toolName, $status $data")
                 if (toolId == "finish" && (result.data?.isNotEmpty() ?: false)) {
-                    // finish 的结果单独发，不合并（这是最终回复）；
-                    // 结尾只追加待执行项——本任务已完成，不再标"正在执行"
+                    // finish 的结果单独发，不合并（这是最终回复）；待执行列表由 onComplete 统一追加
                     flushRoundBuffer()
-                    val pendingOnly = buildTaskListFooter(includeRunning = false)
-                    ChannelManager.sendMessage(
-                        channel,
-                        if (pendingOnly == null) result.data else "${result.data}\n$pendingOnly",
-                        messageID
-                    )
+                    ChannelManager.sendMessage(channel, result.data, messageID)
                 } else if (toolId !in PROGRESS_SILENT_TOOLS) {
                     // 只做本轮聚合计数，flush 时统一发一行摘要；观察类工具完全不上屏
                     if (!result.isSuccess) roundFailures++
@@ -243,6 +237,12 @@ class TaskOrchestrator(
             override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
                 XLog.i(TAG, "onComplete: 轮数=$round, totalTokens=$totalTokens, answer=$finalAnswer")
                 SessionStore.appendTurn(channel, senderId, task, finalAnswer)
+                // 任务结束：待执行列表挂在最后一条消息尾部（无论模型以文字结束还是走 finish 工具，
+                // onComplete 都是必经点）；缓冲为空时单独发一条列表
+                buildTaskListFooter(includeRunning = false)?.let {
+                    if (roundBuffer.isNotEmpty()) roundBuffer.append("\n")
+                    roundBuffer.append(it)
+                }
                 flushRoundBuffer()
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setSuccessState()
