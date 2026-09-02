@@ -2,6 +2,7 @@ package com.apk.claw.android.server
 
 import android.content.Context
 import com.apk.claw.android.BuildConfig
+import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.ToolResult
@@ -46,6 +47,8 @@ class ConfigServer(
                 uri == "/api/channels" && method == Method.POST -> handlePostChannels(session)
                 uri == "/api/llm" && method == Method.GET -> handleGetLlm()
                 uri == "/api/llm" && method == Method.POST -> handlePostLlm(session)
+                uri == "/api/persona" && method == Method.GET -> handleGetPersona()
+                uri == "/api/persona" && method == Method.POST -> handlePostPersona(session)
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -259,6 +262,38 @@ class ConfigServer(
             addProperty("message", "ok")
         }
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    // ==================== Persona ====================
+
+    private fun handleGetPersona(): Response {
+        val data = JsonObject().apply { addProperty("persona", PersonaStore.get()) }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    private fun handlePostPersona(session: IHTTPSession): Response {
+        val files = mutableMapOf<String, String>()
+        session.parseBody(files)
+        val body = files["postData"] ?: ""
+        val json = try {
+            gson.fromJson(body, JsonObject::class.java)
+        } catch (e: Exception) {
+            return corsResponse(
+                newFixedLengthResponse(
+                    Response.Status.BAD_REQUEST, MIME_JSON,
+                    """{"code":-1,"message":"invalid json"}"""
+                )
+            )
+        }
+        if (json.has("persona")) {
+            PersonaStore.set(json.get("persona").asString)
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
     }
 
     // ==================== Debug (仅 DEBUG 构建) ====================

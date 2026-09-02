@@ -53,6 +53,7 @@ h1 {
 .discord .dot { background: #5865F2; }
 .telegram .dot { background: #26A5E4; }
 .llm .dot { background: #34C759; }
+.persona .dot { background: #FF9500; }
 .field { margin-bottom: 16px; }
 .field:last-child { margin-bottom: 0; }
 label {
@@ -76,6 +77,23 @@ input[type="text"], input[type="password"] {
   padding-right: 42px;
 }
 input:focus {
+  border-color: #5856D6;
+  background: #fff;
+}
+textarea {
+  width: 100%;
+  border: 1.5px solid #e5e5ea;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fafafa;
+  resize: vertical;
+  box-sizing: border-box;
+}
+textarea:focus {
   border-color: #5856D6;
   background: #fff;
 }
@@ -146,6 +164,15 @@ input:focus {
   <div id="loading" class="loading" data-i18n="loading"></div>
 
   <div id="content" style="display:none">
+    <div class="card persona">
+      <div class="card-title"><span class="dot"></span><span data-i18n="persona_title"></span></div>
+      <div class="field">
+        <label data-i18n="persona_label"></label>
+        <textarea id="persona" rows="6" data-i18n-placeholder="ph_persona"></textarea>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="persona_tip"></p>
+    </div>
+
     <div class="card llm">
       <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
       <div class="field">
@@ -256,6 +283,10 @@ const i18nMessages = {
     ph_llm_base_url: '如 https://api.openai.com/v1（留空使用默认）',
     ph_llm_model: '如 gpt-4o、gpt-4o-mini',
     llm_tip: 'API Key 仅保存在设备本地，可通过设置 → LLM 配置 在应用内修改',
+    persona_title: '助手人格',
+    persona_label: '人格设定（留空使用默认）',
+    ph_persona: '例如：你是一只叫小爪的猫娘助手，说话带喵',
+    persona_tip: '只影响语气与角色扮演，不能覆盖执行协议与安全约束',
     load_failed: '加载失败，请检查连接',
     dingtalk: '钉钉',
     feishu: '飞书',
@@ -288,6 +319,10 @@ const i18nMessages = {
     ph_llm_base_url: 'e.g. https://api.openai.com/v1 (empty = default)',
     ph_llm_model: 'e.g. gpt-4o, gpt-4o-mini',
     llm_tip: 'API Key is stored locally only. You can also edit in Settings → LLM Config',
+    persona_title: 'Persona',
+    persona_label: 'Persona setting (leave empty for default)',
+    ph_persona: 'e.g. You are a catgirl assistant named Xiaozhua who says meow',
+    persona_tip: 'Affects tone and role-play only; cannot override execution protocol or safety constraints',
     load_failed: 'Failed to load, please check connection',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -320,6 +355,10 @@ const i18nMessages = {
     ph_llm_base_url: '例: https://api.openai.com/v1（空欄でデフォルト）',
     ph_llm_model: '例: gpt-4o、gpt-4o-mini',
     llm_tip: 'API Key は端末内にのみ保存されます。設定 → LLM 設定 からも変更可能',
+    persona_title: 'アシスタント人格',
+    persona_label: '人格設定（空欄でデフォルト）',
+    ph_persona: '例: あなたは「小爪」という猫娘アシスタントです',
+    persona_tip: '口調とロールプレイにのみ影響し、実行プロトコルと安全制約は上書きできません',
     load_failed: '読み込みに失敗しました。接続を確認してください',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -391,9 +430,10 @@ const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName'];
 
 async function load() {
   try {
-    const [chanRes, llmRes] = await Promise.all([fetch('/api/channels'), fetch('/api/llm')]);
+    const [chanRes, llmRes, personaRes] = await Promise.all([fetch('/api/channels'), fetch('/api/llm'), fetch('/api/persona')]);
     const chanJson = await chanRes.json();
     const llmJson = await llmRes.json();
+    const personaJson = await personaRes.json();
     if (chanJson.code === 0 && chanJson.data) {
       fields.forEach(f => {
         const el = document.getElementById(f);
@@ -405,6 +445,10 @@ async function load() {
         const el = document.getElementById(f);
         if (el && llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
       });
+    }
+    if (personaJson.code === 0 && personaJson.data) {
+      const el = document.getElementById('persona');
+      if (el) el.value = personaJson.data.persona || '';
     }
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
@@ -428,17 +472,19 @@ async function save() {
       const el = document.getElementById(f);
       if (el) llmBody[f] = el.value.trim();
     });
-    const [chanRes, llmRes] = await Promise.all([
+    const [chanRes, llmRes, personaRes] = await Promise.all([
       fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
-      fetch('/api/llm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(llmBody) })
+      fetch('/api/llm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(llmBody) }),
+      fetch('/api/persona', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ persona: document.getElementById('persona').value }) })
     ]);
     const chanJson = await chanRes.json();
     const llmJson = await llmRes.json();
-    if (chanJson.code === 0 && llmJson.code === 0) {
+    const personaJson = await personaRes.json();
+    if (chanJson.code === 0 && llmJson.code === 0 && personaJson.code === 0) {
       showToast(t('save_success'), 'success');
       setTimeout(load, 500);
     } else {
-      const msg = chanJson.code !== 0 ? chanJson.message : llmJson.message;
+      const msg = [chanJson, llmJson, personaJson].find(j => j.code !== 0)?.message;
       showToast(t('save_failed') + ': ' + (msg || t('unknown_error')), 'error');
     }
   } catch (e) {
