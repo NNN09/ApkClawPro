@@ -38,6 +38,9 @@ object ToolRegistry {
         register(ClipboardTool())
         register(SendFileTool())
         register(FinishTool())
+        register(MemorySaveTool())
+        register(MemoryDeleteTool())
+        register(MemoryListTool())
     }
 
     private fun registerTvTools() {

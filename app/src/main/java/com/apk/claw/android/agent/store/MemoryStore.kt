@@ -16,12 +16,15 @@ object MemoryStore {
     private val ENTRY_PREFIX = Regex("^- \\[[^]]*] ?")
     private lateinit var file: File
 
+    @JvmStatic
     fun init(rootDir: File) {
         rootDir.mkdirs()
         file = File(rootDir, "memory.md")
         if (!file.exists()) file.writeText("")
     }
 
+    @JvmStatic
+    @JvmOverloads
     fun save(text: String, timestamp: String = nowStamp()): Boolean {
         val t = text.trim()
         if (t.isEmpty()) return false
@@ -33,8 +36,10 @@ object MemoryStore {
         return true
     }
 
+    @JvmStatic
     fun all(): List<String> = readLines().map { extractText(it) }
 
+    @JvmStatic
     fun delete(text: String): Boolean {
         val t = text.trim()
         val lines = readLines()
