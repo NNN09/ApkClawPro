@@ -32,6 +32,17 @@ class WeChatChannelHandler(
 
     private val apiClient = WeChatApiClient()
 
+    /**
+     * 入站消息去重：微信官方 bot 为至少一次投递，游标推进仍可能重复下发同一消息
+     * （实测约 8 秒后原样重发），不去重会导致同一任务被重复执行。
+     * 键 = messageId + 内容哈希：纯文本重复件命中去重；语音转写等渐进更新类消息
+     * 内容变化后生成新键，不会被误拦。
+     */
+    private val seenInboundKeys = object : LinkedHashMap<String, Long>(128, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>): Boolean = size > 128
+    }
+    private val seenInboundLock = Any()
+
     /** 当前 bot 的 accountId（用于 contextToken 管理和 session guard） */
     private val accountId: String get() = botToken.substringBefore(":").ifEmpty { "default" }
 
@@ -161,6 +172,14 @@ class WeChatChannelHandler(
         val fromUserId = msg.fromUserId
         if (fromUserId.isEmpty()) return
 
+        // 提取文本（支持纯文本、语音转文字、引用消息）；同时用于去重键
+        val body = WeChatInbound.bodyFromItemList(msg.itemList)
+
+        if (isDuplicateInbound(msg, body)) {
+            XLog.w(TAG, "重复入站消息已跳过: messageId=${msg.messageId}, body=${body.take(40)}")
+            return
+        }
+
         // 缓存 contextToken（对应 inbound.ts setContextToken）
         if (!msg.contextToken.isNullOrEmpty()) {
             WeChatInbound.setContextToken(accountId, fromUserId, msg.contextToken)
@@ -205,8 +224,7 @@ class WeChatChannelHandler(
             }
         }
 
-        // 提取文本（支持纯文本、语音转文字、引用消息）
-        val body = WeChatInbound.bodyFromItemList(msg.itemList)
+        // 纯媒体消息（图片/视频/文件无附带文本），回复提示
         if (body.isEmpty()) {
             // 纯媒体消息（图片/视频/文件无附带文本），回复提示
             val app = com.apk.claw.android.ClawApplication.instance
@@ -235,6 +253,19 @@ class WeChatChannelHandler(
         XLog.i(TAG, "[${channel.displayName}] 收到消息: ${body.take(80)}, from=${fromUserId.takeLast(16)}")
         lastFromUserId = fromUserId
         ChannelManager.dispatchMessage(channel, body, msg.contextToken ?: "", fromUserId)
+    }
+
+    /** 判定是否为窗口期内重复投递的同一消息；首次见到则登记 */
+    private fun isDuplicateInbound(msg: WeChatMessage, body: String): Boolean {
+        val idPart = msg.messageId?.takeIf { it != 0L } ?: msg.fromUserId.hashCode()
+        val key = "$idPart:${body.hashCode()}"
+        val now = System.currentTimeMillis()
+        synchronized(seenInboundLock) {
+            val seenAt = seenInboundKeys[key]
+            if (seenAt != null && now - seenAt < DUPLICATE_WINDOW_MS) return true
+            seenInboundKeys[key] = now
+            return false
+        }
     }
 
     // ==================== ChannelHandler 接口实现 ====================
@@ -447,5 +478,8 @@ class WeChatChannelHandler(
         private const val MAX_CONSECUTIVE_FAILURES = 3
         private const val BACKOFF_DELAY_MS = 30_000L
         private const val RETRY_DELAY_MS = 2_000L
+
+        /** 重复投递判定窗口；实测重发约在数秒内，取 10 分钟余量 */
+        private const val DUPLICATE_WINDOW_MS = 10 * 60_000L
     }
 }
