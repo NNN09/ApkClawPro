@@ -10,6 +10,7 @@ import com.apk.claw.android.agent.llm.LlmClient
 import com.apk.claw.android.agent.llm.LlmClientFactory
 import com.apk.claw.android.agent.llm.LlmResponse
 import com.apk.claw.android.agent.llm.StreamingListener
+import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.PromptComposer
 import com.apk.claw.android.agent.store.SessionStore
@@ -325,7 +326,7 @@ class DefaultAgentService : AgentService {
         val fullSystemPrompt = PromptComposer.compose(
             persona = PersonaStore.get(),
             protocol = config.systemPrompt,
-            memorySection = "",        // T11 接入
+            memorySection = MemoryStore.promptSection(),
             skillsCatalog = "",        // T13 接入
             deviceContext = buildDeviceContext()
         )

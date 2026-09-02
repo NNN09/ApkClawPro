@@ -1,6 +1,7 @@
 package com.apk.claw.android
 
 import com.apk.claw.android.agent.DefaultAgentService
+import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.base.BaseApp
@@ -36,6 +37,7 @@ class ClawApplication : BaseApp() {
         val agentDir = File(filesDir, "agent")
         PersonaStore.init(agentDir)
         SessionStore.init(agentDir)
+        MemoryStore.init(agentDir)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 
