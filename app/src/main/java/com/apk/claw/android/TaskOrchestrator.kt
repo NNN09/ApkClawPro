@@ -152,17 +152,12 @@ class TaskOrchestrator(
 
         FloatingCircleManager.showTaskNotify(task, channel)
 
-        // 每轮消息聚合缓冲：thinking 攒一条；工具明细只聚合成一行摘要，减少发送量
-        val roundBuffer = StringBuilder()
-        val roundActions = LinkedHashMap<String, Int>()
-        var roundFailures = 0
-
-        /** 消息尾部任务列表：正在执行的本任务 + 本发送者的排队任务（无内容则返回 null） */
+        /** 任务列表文案：正在执行的本任务 + 本发送者的排队任务（无内容则返回 null） */
         fun buildTaskListFooter(includeRunning: Boolean): String? {
             val pending = pendingTasksProvider?.invoke(channel, senderId).orEmpty()
             val sb = StringBuilder()
             if (includeRunning) {
-                sb.append(ClawApplication.instance.getString(R.string.channel_task_running, task))
+                sb.append(ClawApplication.instance.getString(R.string.channel_task_start, task))
             }
             pending.forEach { p ->
                 if (sb.isNotEmpty()) sb.append("\n")
@@ -170,6 +165,16 @@ class TaskOrchestrator(
             }
             return if (sb.isEmpty()) null else sb.toString()
         }
+
+        // 任务开始即发任务列表（与结束各一次；中间进度不带，避免每步刷屏）
+        buildTaskListFooter(includeRunning = true)?.let {
+            ChannelManager.sendMessage(channel, it, messageID)
+        }
+
+        // 每轮消息聚合缓冲：thinking 攒一条；工具明细只聚合成一行摘要，减少发送量
+        val roundBuffer = StringBuilder()
+        val roundActions = LinkedHashMap<String, Int>()
+        var roundFailures = 0
 
         fun flushRoundBuffer() {
             if (roundActions.isNotEmpty()) {
@@ -185,9 +190,7 @@ class TaskOrchestrator(
                 roundFailures = 0
             }
             if (roundBuffer.isNotEmpty()) {
-                val body = roundBuffer.toString().trim()
-                val footer = buildTaskListFooter(includeRunning = true)
-                ChannelManager.sendMessage(channel, if (footer == null) body else "$body\n$footer", messageID)
+                ChannelManager.sendMessage(channel, roundBuffer.toString().trim(), messageID)
                 roundBuffer.clear()
             }
         }
