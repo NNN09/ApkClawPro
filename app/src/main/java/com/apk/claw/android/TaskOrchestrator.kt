@@ -26,6 +26,11 @@ class TaskOrchestrator(
 
     companion object {
         private const val TAG = "TaskOrchestrator"
+
+        /** 纯观察类工具：执行细节对用户无信息量，不进入进度摘要 */
+        private val PROGRESS_SILENT_TOOLS = setOf(
+            "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps", "wait"
+        )
     }
 
     private lateinit var agentService: AgentService
@@ -143,10 +148,24 @@ class TaskOrchestrator(
 
         FloatingCircleManager.showTaskNotify(task, channel)
 
-        // 每轮消息聚合缓冲：thinking + toolResult 攒成一条，减少发送次数
+        // 每轮消息聚合缓冲：thinking 攒一条；工具明细只聚合成一行摘要，减少发送量
         val roundBuffer = StringBuilder()
+        val roundActions = LinkedHashMap<String, Int>()
+        var roundFailures = 0
 
         fun flushRoundBuffer() {
+            if (roundActions.isNotEmpty()) {
+                val joined = roundActions.entries.joinToString("、") { e ->
+                    if (e.value > 1) "${e.key}×${e.value}" else e.key
+                }
+                if (roundBuffer.isNotEmpty()) roundBuffer.append("\n")
+                roundBuffer.append(
+                    if (roundFailures > 0) ClawApplication.instance.getString(R.string.channel_msg_round_tools_failed, joined, roundFailures)
+                    else ClawApplication.instance.getString(R.string.channel_msg_round_tools, joined)
+                )
+                roundActions.clear()
+                roundFailures = 0
+            }
             if (roundBuffer.isNotEmpty()) {
                 ChannelManager.sendMessage(channel, roundBuffer.toString().trim(), messageID)
                 roundBuffer.clear()
@@ -185,12 +204,10 @@ class TaskOrchestrator(
                     // finish 的结果单独发，不合并（这是最终回复）
                     flushRoundBuffer()
                     ChannelManager.sendMessage(channel, result.data, messageID)
-                } else {
-                    // 追加到本轮缓冲
-                    if (roundBuffer.isNotEmpty()) roundBuffer.append("\n")
-                    roundBuffer.append(
-                        app.getString(R.string.channel_msg_tool_execution, toolName + parameters, status)
-                    )
+                } else if (toolId !in PROGRESS_SILENT_TOOLS) {
+                    // 只做本轮聚合计数，flush 时统一发一行摘要；观察类工具完全不上屏
+                    if (!result.isSuccess) roundFailures++
+                    roundActions[toolName] = (roundActions[toolName] ?: 0) + 1
                 }
             }
 

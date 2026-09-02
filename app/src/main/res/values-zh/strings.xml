@@ -153,6 +153,8 @@
     <string name="channel_msg_tool_success">成功</string>
     <string name="channel_msg_tool_failure">失败</string>
     <string name="channel_msg_tool_execution">[%1$s]：%2$s</string>
+    <string name="channel_msg_round_tools">执行：%1$s</string>
+    <string name="channel_msg_round_tools_failed">执行：%1$s（%2$d 项失败）</string>
     <string name="channel_msg_task_error">遇到了错误：%s</string>
     <string name="channel_msg_no_accessibility">缺少无障碍权限，无法执行任务</string>
     <string name="channel_msg_task_in_progress">有任务执行中，请稍候</string>
