@@ -10,6 +10,7 @@ import com.apk.claw.android.agent.llm.LlmClient
 import com.apk.claw.android.agent.llm.LlmClientFactory
 import com.apk.claw.android.agent.llm.LlmResponse
 import com.apk.claw.android.agent.llm.StreamingListener
+import com.apk.claw.android.agent.store.ContextBudget
 import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.PromptComposer
@@ -50,6 +51,9 @@ class DefaultAgentService : AgentService {
             "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps",
             "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill"
         )
+
+        /** 上下文超预算截断时保留的最近执行轮数 */
+        private const val KEEP_RECENT_ROUNDS = 4
 
         /** 是否将网络请求/响应原始数据输出到沙盒缓存文件，方便调试 */
         @JvmField
@@ -329,6 +333,15 @@ class DefaultAgentService : AgentService {
             return
         }
 
+        // 摘要沉淀：把上一批被裁剪的会话轮次合并进 digest（失败则退化为丢弃）
+        val pending = SessionStore.pendingDigest(request.channel, request.senderId)
+        if (pending.isNotEmpty()) {
+            summarizeDigest(SessionStore.digest(request.channel, request.senderId), pending)?.let {
+                SessionStore.updateDigest(request.channel, request.senderId, it)
+            }
+            SessionStore.clearPendingDigest(request.channel, request.senderId)
+        }
+
         // 构建 System Prompt（人格 → 执行协议 → 记忆 → 技能目录 → 设备上下文）
         val fullSystemPrompt = PromptComposer.compose(
             persona = PersonaStore.get(),
@@ -340,11 +353,16 @@ class DefaultAgentService : AgentService {
 
         val messages = mutableListOf<ChatMessage>()
         messages.add(SystemMessage.from(fullSystemPrompt))
+        val digest = SessionStore.digest(request.channel, request.senderId)
+        if (digest.isNotBlank()) {
+            messages.add(UserMessage.from("[历史摘要] 以下是本会话更早轮次的摘要：\n$digest"))
+        }
         SessionStore.history(request.channel, request.senderId).forEach { turn ->
             messages.add(UserMessage.from(turn.user))
             messages.add(AiMessage.from(turn.assistant))
         }
         messages.add(UserMessage.from(userPrompt))
+        val taskUserIndex = messages.size - 1   // 截断保护边界：此前消息永不被截断
 
         var iterations = 0
         var totalTokens = 0
@@ -359,6 +377,14 @@ class DefaultAgentService : AgentService {
 
             // 发送前分级压缩历史消息，节省 token
             compressHistoryForSend(messages)
+
+            // 超字符预算时升级压缩：先激进压缩全部工具结果，仍超则丢弃最早执行轮次
+            if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
+                ContextBudget.compressAllToolResults(messages)
+                if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
+                    ContextBudget.truncateOldestRounds(messages, taskUserIndex, KEEP_RECENT_ROUNDS)
+                }
+            }
 
             // LLM 调用（带重试）
             val llmResponse: LlmResponse
@@ -489,4 +515,31 @@ class DefaultAgentService : AgentService {
     }
 
     override fun isRunning(): Boolean = running.get()
+
+    /** 用一次无工具的 LLM 调用合并旧摘要与新增轮次；失败返回 null（退化为丢弃，即现状行为） */
+    private fun summarizeDigest(oldDigest: String, turns: List<SessionStore.Turn>): String? {
+        val sb = StringBuilder()
+        if (oldDigest.isNotBlank()) sb.append("既有摘要：\n").append(oldDigest).append("\n\n")
+        sb.append("新增对话：\n")
+        turns.forEach {
+            sb.append("用户：").append(it.user).append("\n")
+            sb.append("助手：").append(it.assistant).append("\n\n")
+        }
+        val msgs = listOf<ChatMessage>(
+            SystemMessage.from(
+                "你是会话摘要器。把既有摘要与新增对话合并为一份结构化摘要（Claude Code compact 同款格式），" +
+                    "只保留对后续任务有用的信息，总长不超过 300 字，直接输出正文：\n" +
+                    "## 背景与目标\n（用户在做什么、为什么）\n" +
+                    "## 用户偏好与关键事实\n（稳定的事实、偏好、约定）\n" +
+                    "## 未完成事项\n（待办与悬而未决的问题；没有则写\"无\"）"
+            ),
+            UserMessage.from(sb.toString())
+        )
+        return try {
+            llmClient.chat(msgs, emptyList()).text?.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            XLog.w(TAG, "digest summarization failed, evicted turns dropped instead", e)
+            null
+        }
+    }
 }

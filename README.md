@@ -111,6 +111,8 @@ Both streaming and non-streaming modes are supported. The HTTP layer uses a cust
 - The most recent 10 turns ("user message + final reply") are kept per (channel, sender); the session resets automatically after 30 minutes of inactivity.
 - Send `新对话` or `/new` to reset the current session immediately.
 - Messages arriving while a task is running are queued (up to 3) and executed in order after it finishes.
+- When turns exceed the limit, evicted turns are summarized into a structured "session digest" (background / preferences & facts / open items) at the start of the next task instead of being dropped; if summarization fails, they degrade to plain eviction.
+- When in-task context exceeds the character budget (~24k tokens), compression escalates automatically: first all tool results are compressed (always keeping the latest screen info), then the oldest execution rounds are dropped if still over budget.
 
 ### Long-term Memory
 - The agent maintains `filesDir/agent/memory.md` autonomously via the `memory_save` / `memory_delete` / `memory_list` tools (line-based entries, capped at 50, human-editable).

@@ -71,4 +71,42 @@ class SessionStoreTest {
         assertEquals(1, SessionStore.history(Channel.TELEGRAM, "a").size)
         assertEquals(1, SessionStore.history(Channel.TELEGRAM, "b").size)
     }
+
+    @Test fun evictedTurns_goToPendingDigest() {
+        SessionStore.init(tmp.root)
+        repeat(12) { i -> SessionStore.appendTurn(Channel.TELEGRAM, "u", "q$i", "a$i") }
+        val pending = SessionStore.pendingDigest(Channel.TELEGRAM, "u")
+        assertEquals(2, pending.size)
+        assertEquals("q0", pending[0].user)
+    }
+
+    @Test fun digest_roundtrip() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTurn(Channel.TELEGRAM, "u", "q", "a")   // 确保会话存在
+        SessionStore.updateDigest(Channel.TELEGRAM, "u", "用户偏好摘要")
+        assertEquals("用户偏好摘要", SessionStore.digest(Channel.TELEGRAM, "u"))
+    }
+
+    @Test fun updateDigest_capsLength() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTurn(Channel.TELEGRAM, "u", "q", "a")
+        SessionStore.updateDigest(Channel.TELEGRAM, "u", "x".repeat(1000))
+        assertEquals(600, SessionStore.digest(Channel.TELEGRAM, "u").length)
+    }
+
+    @Test fun clearPendingDigest_emptiesQueue() {
+        SessionStore.init(tmp.root)
+        repeat(12) { i -> SessionStore.appendTurn(Channel.TELEGRAM, "u", "q$i", "a$i") }
+        SessionStore.clearPendingDigest(Channel.TELEGRAM, "u")
+        assertTrue(SessionStore.pendingDigest(Channel.TELEGRAM, "u").isEmpty())
+    }
+
+    @Test fun sessionsjson_oldFormatStillLoads() {
+        // 旧版本 sessions.json（无 digest 字段）加载后不崩
+        tmp.root.resolve("sessions.json").writeText(
+            """{"TELEGRAM:u":{"turns":[{"user":"q","assistant":"a"}],"lastActive":9999999999999}}""")
+        SessionStore.init(tmp.root)
+        assertEquals(1, SessionStore.history(Channel.TELEGRAM, "u").size)
+        assertEquals("", SessionStore.digest(Channel.TELEGRAM, "u"))
+    }
 }
