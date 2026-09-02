@@ -105,6 +105,8 @@ class DefaultAgentService : AgentService {
             } finally {
                 running.set(false)
             }
+            // running 已清除、线程即将空闲；此时再触发空闲联动才不会与下一任务竞态
+            callback.onSettled()
         }
     }
 

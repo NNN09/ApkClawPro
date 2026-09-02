@@ -122,7 +122,7 @@ class TaskOrchestrator(
         }
         FloatingCircleManager.setErrorState()
         onTaskFinished()
-        notifyIdle()
+        // 不在此处 notifyIdle：Agent 线程尚未空闲，排队排空由任务收尾的 onSettled 触发
         XLog.d(TAG, "Current task cancelled by user")
     }
 
@@ -136,6 +136,7 @@ class TaskOrchestrator(
                 XLog.e(TAG, "Failed to initialize AgentService", e)
                 releaseTask()
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_service_not_ready), messageID)
+                notifyIdle()   // 队列中后续消息也依次走同一失败路径，避免队列滞留
                 return
             }
         }
@@ -201,7 +202,6 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setSuccessState()
                 onTaskFinished()
-                notifyIdle()
             }
 
             override fun onError(round: Int, error: Exception, totalTokens: Int) {
@@ -212,7 +212,6 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
-                notifyIdle()
             }
 
             override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
@@ -234,6 +233,10 @@ class TaskOrchestrator(
                 }
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
+            }
+
+            override fun onSettled() {
+                // Agent running 标志已清除，此刻排空队列才不会撞上"已在使用"竞态
                 notifyIdle()
             }
         })
