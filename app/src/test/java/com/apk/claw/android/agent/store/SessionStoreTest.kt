@@ -109,4 +109,31 @@ class SessionStoreTest {
         assertEquals(1, SessionStore.history(Channel.TELEGRAM, "u").size)
         assertEquals("", SessionStore.digest(Channel.TELEGRAM, "u"))
     }
+
+    @Test fun concurrentAppendTurns_noLostSessions() {
+        // Agent 线程与渠道线程并发访问；无锁时 HashMap 并发扩容会丢会话
+        SessionStore.init(tmp.root)
+        val threads = 8
+        val keysPerThread = 25
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(threads)
+        try {
+            val futures = (0 until threads).map { t ->
+                pool.submit {
+                    repeat(keysPerThread) { k ->
+                        val sender = "s-$t-$k"
+                        SessionStore.appendTurn(Channel.TELEGRAM, sender, "q1", "a1")
+                        SessionStore.appendTurn(Channel.TELEGRAM, sender, "q2", "a2")
+                    }
+                }
+            }
+            futures.forEach { it.get(60, java.util.concurrent.TimeUnit.SECONDS) }
+            repeat(threads) { t ->
+                repeat(keysPerThread) { k ->
+                    assertEquals(2, SessionStore.history(Channel.TELEGRAM, "s-$t-$k").size)
+                }
+            }
+        } finally {
+            pool.shutdownNow()
+        }
+    }
 }

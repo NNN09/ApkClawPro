@@ -14,18 +14,21 @@ object MemoryStore {
     const val MAX_ENTRIES = 50
 
     private val ENTRY_PREFIX = Regex("^- \\[[^]]*] ?")
+    private val lock = Any()
     private lateinit var file: File
 
     @JvmStatic
     fun init(rootDir: File) {
-        rootDir.mkdirs()
-        file = File(rootDir, "memory.md")
-        if (!file.exists()) file.writeText("")
+        synchronized(lock) {
+            rootDir.mkdirs()
+            file = File(rootDir, "memory.md")
+            if (!file.exists()) file.writeText("")
+        }
     }
 
     @JvmStatic
     @JvmOverloads
-    fun save(text: String, timestamp: String = nowStamp()): Boolean {
+    fun save(text: String, timestamp: String = nowStamp()): Boolean = synchronized(lock) {
         val t = text.trim()
         if (t.isEmpty()) return false
         val lines = readLines()
@@ -37,15 +40,15 @@ object MemoryStore {
     }
 
     @JvmStatic
-    fun all(): List<String> = readLines().map { extractText(it) }
+    fun all(): List<String> = synchronized(lock) { readLines().map { extractText(it) } }
 
     @JvmStatic
-    fun delete(text: String): Boolean {
+    fun delete(text: String): Boolean = synchronized(lock) {
         val t = text.trim()
         val lines = readLines()
         val removed = lines.removeAll { extractText(it) == t }
         if (removed) writeLines(lines)
-        return removed
+        removed
     }
 
     fun promptSection(): String {

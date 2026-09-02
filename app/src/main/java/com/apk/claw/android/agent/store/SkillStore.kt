@@ -13,28 +13,31 @@ object SkillStore {
     data class Skill(val name: String, val description: String)
 
     private val NAME_REGEX = Regex("^[a-z0-9-]{1,40}$")
+    private val lock = Any()
     private lateinit var dir: File
 
     @JvmStatic
     fun init(rootDir: File) {
-        dir = File(rootDir, "skills")
-        dir.mkdirs()
+        synchronized(lock) {
+            dir = File(rootDir, "skills")
+            dir.mkdirs()
+        }
     }
 
     @JvmStatic
-    fun upsert(name: String, description: String, body: String): Boolean {
+    fun upsert(name: String, description: String, body: String): Boolean = synchronized(lock) {
         if (!NAME_REGEX.matches(name)) return false
         val skillDir = File(dir, name)
         skillDir.mkdirs()
         val header = "---\nname: $name\ndescription: ${description.replace("\n", " ")}\n---\n"
         File(skillDir, "SKILL.md").writeText(header + body.trim() + "\n")
-        return true
+        true
     }
 
     @JvmStatic
-    fun list(): List<Skill> {
+    fun list(): List<Skill> = synchronized(lock) {
         val dirs = dir.listFiles { f -> f.isDirectory } ?: return emptyList()
-        return dirs.mapNotNull { d ->
+        dirs.mapNotNull { d ->
             val md = File(d, "SKILL.md")
             if (!md.exists()) return@mapNotNull null
             Skill(d.name, parseDescription(md.readText()))
@@ -42,11 +45,11 @@ object SkillStore {
     }
 
     @JvmStatic
-    fun load(name: String): String? {
+    fun load(name: String): String? = synchronized(lock) {
         if (!NAME_REGEX.matches(name)) return null
         val md = File(dir, "$name${File.separator}SKILL.md")
         if (!md.exists()) return null
-        return stripFrontmatter(md.readText()).trim().ifEmpty { null }
+        stripFrontmatter(md.readText()).trim().ifEmpty { null }
     }
 
     fun catalogSection(): String {

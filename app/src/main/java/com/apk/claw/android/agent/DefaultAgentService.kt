@@ -52,8 +52,11 @@ class DefaultAgentService : AgentService {
             "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill"
         )
 
+        /** 发送前分级压缩的保护区：最近 N 轮完整保留 */
+        private const val COMPRESS_PROTECT_ROUNDS = 3
+
         /** 上下文超预算截断时保留的最近执行轮数 */
-        private const val KEEP_RECENT_ROUNDS = 4
+        private const val TRUNCATE_KEEP_ROUNDS = 4
 
         /** 是否将网络请求/响应原始数据输出到沙盒缓存文件，方便调试 */
         @JvmField
@@ -90,13 +93,23 @@ class DefaultAgentService : AgentService {
     override fun executeTask(request: TaskRequest, callback: AgentCallback) {
         if (running.get()) {
             callback.onError(0, IllegalStateException("Agent is already running a task"), 0)
+            // 契约：每次 executeTask 的回调链都以 onSettled 收尾，否则调用方的任务锁会泄漏
+            callback.onSettled()
+            return
+        }
+
+        val ex = executor
+        if (ex == null) {
+            // initialize 中途抛异常时 executor 为 null：置位 running 却无人清零，会永久卡死
+            callback.onError(0, IllegalStateException("Agent executor is not initialized"), 0)
+            callback.onSettled()
             return
         }
 
         running.set(true)
         cancelled.set(false)
 
-        executor?.submit {
+        ex.submit {
             try {
                 runAgentLoop(request, callback)
             } catch (e: Exception) {
@@ -207,9 +220,6 @@ class DefaultAgentService : AgentService {
 
     // ==================== 上下文压缩 ====================
 
-    /** 保护区：最近 N 轮完整保留 */
-    private val KEEP_RECENT_ROUNDS = 3
-
     /** 大输出观察类工具 → 压缩后占位符 */
     private val OBSERVATION_PLACEHOLDERS = mapOf(
         "get_screen_info" to "[屏幕信息已省略]",
@@ -222,7 +232,7 @@ class DefaultAgentService : AgentService {
     /**
      * 发送前压缩历史消息，节省 input token：
      * - get_screen_info：全局只保留最新一条完整结果
-     * - 保护区（最近 KEEP_RECENT_ROUNDS 轮）：完整保留
+     * - 保护区（最近 COMPRESS_PROTECT_ROUNDS 轮）：完整保留
      * - 保护区外：AI thinking 不动，tool result 压缩为一行摘要
      */
     private fun compressHistoryForSend(messages: MutableList<ChatMessage>) {
@@ -256,13 +266,13 @@ class DefaultAgentService : AgentService {
 
         // 1. 找出所有 AiMessage 的索引，每个代表一轮
         val aiIndices = messages.indices.filter { messages[it] is AiMessage }
-        if (aiIndices.size <= KEEP_RECENT_ROUNDS) return
+        if (aiIndices.size <= COMPRESS_PROTECT_ROUNDS) return
 
         val totalRounds = aiIndices.size
 
         for (roundIdx in aiIndices.indices) {
             val roundFromEnd = totalRounds - roundIdx
-            if (roundFromEnd <= KEEP_RECENT_ROUNDS) break // 保护区
+            if (roundFromEnd <= COMPRESS_PROTECT_ROUNDS) break // 保护区
 
             val aiIndex = aiIndices[roundIdx]
 
@@ -384,7 +394,7 @@ class DefaultAgentService : AgentService {
             if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
                 ContextBudget.compressAllToolResults(messages)
                 if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
-                    ContextBudget.truncateOldestRounds(messages, taskUserIndex, KEEP_RECENT_ROUNDS)
+                    ContextBudget.truncateOldestRounds(messages, taskUserIndex, TRUNCATE_KEEP_ROUNDS)
                 }
             }
 

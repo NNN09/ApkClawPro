@@ -65,4 +65,24 @@ class MemoryStoreTest {
         tmp.root.resolve("memory.md").appendText("手工加的一行\n")
         assertEquals(listOf("A", "手工加的一行"), MemoryStore.all())
     }
+
+    @Test fun concurrentSaves_keepAllEntries() {
+        // Agent 工具线程与调试入口并发保存；无锁时读-改-写会互相覆盖丢条目。
+        // 总条数须低于 MAX_ENTRIES(50)，避免触发 FIFO 裁剪
+        MemoryStore.init(tmp.root)
+        val threads = 4
+        val savesPerThread = 10
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(threads)
+        try {
+            val futures = (0 until threads).map { t ->
+                pool.submit {
+                    repeat(savesPerThread) { k -> MemoryStore.save("记忆-$t-$k", "2026-09-02 10:00") }
+                }
+            }
+            futures.forEach { it.get(60, java.util.concurrent.TimeUnit.SECONDS) }
+            assertEquals(threads * savesPerThread, MemoryStore.all().size)
+        } finally {
+            pool.shutdownNow()
+        }
+    }
 }

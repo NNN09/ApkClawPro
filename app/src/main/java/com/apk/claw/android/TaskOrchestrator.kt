@@ -198,16 +198,16 @@ class TaskOrchestrator(
                 XLog.i(TAG, "onComplete: 轮数=$round, totalTokens=$totalTokens, answer=$finalAnswer")
                 SessionStore.appendTurn(channel, senderId, task, finalAnswer)
                 flushRoundBuffer()
-                releaseTask()
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setSuccessState()
                 onTaskFinished()
+                // 任务锁延迟到 onSettled 释放：此刻 Agent 的 running 标志尚未清除，
+                // 提前放锁会让窗口期内的新消息拿到锁却被 executeTask 以"已在运行"拒绝
             }
 
             override fun onError(round: Int, error: Exception, totalTokens: Int) {
                 XLog.e(TAG, "onError: ${error.message}, totalTokens=$totalTokens", error)
                 flushRoundBuffer()
-                releaseTask()
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_error, error.message), messageID)
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()
@@ -217,7 +217,6 @@ class TaskOrchestrator(
             override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
                 XLog.w(TAG, "onSystemDialogBlocked: round=$round, totalTokens=$totalTokens")
                 flushRoundBuffer()
-                releaseTask()
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_system_dialog_blocked), messageID)
                 try {
                     val service = ClawAccessibilityService.getInstance()
@@ -236,7 +235,9 @@ class TaskOrchestrator(
             }
 
             override fun onSettled() {
-                // Agent running 标志已清除，此刻排空队列才不会撞上"已在使用"竞态
+                // Agent running 标志已清除、执行线程即将空闲：此刻释放任务锁并排空队列，
+                // 才不会出现"锁空闲但 Agent 仍占用"导致的假性拒绝
+                releaseTask()
                 notifyIdle()
             }
         })

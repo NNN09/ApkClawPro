@@ -32,6 +32,10 @@ class ConfigServer(
 
     private val gson = Gson()
 
+    /** 取字符串字段；缺失或 JSON null 返回 null，避免 JsonNull.asString 抛异常变成 500 */
+    private fun JsonObject.optString(key: String): String? =
+        get(key)?.takeIf { it.isJsonPrimitive }?.asString
+
     override fun serve(session: IHTTPSession): Response {
         // CORS 预检请求
         if (session.method == Method.OPTIONS) {
@@ -293,9 +297,7 @@ class ConfigServer(
                 )
             )
         }
-        if (json.has("persona")) {
-            PersonaStore.set(json.get("persona").asString)
-        }
+        json.optString("persona")?.let { PersonaStore.set(it) }
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
     }
 
@@ -331,9 +333,9 @@ class ConfigServer(
                 )
             )
         }
-        val name = json.get("name")?.asString ?: ""
-        val description = json.get("description")?.asString ?: ""
-        val content = json.get("content")?.asString ?: ""
+        val name = json.optString("name") ?: ""
+        val description = json.optString("description") ?: ""
+        val content = json.optString("content") ?: ""
         val ok = SkillStore.upsert(name, description, content)
         return if (ok) {
             corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
