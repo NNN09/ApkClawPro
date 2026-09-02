@@ -38,6 +38,14 @@ class TaskOrchestrator(
     var inProgressTaskChannel: Channel? = null
         private set
 
+    /** 任务结束（完成/失败/取消/弹窗终止）且锁已释放后回调。注意：回调在后台线程执行。 */
+    @Volatile
+    var onIdle: (() -> Unit)? = null
+
+    private fun notifyIdle() {
+        try { onIdle?.invoke() } catch (e: Exception) { XLog.e(TAG, "onIdle callback failed", e) }
+    }
+
     // ==================== Agent 生命周期 ====================
 
     fun initAgent() {
@@ -114,6 +122,7 @@ class TaskOrchestrator(
         }
         FloatingCircleManager.setErrorState()
         onTaskFinished()
+        notifyIdle()
         XLog.d(TAG, "Current task cancelled by user")
     }
 
@@ -194,6 +203,7 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setSuccessState()
                 onTaskFinished()
+                notifyIdle()
             }
 
             override fun onError(round: Int, error: Exception, totalTokens: Int) {
@@ -204,6 +214,7 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
+                notifyIdle()
             }
 
             override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
@@ -225,6 +236,7 @@ class TaskOrchestrator(
                 }
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
+                notifyIdle()
             }
         })
     }

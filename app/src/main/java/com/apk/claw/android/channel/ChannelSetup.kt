@@ -16,6 +16,18 @@ class ChannelSetup(
     private val taskOrchestrator: TaskOrchestrator
 ) {
 
+    private data class PendingMessage(
+        val channel: Channel, val senderId: String, val message: String, val messageID: String
+    )
+
+    private val queueLock = Any()
+    private val pendingQueue = ArrayDeque<PendingMessage>()
+
+    companion object {
+        private const val TAG = "ChannelSetup"
+        private const val MAX_PENDING = 3
+    }
+
     fun setup() {
         ChannelManager.init(
             dingtalkAppKey = KVUtils.getDingtalkAppKey().ifEmpty { null },
@@ -31,7 +43,7 @@ class ChannelSetup(
         )
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
             override fun onMessageReceived(channel: Channel, message: String, messageID: String, senderId: String) {
-                XLog.i("ChannelSetup", "msg from ${channel.displayName} sender=$senderId")
+                XLog.i(TAG, "msg from ${channel.displayName} sender=$senderId")
                 val app = ClawApplication.instance
                 if (!ClawAccessibilityService.isRunning()) {
                     ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)
@@ -48,12 +60,36 @@ class ChannelSetup(
                 }
 
                 if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
-                    ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_task_in_progress), messageID)
+                    val queued = synchronized(queueLock) {
+                        if (pendingQueue.size >= MAX_PENDING) null
+                        else { pendingQueue.addLast(PendingMessage(channel, senderId, message, messageID)); pendingQueue.size }
+                    }
+                    val reply = if (queued != null) {
+                        app.getString(R.string.channel_msg_queued, queued)
+                    } else {
+                        app.getString(R.string.channel_msg_queue_full)
+                    }
+                    ChannelManager.sendMessage(channel, reply, messageID)
                     ChannelManager.flushMessages(channel)
                     return
                 }
                 taskOrchestrator.startNewTask(channel, senderId, message, messageID)
             }
         })
+
+        taskOrchestrator.onIdle = { drainPending() }
+    }
+
+    /**
+     * 任务空闲后排空待执行消息队列。每次只启动一条；其结束后 onIdle 会再次触发。
+     */
+    private fun drainPending() {
+        while (true) {
+            val next = synchronized(queueLock) { pendingQueue.firstOrNull() } ?: return
+            if (!taskOrchestrator.tryAcquireTask(next.messageID, next.channel)) return
+            synchronized(queueLock) { pendingQueue.removeFirst() }
+            taskOrchestrator.startNewTask(next.channel, next.senderId, next.message, next.messageID)
+            return
+        }
     }
 }
