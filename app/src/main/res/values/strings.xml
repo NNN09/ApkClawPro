@@ -187,6 +187,10 @@
 
     <!-- Agent -->
     <string name="agent_accessibility_not_enabled">Accessibility service is not enabled</string>
+    <string name="agent_confirm_prompt">⚠️ Confirmation required\nOperation: %1$s\nRisk: %2$s\nReply “continue” to proceed, or “cancel” to skip (auto-cancelled after 2 minutes without reply).</string>
+    <string name="agent_dialog_resume_prompt">A system dialog blocked the automation (screenshot sent). Please handle it manually, then reply “continue” and I will resume the task from where it stopped. The task ends if no reply within 5 minutes.</string>
+    <string name="agent_dialog_wait_aborted">Task ended: timeout or cancelled while waiting for the system dialog to be handled. You can re-dispatch the task at any time.</string>
+    <string name="agent_confirm_rejected_skip">Operation skipped: the user did not confirm. Adjust the instruction and retry if needed.</string>
     <string name="agent_task_cancelled">Task cancelled</string>
     <string name="agent_task_completed">Task completed</string>
     <string name="agent_task_cancel">Task cancelled</string>

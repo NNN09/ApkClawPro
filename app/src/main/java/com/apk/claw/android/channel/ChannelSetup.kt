@@ -59,6 +59,11 @@ class ChannelSetup(
                     return
                 }
 
+                // F1/F2：有任务在等待用户决策时，确认/取消关键字直接放行门控
+                if (taskOrchestrator.interceptReply(channel, senderId, message)) {
+                    return
+                }
+
                 if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
                     val queued = synchronized(queueLock) {
                         if (pendingQueue.size >= MAX_PENDING) null

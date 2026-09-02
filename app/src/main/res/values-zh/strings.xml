@@ -187,6 +187,10 @@
 
     <!-- Agent 服务 -->
     <string name="agent_accessibility_not_enabled">无障碍服务未开启，无法执行任务</string>
+    <string name="agent_confirm_prompt">⚠️ 危险操作确认\n操作：%1$s\n风险：%2$s\n回复“继续”执行，回复“取消”跳过（2分钟未回复自动取消）。</string>
+    <string name="agent_dialog_resume_prompt">检测到系统弹窗阻止了自动化操作（截图已发送）。请手动处理该弹窗，然后回复“继续”，我会从中断处恢复任务；5分钟内未回复将结束任务。</string>
+    <string name="agent_dialog_wait_aborted">任务已结束：等待处理系统弹窗超时或被取消。可随时重新下发任务。</string>
+    <string name="agent_confirm_rejected_skip">该操作未经用户确认，已跳过。可调整指令后重试。</string>
     <string name="agent_task_cancelled">任务已取消</string>
     <string name="agent_task_completed">任务完成</string>
     <string name="agent_task_cancel">任务取消</string>

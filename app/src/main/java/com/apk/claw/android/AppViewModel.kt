@@ -58,6 +58,7 @@ class AppViewModel : ViewModel() {
             .baseUrl(baseUrl)
             .modelName(KVUtils.getLlmModelName())
             .contextWindowTokens(KVUtils.getLlmContextWindow())
+            .confirmDangerousOps(KVUtils.getConfirmDangerousOps())
             .temperature(0.1)
             .maxIterations(60)
             .build()

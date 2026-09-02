@@ -14,7 +14,9 @@ data class AgentConfig(
     val provider: LlmProvider = LlmProvider.OPENAI,
     val streaming: Boolean = false,
     /** 模型上下文窗口（tokens），决定 ContextBudget 压缩阈值；≤0 用默认值 */
-    val contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS
+    val contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS,
+    /** 危险操作（发送/支付/删除类）执行前是否需用户经渠道确认（F2） */
+    val confirmDangerousOps: Boolean = true
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
@@ -111,6 +113,7 @@ data class AgentConfig(
         private var provider: LlmProvider = LlmProvider.OPENAI
         private var streaming: Boolean = false
         private var contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS
+        private var confirmDangerousOps: Boolean = true
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -121,10 +124,11 @@ data class AgentConfig(
         fun provider(provider: LlmProvider) = apply { this.provider = provider }
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
         fun contextWindowTokens(contextWindowTokens: Int) = apply { this.contextWindowTokens = contextWindowTokens }
+        fun confirmDangerousOps(confirmDangerousOps: Boolean) = apply { this.confirmDangerousOps = confirmDangerousOps }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps)
         }
     }
 }

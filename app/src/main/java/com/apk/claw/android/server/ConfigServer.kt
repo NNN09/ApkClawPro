@@ -56,6 +56,7 @@ class ConfigServer(
                 uri == "/api/persona" && method == Method.POST -> handlePostPersona(session)
                 uri == "/api/skills" && method == Method.GET -> handleGetSkills()
                 uri == "/api/skills" && method == Method.POST -> handlePostSkill(session)
+                uri == "/api/tasks" && method == Method.GET -> handleGetTasks()
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -224,6 +225,7 @@ class ConfigServer(
             addProperty("llmBaseUrl", KVUtils.getLlmBaseUrl())
             addProperty("llmModelName", KVUtils.getLlmModelName())
             addProperty("llmContextWindow", KVUtils.getLlmContextWindow())
+            addProperty("confirmDangerousOps", KVUtils.getConfirmDangerousOps())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -270,6 +272,9 @@ class ConfigServer(
                 0
             }
             KVUtils.setLlmContextWindow(tokens.coerceAtLeast(0))
+        }
+        if (json.has("confirmDangerousOps")) {
+            KVUtils.setConfirmDangerousOps(json.get("confirmDangerousOps").asBoolean)
         }
 
         ConfigServerManager.notifyConfigChanged()
@@ -355,6 +360,35 @@ class ConfigServer(
                 """{"code":-1,"message":"invalid skill name (a-z, 0-9, '-'; max 40)"}"""
             ))
         }
+    }
+
+    // ==================== 任务历史（F3） ====================
+
+    private fun handleGetTasks(): Response {
+        val tasks = com.apk.claw.android.agent.store.TaskHistoryStore.list(100).map { record ->
+            JsonObject().apply {
+                addProperty("id", record.id)
+                addProperty("startTime", record.startTime)
+                addProperty("endTime", record.endTime)
+                addProperty("channel", record.channel)
+                // 发送者 ID 可能含平台身份信息，仅保留前缀用于区分
+                addProperty("sender", record.sender.take(6))
+                addProperty("task", record.task)
+                addProperty("status", record.status)
+                addProperty("rounds", record.rounds)
+                addProperty("toolCalls", record.toolCalls)
+                addProperty("tokens", record.tokens)
+                addProperty("error", record.error)
+                add("toolTrace", gson.toJsonTree(record.toolTrace))
+            }
+        }
+        val data = JsonObject().apply { add("tasks", gson.toJsonTree(tasks)) }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
     }
 
     // ==================== Debug (仅 DEBUG 构建) ====================

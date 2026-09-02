@@ -5,7 +5,9 @@ import com.apk.claw.android.agent.AgentConfig
 import com.apk.claw.android.agent.AgentService
 import com.apk.claw.android.agent.AgentServiceFactory
 import com.apk.claw.android.agent.TaskRequest
+import com.apk.claw.android.agent.UserDecisionGate
 import com.apk.claw.android.agent.store.SessionStore
+import com.apk.claw.android.agent.store.TaskHistoryStore
 import com.apk.claw.android.channel.Channel
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.floating.FloatingCircleManager
@@ -31,6 +33,9 @@ class TaskOrchestrator(
         private val PROGRESS_SILENT_TOOLS = setOf(
             "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps", "wait"
         )
+
+        private val CONFIRM_WORDS = setOf("继续", "确认", "继续执行", "是", "ok", "yes", "continue", "resume")
+        private val CANCEL_WORDS = setOf("取消", "跳过", "否", "不要", "cancel", "no", "skip", "stop")
     }
 
     private lateinit var agentService: AgentService
@@ -50,6 +55,55 @@ class TaskOrchestrator(
     /** 查询某渠道某发送者当前排队中的任务文本（由 ChannelSetup 注入，避免反向依赖队列实现） */
     @Volatile
     var pendingTasksProvider: ((Channel, String) -> List<String>)? = null
+
+    // ==================== 用户决策门控（F1 挂起恢复 / F2 危险操作确认） ====================
+
+    private val gateLock = Any()
+    private var activeGate: UserDecisionGate? = null
+    private var gateChannel: Channel? = null
+    private var gateSender: String? = null
+
+    /**
+     * 拦截处于等待用户决策状态的任务的渠道回复。命中确认/取消关键字时放行门控并返回 true
+     * （消息已消费，不再进入任务队列）。
+     */
+    fun interceptReply(channel: Channel, senderId: String, message: String): Boolean {
+        val gate = synchronized(gateLock) {
+            if (channel == gateChannel && senderId == gateSender) activeGate else null
+        } ?: return false
+        val cmd = message.trim().lowercase()
+        return when {
+            cmd in CONFIRM_WORDS -> { gate.resolve(true); true }
+            cmd in CANCEL_WORDS -> { gate.resolve(false); true }
+            else -> false
+        }
+    }
+
+    /** 发送等待提示并阻塞等待用户决策；仅接受 (channel, senderId) 的回复，超时视为拒绝。 */
+    private fun awaitUserDecision(
+        channel: Channel, senderId: String, messageId: String, prompt: String, timeoutMs: Long
+    ): Boolean {
+        val gate = UserDecisionGate(timeoutMs)
+        synchronized(gateLock) {
+            activeGate = gate
+            gateChannel = channel
+            gateSender = senderId
+        }
+        try {
+            ChannelManager.sendMessage(channel, prompt, messageId)
+            ChannelManager.flushMessages(channel)
+            val decision = gate.await { false } // 外部取消由 cancelCurrentTask 直接 resolve(false)
+            return decision == UserDecisionGate.Decision.CONFIRMED
+        } finally {
+            synchronized(gateLock) {
+                if (activeGate === gate) {
+                    activeGate = null
+                    gateChannel = null
+                    gateSender = null
+                }
+            }
+        }
+    }
 
     private fun notifyIdle() {
         try { onIdle?.invoke() } catch (e: Exception) { XLog.e(TAG, "onIdle callback failed", e) }
@@ -122,6 +176,8 @@ class TaskOrchestrator(
 
     fun cancelCurrentTask() {
         if (!isTaskRunning()) return
+        // 若正在等待用户决策（F1/F2），先放行门控以免 Agent 线程滞留在等待中
+        synchronized(gateLock) { activeGate?.resolve(false) }
         if (::agentService.isInitialized) {
             agentService.cancel()
         }
@@ -176,6 +232,35 @@ class TaskOrchestrator(
         val roundActions = LinkedHashMap<String, Int>()
         var roundFailures = 0
 
+        // F3：任务历史轨迹（任务结束时一次性落盘）
+        val taskStartTime = System.currentTimeMillis()
+        val toolTrace = mutableListOf<String>()
+        var finalRounds = 0
+        var toolCallCount = 0
+
+        fun recordHistory(status: TaskHistoryStore.Status, totalTokens: Int, error: String = "") {
+            try {
+                TaskHistoryStore.append(
+                    TaskHistoryStore.TaskRecord(
+                        id = messageID,
+                        startTime = taskStartTime,
+                        endTime = System.currentTimeMillis(),
+                        channel = channel.name,
+                        sender = senderId,
+                        task = task,
+                        status = status.name,
+                        rounds = finalRounds,
+                        toolCalls = toolCallCount,
+                        tokens = totalTokens,
+                        error = error,
+                        toolTrace = toolTrace.toList()
+                    )
+                )
+            } catch (e: Exception) {
+                XLog.e(TAG, "Failed to append task history", e)
+            }
+        }
+
         fun flushRoundBuffer() {
             if (roundActions.isNotEmpty()) {
                 val joined = roundActions.entries.joinToString("、") { e ->
@@ -199,6 +284,7 @@ class TaskOrchestrator(
             override fun onLoopStart(round: Int) {
                 // 新一轮开始前，flush 上一轮积攒的消息
                 flushRoundBuffer()
+                finalRounds = round
                 FloatingCircleManager.setRunningState(round, channel)
             }
 
@@ -210,6 +296,8 @@ class TaskOrchestrator(
 
             override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
                 XLog.d(TAG, "onToolCall: $toolId($toolName), $parameters")
+                toolCallCount++
+                toolTrace.add("$toolName($parameters)")
             }
 
             override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
@@ -247,6 +335,7 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setSuccessState()
                 onTaskFinished()
+                recordHistory(TaskHistoryStore.Status.COMPLETED, totalTokens)
                 // 任务锁延迟到 onSettled 释放：此刻 Agent 的 running 标志尚未清除，
                 // 提前放锁会让窗口期内的新消息拿到锁却被 executeTask 以"已在运行"拒绝
             }
@@ -258,10 +347,12 @@ class TaskOrchestrator(
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
+                recordHistory(TaskHistoryStore.Status.FAILED, totalTokens, error.message ?: "unknown")
             }
 
             override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
                 XLog.w(TAG, "onSystemDialogBlocked: round=$round, totalTokens=$totalTokens")
+                // F1：发截图与说明后任务挂起，等待用户处理（onAwaitUser），不再直接终止
                 flushRoundBuffer()
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_system_dialog_blocked), messageID)
                 try {
@@ -276,8 +367,14 @@ class TaskOrchestrator(
                 } catch (e: Exception) {
                     XLog.e(TAG, "Failed to send screenshot for system dialog", e)
                 }
-                FloatingCircleManager.setErrorState()
-                onTaskFinished()
+            }
+
+            override fun onAwaitUser(prompt: String, timeoutMs: Long): Boolean {
+                val confirmed = awaitUserDecision(channel, senderId, messageID, prompt, timeoutMs)
+                if (!confirmed) {
+                    recordHistory(TaskHistoryStore.Status.WAIT_TIMEOUT, 0, "user wait timeout/rejected")
+                }
+                return confirmed
             }
 
             override fun onSettled() {

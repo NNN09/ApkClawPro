@@ -384,7 +384,7 @@ class DefaultAgentService : AgentService {
         var lastScreenHash = 0
         var homeResetDone = false
 
-        while (iterations < maxIterations && !cancelled.get()) {
+        loop@ while (iterations < maxIterations && !cancelled.get()) {
             iterations++
             callback.onLoopStart(iterations)
 
@@ -462,15 +462,50 @@ class DefaultAgentService : AgentService {
                     homeResetDone = true
                 }
 
-                val result = ToolRegistry.getInstance().executeTool(toolName, params)
+                // F2：疑似不可逆操作（发送/支付/删除类关键词）→ 经渠道请求用户确认后再执行
+                var result = if (config.confirmDangerousOps) {
+                    val risk = DangerousOpDetector.assess(toolName, params)
+                    if (risk != null) {
+                        val prompt = ClawApplication.instance.getString(
+                            R.string.agent_confirm_prompt, displayName, risk)
+                        val confirmed = callback.onAwaitUser(prompt, UserDecisionGate.CONFIRM_TIMEOUT_MS)
+                        if (!confirmed) {
+                            ToolResult.error(ClawApplication.instance.getString(R.string.agent_confirm_rejected_skip))
+                        } else {
+                            ToolRegistry.getInstance().executeTool(toolName, params)
+                        }
+                    } else {
+                        ToolRegistry.getInstance().executeTool(toolName, params)
+                    }
+                } else {
+                    ToolRegistry.getInstance().executeTool(toolName, params)
+                }
                 val paramsString = if (params.isEmpty()) "" else params.toString()
                 callback.onToolResult(iterations, toolName, displayName, paramsString, result)
 
-                // 检测到系统弹窗阻塞 → 截图通知用户并结束任务
+                // F1：检测到系统弹窗阻塞 → 截图通知用户后挂起等待；用户处理后从中断轮次恢复
                 if (!result.isSuccess && result.error == GetScreenInfoTool.SYSTEM_DIALOG_BLOCKED) {
-                    XLog.w(TAG, "System dialog blocked, notifying user and stopping task")
+                    XLog.w(TAG, "System dialog blocked, notifying user and suspending task")
                     callback.onSystemDialogBlocked(iterations, totalTokens)
-                    return
+                    val proceed = callback.onAwaitUser(
+                        ClawApplication.instance.getString(R.string.agent_dialog_resume_prompt),
+                        UserDecisionGate.DIALOG_WAIT_TIMEOUT_MS
+                    )
+                    // 被阻塞的工具调用必须补上结果消息，后续轮次的 API 请求才合法
+                    messages.add(ToolExecutionResultMessage.from(toolRequest, GSON.toJson(result)))
+                    if (proceed) {
+                        messages.add(
+                            UserMessage.from("[系统提示] 用户已手动处理系统弹窗，请从中断处继续执行任务。")
+                        )
+                        continue@loop
+                    } else {
+                        callback.onError(
+                            iterations,
+                            RuntimeException(ClawApplication.instance.getString(R.string.agent_dialog_wait_aborted)),
+                            totalTokens
+                        )
+                        return
+                    }
                 }
 
                 // finish 工具 → 任务完成

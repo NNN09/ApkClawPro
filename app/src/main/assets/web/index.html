@@ -209,6 +209,12 @@ textarea:focus {
       <button id="skillUploadBtn" type="button" data-i18n="skills_upload"></button>
     </div>
 
+    <div class="card tasks">
+      <div class="card-title"><span class="dot"></span><span data-i18n="tasks_title"></span></div>
+      <div id="taskList" style="font-size:12px;color:#86868b;white-space:pre-line;max-height:320px;overflow:auto;">...</div>
+      <button id="taskRefreshBtn" type="button" data-i18n="tasks_refresh"></button>
+    </div>
+
     <div class="card llm">
       <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
       <div class="field">
@@ -229,6 +235,10 @@ textarea:focus {
       <div class="field">
         <label data-i18n="llm_context_window"></label>
         <input type="number" id="llmContextWindow" data-i18n-placeholder="ph_llm_context" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="llm_confirm_ops" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="confirmDangerousOps" style="width:auto;vertical-align:middle;">
       </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
@@ -360,6 +370,11 @@ const i18nMessages = {
     saving: '保存中...',
     save_success: '配置已保存，通道将自动重连',
     save_failed: '保存失败',
+    llm_confirm_ops: '危险操作确认（发送/支付/删除类操作需回复确认）',
+    tasks_title: '任务历史',
+    tasks_empty: '暂无任务记录',
+    tasks_load_failed: '加载失败',
+    tasks_refresh: '刷新',
     unknown_error: '未知错误',
   },
   'en': {
@@ -411,6 +426,11 @@ const i18nMessages = {
     saving: 'Saving...',
     save_success: 'Saved. Channels will reconnect automatically.',
     save_failed: 'Save failed',
+    llm_confirm_ops: 'Dangerous-op confirmation (send/pay/delete requires user confirm)',
+    tasks_title: 'Task History',
+    tasks_empty: 'No task records yet',
+    tasks_load_failed: 'Failed to load',
+    tasks_refresh: 'Refresh',
     unknown_error: 'Unknown error',
   },
   'ja': {
@@ -462,6 +482,11 @@ const i18nMessages = {
     saving: '保存中...',
     save_success: '設定を保存しました。チャネルは自動的に再接続されます。',
     save_failed: '保存に失敗しました',
+    llm_confirm_ops: '危険操作の確認（送信/支払い/削除はユーザー確認が必要）',
+    tasks_title: 'タスク履歴',
+    tasks_empty: 'タスク記録はまだありません',
+    tasks_load_failed: '読み込みに失敗しました',
+    tasks_refresh: '更新',
     unknown_error: '不明なエラー',
   },
 };
@@ -511,7 +536,7 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps'];
 
 async function load() {
   try {
@@ -528,7 +553,9 @@ async function load() {
     if (llmJson.code === 0 && llmJson.data) {
       llmFields.forEach(f => {
         const el = document.getElementById(f);
-        if (el && llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
+        if (!el) return;
+        if (el.type === 'checkbox') el.checked = !!llmJson.data[f];
+        else if (llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
       });
     }
     if (personaJson.code === 0 && personaJson.data) {
@@ -555,7 +582,8 @@ async function save() {
     const llmBody = {};
     llmFields.forEach(f => {
       const el = document.getElementById(f);
-      if (el) llmBody[f] = el.value.trim();
+      if (!el) return;
+      llmBody[f] = el.type === 'checkbox' ? el.checked : el.value.trim();
     });
     const [chanRes, llmRes, personaRes] = await Promise.all([
       fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
@@ -620,8 +648,29 @@ document.getElementById('skillUploadBtn').addEventListener('click', async () => 
   }
 });
 
+// ====== Task history (F3) ======
+async function refreshTasks() {
+  const el = document.getElementById('taskList');
+  try {
+    const r = await fetch('/api/tasks');
+    const j = await r.json();
+    const list = (j.data && j.data.tasks) || [];
+    if (!list.length) { el.textContent = t('tasks_empty'); return; }
+    el.textContent = list.map(x => {
+      const time = new Date(x.endTime).toLocaleString();
+      const line = `[${x.status}] ${time} (${x.channel}) ${x.task} · ${x.rounds}r/${x.toolCalls}calls/${x.tokens}tok`;
+      return x.error ? line + '\n  ↳ ' + x.error : line;
+    }).join('\n');
+  } catch (e) {
+    el.textContent = t('tasks_load_failed');
+  }
+}
+
+document.getElementById('taskRefreshBtn').addEventListener('click', refreshTasks);
+
 load();
 refreshSkills();
+refreshTasks();
 </script>
 </body>
 </html>
