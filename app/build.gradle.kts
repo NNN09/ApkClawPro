@@ -24,7 +24,8 @@ android {
             val props = Properties().apply {
                 rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
             }
-            storeFile = file(props.getProperty("KEYSTORE_FILE", ""))
+            // local.properties 中的相对路径以仓库根目录为基准（local-release.jks 位于根目录）
+            storeFile = rootProject.file(props.getProperty("KEYSTORE_FILE", ""))
             storePassword = props.getProperty("KEYSTORE_PASSWORD", "")
             keyAlias = props.getProperty("KEY_ALIAS", "")
             keyPassword = props.getProperty("KEY_PASSWORD", "")
