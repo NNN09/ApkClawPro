@@ -57,6 +57,7 @@ class AppViewModel : ViewModel() {
             .apiKey(KVUtils.getLlmApiKey())
             .baseUrl(baseUrl)
             .modelName(KVUtils.getLlmModelName())
+            .contextWindowTokens(KVUtils.getLlmContextWindow())
             .temperature(0.1)
             .maxIterations(60)
             .build()

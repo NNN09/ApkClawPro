@@ -116,6 +116,9 @@
     <string name="llm_config_base_url_hint">如 https://api.openai.com/v1（留空则使用 OpenAI 默认）</string>
     <string name="llm_config_model_name">模型名称</string>
     <string name="llm_config_model_name_hint">如 gpt-4o、gpt-4o-mini、claude-3-5-sonnet</string>
+    <string name="llm_config_context_window">上下文窗口 (tokens)</string>
+    <string name="llm_config_context_window_hint">如 128000，留空默认 30000</string>
+    <string name="llm_config_context_window_invalid">上下文窗口必须是数字</string>
     <string name="llm_config_saved">LLM 配置已保存</string>
     <string name="llm_config_api_key_required">请填写 API Key</string>
     <string name="menu_llm_config">LLM 配置</string>

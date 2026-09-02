@@ -27,24 +27,32 @@ class LlmConfigActivity : BaseActivity() {
         val etApiKey = findViewById<EditText>(R.id.etApiKey)
         val etBaseUrl = findViewById<EditText>(R.id.etBaseUrl)
         val etModelName = findViewById<EditText>(R.id.etModelName)
+        val etContextWindow = findViewById<EditText>(R.id.etContextWindow)
 
         etApiKey.setText(KVUtils.getLlmApiKey())
         etBaseUrl.setText(KVUtils.getLlmBaseUrl())
         etModelName.setText(KVUtils.getLlmModelName())
+        KVUtils.getLlmContextWindow().takeIf { it > 0 }?.let { etContextWindow.setText(it.toString()) }
 
         findViewById<KButton>(R.id.btnSave).setOnClickListener {
             val apiKey = etApiKey.text.toString().trim()
             val baseUrl = etBaseUrl.text.toString().trim()
             val modelName = etModelName.text.toString().trim().ifEmpty { "" }
+            val contextWindowText = etContextWindow.text.toString().trim()
 
             if (apiKey.isEmpty()) {
                 Toast.makeText(this, getString(R.string.llm_config_api_key_required), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (contextWindowText.isNotEmpty() && contextWindowText.toIntOrNull() == null) {
+                Toast.makeText(this, getString(R.string.llm_config_context_window_invalid), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             KVUtils.setLlmApiKey(apiKey)
             KVUtils.setLlmBaseUrl(baseUrl)
             KVUtils.setLlmModelName(modelName)
+            KVUtils.setLlmContextWindow(contextWindowText.toIntOrNull() ?: 0)
 
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()

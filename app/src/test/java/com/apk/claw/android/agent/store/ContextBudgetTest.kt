@@ -22,6 +22,26 @@ class ContextBudgetTest {
     }
 
     @Test
+    fun charBudget_defaultsToLegacyBudgetWhenUnset() {
+        // 未设置（0/负数）时退回默认窗口，且与旧 CHAR_BUDGET=36000 完全一致
+        assertEquals(36000, ContextBudget.charBudget(0))
+        assertEquals(36000, ContextBudget.charBudget(-5))
+    }
+
+    @Test
+    fun charBudget_scalesWithContextWindow() {
+        // 预算 = 窗口 tokens × 0.8 安全系数 × 1.5 字符/token
+        assertEquals(153600, ContextBudget.charBudget(128000))
+        assertEquals(240000, ContextBudget.charBudget(200000))
+    }
+
+    @Test
+    fun charBudget_floorsTinyWindows() {
+        // 过小的窗口被抬到下限，避免预算小到每轮都触发截断
+        assertEquals((4096 * 1.2).toInt(), ContextBudget.charBudget(100))
+    }
+
+    @Test
     fun compressAllToolResults_keepsLatestScreenInfo() {
         val long = """{"isSuccess":true,"data":"${"x".repeat(300)}"}"""
         val msgs = mutableListOf<ChatMessage>(

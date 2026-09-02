@@ -116,6 +116,9 @@
     <string name="llm_config_base_url_hint">e.g. https://api.openai.com/v1 (leave empty for OpenAI default)</string>
     <string name="llm_config_model_name">Model Name</string>
     <string name="llm_config_model_name_hint">e.g. gpt-4o, gpt-4o-mini, claude-3-5-sonnet</string>
+    <string name="llm_config_context_window">Context Window (tokens)</string>
+    <string name="llm_config_context_window_hint">e.g. 128000; leave empty for 30000 default</string>
+    <string name="llm_config_context_window_invalid">Context window must be a number</string>
     <string name="llm_config_saved">LLM configuration saved</string>
     <string name="llm_config_api_key_required">Please enter API Key</string>
     <string name="menu_llm_config">LLM Config</string>

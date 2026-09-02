@@ -192,6 +192,7 @@ object KVUtils {
     private const val KEY_LLM_API_KEY = "KEY_LLM_API_KEY"
     private const val KEY_LLM_BASE_URL = "KEY_LLM_BASE_URL"
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
+    private const val KEY_LLM_CONTEXT_WINDOW = "KEY_LLM_CONTEXT_WINDOW"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -199,6 +200,10 @@ object KVUtils {
     fun setLlmBaseUrl(value: String) = putString(KEY_LLM_BASE_URL, value)
     fun getLlmModelName(): String = getString(KEY_LLM_MODEL_NAME, "")
     fun setLlmModelName(value: String) = putString(KEY_LLM_MODEL_NAME, value)
+
+    /** 模型上下文窗口（tokens）；0 表示未设置，由 ContextBudget 退回默认值 */
+    fun getLlmContextWindow(): Int = getInt(KEY_LLM_CONTEXT_WINDOW, 0)
+    fun setLlmContextWindow(value: Int) = putInt(KEY_LLM_CONTEXT_WINDOW, value)
 
     /** 是否已配置 LLM（API Key 非空即视为已配置） */
     fun hasLlmConfig(): Boolean = getLlmApiKey().isNotEmpty()

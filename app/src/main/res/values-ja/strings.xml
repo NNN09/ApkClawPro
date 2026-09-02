@@ -116,6 +116,9 @@
     <string name="llm_config_base_url_hint">例: https://api.openai.com/v1（空欄の場合はOpenAIデフォルト）</string>
     <string name="llm_config_model_name">モデル名</string>
     <string name="llm_config_model_name_hint">例: gpt-4o、gpt-4o-mini、claude-3-5-sonnet</string>
+    <string name="llm_config_context_window">コンテキストウィンドウ (tokens)</string>
+    <string name="llm_config_context_window_hint">例: 128000、空欄でデフォルト30000</string>
+    <string name="llm_config_context_window_invalid">コンテキストウィンドウは数値で入力してください</string>
     <string name="llm_config_saved">LLM設定を保存しました</string>
     <string name="llm_config_api_key_required">API Keyを入力してください</string>
     <string name="menu_llm_config">LLM設定</string>

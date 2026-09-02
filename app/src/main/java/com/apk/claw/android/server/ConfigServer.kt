@@ -223,6 +223,7 @@ class ConfigServer(
             addProperty("llmApiKey", apiKey)
             addProperty("llmBaseUrl", KVUtils.getLlmBaseUrl())
             addProperty("llmModelName", KVUtils.getLlmModelName())
+            addProperty("llmContextWindow", KVUtils.getLlmContextWindow())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -260,6 +261,15 @@ class ConfigServer(
         if (json.has("llmModelName")) {
             val value = json.get("llmModelName").asString.trim()
             KVUtils.setLlmModelName(if (value.isEmpty()) "" else value)
+        }
+        if (json.has("llmContextWindow")) {
+            // 网页端以字符串提交，空串/非法值按未设置(0)处理
+            val tokens = try {
+                json.get("llmContextWindow").asInt
+            } catch (_: Exception) {
+                0
+            }
+            KVUtils.setLlmContextWindow(tokens.coerceAtLeast(0))
         }
 
         ConfigServerManager.notifyConfigChanged()

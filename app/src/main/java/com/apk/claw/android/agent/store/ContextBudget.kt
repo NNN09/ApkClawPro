@@ -10,13 +10,32 @@ import dev.langchain4j.data.message.UserMessage
 
 /**
  * 任务内上下文预算：字符级粗估 + 超预算时的分级压缩。
- * 1 token ≈ 1.5 字符粗估，CHAR_BUDGET=36000 ≈ 24k input token。
+ * 预算 = 模型上下文窗口(tokens) × 安全系数 0.8 × 1 token ≈ 1.5 字符粗估，
+ * 不调用精确 tokenizer。窗口未设置（≤0）时退回 DEFAULT_CONTEXT_WINDOW_TOKENS，
+ * 恰好等价旧版固定 CHAR_BUDGET=36000（≈24k input token）。
  */
 object ContextBudget {
 
-    const val CHAR_BUDGET = 36000
+    /** 未配置模型窗口时的默认值（30000 tokens → 36000 字符预算，与旧版行为一致） */
+    const val DEFAULT_CONTEXT_WINDOW_TOKENS = 30000
+
+    /** 窗口下限：再小的窗口预算会被抬到此处，避免每轮都触发截断 */
+    const val MIN_CONTEXT_WINDOW_TOKENS = 4096
+
+    private const val SAFETY_FACTOR = 0.8
+    private const val CHARS_PER_TOKEN = 1.5
 
     private val GSON = Gson()
+
+    /** 由模型上下文窗口（tokens）推算字符预算；windowTokens ≤ 0 视为未设置 */
+    fun charBudget(windowTokens: Int): Int {
+        val tokens = if (windowTokens <= 0) {
+            DEFAULT_CONTEXT_WINDOW_TOKENS
+        } else {
+            windowTokens.coerceAtLeast(MIN_CONTEXT_WINDOW_TOKENS)
+        }
+        return (tokens * SAFETY_FACTOR * CHARS_PER_TOKEN).toInt()
+    }
 
     fun estimateChars(messages: List<ChatMessage>): Int = messages.sumOf { chars(it) }
 

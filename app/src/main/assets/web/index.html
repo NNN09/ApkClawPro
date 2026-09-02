@@ -226,6 +226,10 @@ textarea:focus {
         <label data-i18n="llm_model_name"></label>
         <input type="text" id="llmModelName" data-i18n-placeholder="ph_llm_model" autocomplete="off">
       </div>
+      <div class="field">
+        <label data-i18n="llm_context_window"></label>
+        <input type="number" id="llmContextWindow" data-i18n-placeholder="ph_llm_context" autocomplete="off">
+      </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
 
@@ -318,6 +322,8 @@ const i18nMessages = {
     ph_llm_api_key: '如 sk-xxx（留空表示不修改）',
     ph_llm_base_url: '如 https://api.openai.com/v1（留空使用默认）',
     ph_llm_model: '如 gpt-4o、gpt-4o-mini',
+    llm_context_window: '上下文窗口 (tokens)',
+    ph_llm_context: '如 128000，留空默认 30000',
     llm_tip: 'API Key 仅保存在设备本地，可通过设置 → LLM 配置 在应用内修改',
     persona_title: '助手人格',
     persona_label: '人格设定（留空使用默认）',
@@ -367,6 +373,8 @@ const i18nMessages = {
     ph_llm_api_key: 'e.g. sk-xxx (leave empty to keep current)',
     ph_llm_base_url: 'e.g. https://api.openai.com/v1 (empty = default)',
     ph_llm_model: 'e.g. gpt-4o, gpt-4o-mini',
+    llm_context_window: 'Context Window (tokens)',
+    ph_llm_context: 'e.g. 128000 (empty = 30000 default)',
     llm_tip: 'API Key is stored locally only. You can also edit in Settings → LLM Config',
     persona_title: 'Persona',
     persona_label: 'Persona setting (leave empty for default)',
@@ -416,6 +424,8 @@ const i18nMessages = {
     ph_llm_api_key: '例: sk-xxx（空欄で現状維持）',
     ph_llm_base_url: '例: https://api.openai.com/v1（空欄でデフォルト）',
     ph_llm_model: '例: gpt-4o、gpt-4o-mini',
+    llm_context_window: 'コンテキストウィンドウ (tokens)',
+    ph_llm_context: '例: 128000（空欄でデフォルト30000）',
     llm_tip: 'API Key は端末内にのみ保存されます。設定 → LLM 設定 からも変更可能',
     persona_title: 'アシスタント人格',
     persona_label: '人格設定（空欄でデフォルト）',
@@ -501,7 +511,7 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow'];
 
 async function load() {
   try {

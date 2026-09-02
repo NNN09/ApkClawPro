@@ -379,6 +379,7 @@ class DefaultAgentService : AgentService {
         var iterations = 0
         var totalTokens = 0
         val maxIterations = config.maxIterations
+        val charBudget = ContextBudget.charBudget(config.contextWindowTokens)
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
         var homeResetDone = false
@@ -391,9 +392,9 @@ class DefaultAgentService : AgentService {
             compressHistoryForSend(messages)
 
             // 超字符预算时升级压缩：先激进压缩全部工具结果，仍超则丢弃最早执行轮次
-            if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
+            if (ContextBudget.estimateChars(messages) > charBudget) {
                 ContextBudget.compressAllToolResults(messages)
-                if (ContextBudget.estimateChars(messages) > ContextBudget.CHAR_BUDGET) {
+                if (ContextBudget.estimateChars(messages) > charBudget) {
                     ContextBudget.truncateOldestRounds(messages, taskUserIndex, TRUNCATE_KEEP_ROUNDS)
                 }
             }
