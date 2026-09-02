@@ -101,6 +101,26 @@ Both streaming and non-streaming modes are supported. The HTTP layer uses a cust
 
 `LangChain4jToolBridge` converts custom `BaseTool` abstractions into LangChain4j's `ToolSpecification` format, mapping parameter types (`string`, `integer`, `number`, `boolean`) to JSON Schema.
 
+## Persona / Sessions / Memory / Skills
+
+### Persona
+- Stored in the app-private directory `filesDir/agent/persona.md`; edit via the "Persona" card on the LAN config page (Settings > LAN Config, visit `http://<device-IP>:9527`), or call `GET/POST /api/persona` directly.
+- The persona only affects tone and role-play; it never overrides the execution protocol or safety constraints (assembly order: persona → execution protocol → memory → skill catalog → device info).
+
+### Continuous Conversation
+- The most recent 10 turns ("user message + final reply") are kept per (channel, sender); the session resets automatically after 30 minutes of inactivity.
+- Send `新对话` or `/new` to reset the current session immediately.
+- Messages arriving while a task is running are queued (up to 3) and executed in order after it finishes.
+
+### Long-term Memory
+- The agent maintains `filesDir/agent/memory.md` autonomously via the `memory_save` / `memory_delete` / `memory_list` tools (line-based entries, capped at 50, human-editable).
+- A memory digest is injected into the system prompt on every task.
+
+### Skill File System
+- Skill packages live at `filesDir/agent/skills/<name>/SKILL.md` (frontmatter header: name / description).
+- Only the skill catalog (name + description) is injected into the system prompt; the full body is loaded on demand via the `load_skill` tool (progressive disclosure, saves tokens).
+- Management: the "Skills" card on the LAN config page, or `GET/POST /api/skills`.
+
 ## Tool System
 
 Tools are registered in `ToolRegistry` by device type:

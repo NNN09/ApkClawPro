@@ -101,6 +101,26 @@ Agent 遵循 **观察 → 思考 → 行动 → 验证** 协议：
 
 `LangChain4jToolBridge` 将自定义的 `BaseTool` 抽象转换为 LangChain4j 的 `ToolSpecification` 格式，将参数类型（`string`、`integer`、`number`、`boolean`）映射为 JSON Schema。
 
+## 人格 / 会话 / 记忆 / 技能
+
+### 人格（Persona）
+- 存储于应用私有目录 `filesDir/agent/persona.md`，可经局域网配置页（设置 > LAN Config，访问 `http://<设备IP>:9527`）的"助手人格"卡片编辑，或直接 `GET/POST /api/persona`。
+- 人格只影响语气与角色扮演，不覆盖执行协议与安全约束（组装顺序：人格 → 执行协议 → 记忆 → 技能目录 → 设备信息）。
+
+### 连续对话
+- 按（渠道, 发送者）自动保留最近 10 轮"用户消息 + 最终回复"，30 分钟无活动自动开新会话。
+- 发送「新对话」或「/new」立即重置当前会话。
+- 任务执行中收到的消息进入队列（最多 3 条），任务结束后依次执行。
+
+### 长期记忆
+- Agent 通过 `memory_save` / `memory_delete` / `memory_list` 三个工具自主维护 `filesDir/agent/memory.md`（行式条目，上限 50 条，可直接手工编辑）。
+- 每次任务的系统提示词自动注入记忆摘要。
+
+### 技能文件系统
+- 技能包存放于 `filesDir/agent/skills/<name>/SKILL.md`（头部 frontmatter：name / description）。
+- 系统提示词只注入技能目录（名称 + 描述），Agent 需要时调用 `load_skill` 工具加载全文（渐进披露，节省 token）。
+- 管理入口：局域网页"技能库"卡片，或 `GET/POST /api/skills`。
+
 ## 工具系统
 
 工具按设备类型在 `ToolRegistry` 中注册：
