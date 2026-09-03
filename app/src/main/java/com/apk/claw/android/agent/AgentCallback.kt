@@ -16,6 +16,11 @@ interface AgentCallback {
     fun onSystemDialogBlocked(round: Int, totalTokens: Int)
 
     /**
+     * F4：工具执行后的结果断言在重试后仍失败。宿主据此计入遥测（任务历史 verifyFailures）。
+     */
+    fun onVerifyFailed(description: String) {}
+
+    /**
      * 请求用户决策并阻塞等待（F1 系统弹窗挂起恢复 / F2 危险操作确认共用）。
      * 实现方负责经消息渠道发送 [prompt]、拦截用户回复；用户确认返回 true，
      * 取消或超过 [timeoutMs] 返回 false。不支持交互的实现直接返回 false（保持旧行为：立即终止）。

@@ -196,6 +196,24 @@
     <string name="agent_task_cancel">Task cancelled</string>
     <string name="agent_api_call_failed">AI service call failed: %s</string>
     <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
+    <string name="agent_verify_failed">Result verification failed after one retry: %s</string>
+
+    <!-- Chat (F5) -->
+    <string name="home_open_chat">Start Chat</string>
+    <string name="chat_title">Chat</string>
+    <string name="chat_input_hint">Describe a task, e.g. open Settings and check the Android version</string>
+    <string name="cd_chat_send">Send</string>
+    <string name="chat_llm_not_configured">LLM is not configured yet. Please finish Settings → LLM Config first.</string>
+
+    <!-- Voice (F6) -->
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_unavailable">Speech recognition is not available on this device. Type your task in the chat instead.</string>
+    <string name="voice_failed">Voice recognition failed. Type your task in the chat instead.</string>
+
+    <!-- Scheduled task tools (F7) -->
+    <string name="tool_name_schedule_task">Schedule Task</string>
+    <string name="tool_name_cancel_scheduled_task">Cancel Scheduled Task</string>
+    <string name="tool_name_list_scheduled_tasks">List Scheduled Tasks</string>
 
     <!-- File Tool -->
     <string name="tool_no_storage_permission">No file read/write permission</string>

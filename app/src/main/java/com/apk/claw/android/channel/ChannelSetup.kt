@@ -44,41 +44,7 @@ class ChannelSetup(
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
             override fun onMessageReceived(channel: Channel, message: String, messageID: String, senderId: String) {
                 XLog.i(TAG, "msg from ${channel.displayName} sender=$senderId")
-                val app = ClawApplication.instance
-                if (!ClawAccessibilityService.isRunning()) {
-                    ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)
-                    ChannelManager.flushMessages(channel)
-                    return
-                }
-
-                val cmd = message.trim()
-                if (cmd == "新对话" || cmd == "/new") {
-                    SessionStore.reset(channel, senderId)
-                    ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_session_reset), messageID)
-                    ChannelManager.flushMessages(channel)
-                    return
-                }
-
-                // F1/F2：有任务在等待用户决策时，确认/取消关键字直接放行门控
-                if (taskOrchestrator.interceptReply(channel, senderId, message)) {
-                    return
-                }
-
-                if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
-                    val queued = synchronized(queueLock) {
-                        if (pendingQueue.size >= MAX_PENDING) null
-                        else { pendingQueue.addLast(PendingMessage(channel, senderId, message, messageID)); pendingQueue.size }
-                    }
-                    val reply = if (queued != null) {
-                        app.getString(R.string.channel_msg_queued, queued)
-                    } else {
-                        app.getString(R.string.channel_msg_queue_full)
-                    }
-                    ChannelManager.sendMessage(channel, reply, messageID)
-                    ChannelManager.flushMessages(channel)
-                    return
-                }
-                taskOrchestrator.startNewTask(channel, senderId, message, messageID)
+                dispatch(channel, message, messageID, senderId)
             }
         })
 
@@ -90,6 +56,48 @@ class ChannelSetup(
                 pendingQueue.filter { it.channel == channel && it.senderId == senderId }.map { it.message }
             }
         }
+    }
+
+    /**
+     * 消息派发统一入口：渠道消息与 F7 定时任务都经此进入任务链路，
+     * 保证无障碍检查、确认门控、任务锁与排队行为一致。
+     */
+    fun dispatch(channel: Channel, message: String, messageID: String, senderId: String) {
+        val app = ClawApplication.instance
+        if (!ClawAccessibilityService.isRunning()) {
+            ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)
+            ChannelManager.flushMessages(channel)
+            return
+        }
+
+        val cmd = message.trim()
+        if (cmd == "新对话" || cmd == "/new") {
+            SessionStore.reset(channel, senderId)
+            ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_session_reset), messageID)
+            ChannelManager.flushMessages(channel)
+            return
+        }
+
+        // F1/F2：有任务在等待用户决策时，确认/取消关键字直接放行门控
+        if (taskOrchestrator.interceptReply(channel, senderId, message)) {
+            return
+        }
+
+        if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
+            val queued = synchronized(queueLock) {
+                if (pendingQueue.size >= MAX_PENDING) null
+                else { pendingQueue.addLast(PendingMessage(channel, senderId, message, messageID)); pendingQueue.size }
+            }
+            val reply = if (queued != null) {
+                app.getString(R.string.channel_msg_queued, queued)
+            } else {
+                app.getString(R.string.channel_msg_queue_full)
+            }
+            ChannelManager.sendMessage(channel, reply, messageID)
+            ChannelManager.flushMessages(channel)
+            return
+        }
+        taskOrchestrator.startNewTask(channel, senderId, message, messageID)
     }
 
     /**

@@ -3,6 +3,7 @@ package com.apk.claw.android.channel
 import com.apk.claw.android.channel.dingtalk.DingTalkChannelHandler
 import com.apk.claw.android.channel.discord.DiscordChannelHandler
 import com.apk.claw.android.channel.feishu.FeiShuChannelHandler
+import com.apk.claw.android.channel.inapp.InAppChannelHandler
 import com.apk.claw.android.channel.qqbot.QQChannelHandler
 import com.apk.claw.android.channel.telegram.TelegramChannelHandler
 import com.apk.claw.android.channel.wechat.WeChatChannelHandler
@@ -19,6 +20,7 @@ enum class Channel(val displayName: String) {
     DISCORD("Discord"),
     TELEGRAM("Telegram"),
     WECHAT("WeChat"),
+    IN_APP("InApp"),
 }
 
 object ChannelManager {
@@ -88,6 +90,8 @@ object ChannelManager {
             wechatBotToken?.takeIf { it.isNotEmpty() } ?: "",
             wechatApiBaseUrl?.takeIf { it.isNotEmpty() } ?: "",
         )
+        // F5：App 内渠道，无需任何凭证，始终可用
+        handlers[Channel.IN_APP] = InAppChannelHandler()
 
         handlers.values.forEach { it.init() }
         XLog.i(TAG, "ChannelManager 初始化完成")

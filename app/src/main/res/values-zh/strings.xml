@@ -196,6 +196,24 @@
     <string name="agent_task_cancel">任务取消</string>
     <string name="agent_api_call_failed">AI 服务调用失败: %s</string>
     <string name="agent_max_iterations">在未完成任务的情况下达到了最大迭代次数 (%d)</string>
+    <string name="agent_verify_failed">结果验证失败（已自动重试一次）：%s</string>
+
+    <!-- 对话（F5） -->
+    <string name="home_open_chat">开始对话</string>
+    <string name="chat_title">对话</string>
+    <string name="chat_input_hint">描述任务，如：打开设置看一下 Android 版本</string>
+    <string name="cd_chat_send">发送</string>
+    <string name="chat_llm_not_configured">尚未配置 LLM，请先完成 设置 → LLM 配置。</string>
+
+    <!-- 语音（F6） -->
+    <string name="voice_listening">正在聆听，请说话…</string>
+    <string name="voice_unavailable">本设备不支持语音识别，请在对话页输入任务。</string>
+    <string name="voice_failed">语音识别失败，请在对话页输入任务。</string>
+
+    <!-- 定时任务工具（F7） -->
+    <string name="tool_name_schedule_task">创建定时任务</string>
+    <string name="tool_name_cancel_scheduled_task">取消定时任务</string>
+    <string name="tool_name_list_scheduled_tasks">查看定时任务</string>
 
     <!-- 文件工具 -->
     <string name="tool_no_storage_permission">没有读写文件的权限</string>

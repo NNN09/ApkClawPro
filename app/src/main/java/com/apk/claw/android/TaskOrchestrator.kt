@@ -237,6 +237,7 @@ class TaskOrchestrator(
         val toolTrace = mutableListOf<String>()
         var finalRounds = 0
         var toolCallCount = 0
+        var verifyFailures = 0
 
         fun recordHistory(status: TaskHistoryStore.Status, totalTokens: Int, error: String = "") {
             try {
@@ -253,7 +254,8 @@ class TaskOrchestrator(
                         toolCalls = toolCallCount,
                         tokens = totalTokens,
                         error = error,
-                        toolTrace = toolTrace.toList()
+                        toolTrace = toolTrace.toList(),
+                        verifyFailures = verifyFailures
                     )
                 )
             } catch (e: Exception) {
@@ -375,6 +377,12 @@ class TaskOrchestrator(
                     recordHistory(TaskHistoryStore.Status.WAIT_TIMEOUT, 0, "user wait timeout/rejected")
                 }
                 return confirmed
+            }
+
+            override fun onVerifyFailed(description: String) {
+                // F4：结果断言重试后仍失败，计入遥测
+                verifyFailures++
+                toolTrace.add("verify-failed($description)")
             }
 
             override fun onSettled() {

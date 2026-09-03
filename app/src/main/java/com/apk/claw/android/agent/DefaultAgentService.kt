@@ -117,6 +117,7 @@ class DefaultAgentService : AgentService {
                 callback.onError(0, e, 0)
             } finally {
                 running.set(false)
+                TaskContext.clear()
             }
             // running 已清除、线程即将空闲；此时再触发空闲联动才不会与下一任务竞态
             callback.onSettled()
@@ -339,6 +340,7 @@ class DefaultAgentService : AgentService {
 
     private fun runAgentLoop(request: TaskRequest, callback: AgentCallback) {
         val userPrompt = request.prompt
+        TaskContext.set(request.channel, request.senderId)
         // 环境预检
         preCheck()?.let {
             callback.onError(0, RuntimeException(it), 0)
@@ -480,6 +482,29 @@ class DefaultAgentService : AgentService {
                 } else {
                     ToolRegistry.getInstance().executeTool(toolName, params)
                 }
+
+                // F4：结果验证闭环——执行成功后回读设备状态断言，失败自动重试一次，仍失败才暴露给模型
+                if (config.verifyResults && result.isSuccess) {
+                    val assertion = ResultVerifier.assertionFor(toolName, params)
+                    if (assertion != null) {
+                        var retryResult: ToolResult? = null
+                        val outcome = ResultVerifier.verify(
+                            probe = DeviceProbe,
+                            check = assertion.check,
+                            retry = {
+                                callback.onToolCall(iterations, toolName, displayName, toolArgs)
+                                retryResult = ToolRegistry.getInstance().executeTool(toolName, params)
+                            }
+                        )
+                        if (!outcome.verified) {
+                            XLog.w(TAG, "Result verification failed after ${outcome.retries} retry: ${assertion.describe}")
+                            callback.onVerifyFailed(assertion.describe)
+                            result = retryResult?.takeIf { !it.isSuccess }
+                                ?: ToolResult.error(ClawApplication.instance.getString(R.string.agent_verify_failed, assertion.describe))
+                        }
+                    }
+                }
+
                 val paramsString = if (params.isEmpty()) "" else params.toString()
                 callback.onToolResult(iterations, toolName, displayName, paramsString, result)
 

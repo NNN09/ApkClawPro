@@ -27,7 +27,9 @@ object TaskHistoryStore {
         @SerializedName("tokens") val tokens: Int,
         @SerializedName("error") val error: String = "",
         /** 工具调用序列（toolName(args)，每条截断） */
-        @SerializedName("toolTrace") val toolTrace: List<String> = emptyList()
+        @SerializedName("toolTrace") val toolTrace: List<String> = emptyList(),
+        /** F4：结果断言在重试后仍失败的次数（遥测用） */
+        @SerializedName("verifyFailures") val verifyFailures: Int = 0
     )
 
     const val MAX_RECORDS = 200

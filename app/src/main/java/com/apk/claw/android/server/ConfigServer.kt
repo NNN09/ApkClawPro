@@ -57,6 +57,10 @@ class ConfigServer(
                 uri == "/api/skills" && method == Method.GET -> handleGetSkills()
                 uri == "/api/skills" && method == Method.POST -> handlePostSkill(session)
                 uri == "/api/tasks" && method == Method.GET -> handleGetTasks()
+                uri == "/api/schedules" && method == Method.GET -> handleGetSchedules()
+                uri == "/api/schedules" && method == Method.POST -> handlePostSchedule(session)
+                uri == "/api/schedules/delete" && method == Method.POST -> handlePostScheduleDelete(session)
+                uri == "/api/schedules/toggle" && method == Method.POST -> handlePostScheduleToggle(session)
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -226,6 +230,7 @@ class ConfigServer(
             addProperty("llmModelName", KVUtils.getLlmModelName())
             addProperty("llmContextWindow", KVUtils.getLlmContextWindow())
             addProperty("confirmDangerousOps", KVUtils.getConfirmDangerousOps())
+            addProperty("verifyResults", KVUtils.getVerifyResults())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -275,6 +280,9 @@ class ConfigServer(
         }
         if (json.has("confirmDangerousOps")) {
             KVUtils.setConfirmDangerousOps(json.get("confirmDangerousOps").asBoolean)
+        }
+        if (json.has("verifyResults")) {
+            KVUtils.setVerifyResults(json.get("verifyResults").asBoolean)
         }
 
         ConfigServerManager.notifyConfigChanged()
@@ -390,6 +398,108 @@ class ConfigServer(
         }
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
     }
+
+    // ==================== 定时任务（F7） ====================
+
+    private fun handleGetSchedules(): Response {
+        val tasks = com.apk.claw.android.agent.store.ScheduledTaskStore.list().map { t ->
+            JsonObject().apply {
+                addProperty("id", t.id)
+                addProperty("name", t.name)
+                addProperty("task", t.task)
+                addProperty("channel", t.channel)
+                addProperty("hour", t.hour)
+                addProperty("minute", t.minute)
+                add("daysOfWeek", gson.toJsonTree(t.daysOfWeek))
+                addProperty("enabled", t.enabled)
+                addProperty("lastTriggerAt", t.lastTriggerAt)
+            }
+        }
+        val data = JsonObject().apply { add("tasks", gson.toJsonTree(tasks)) }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    private fun handlePostSchedule(session: IHTTPSession): Response {
+        val json = readPostJson(session)
+            ?: return badRequest("invalid json")
+        val taskText = json.optString("task")?.trim() ?: ""
+        val time = json.optString("time")?.trim() ?: ""
+        val parts = time.split(":")
+        val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: -1
+        val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: -1
+        if (taskText.isEmpty() || hour !in 0..23 || minute !in 0..59) {
+            return badRequest("task and time ('HH:mm') are required")
+        }
+        val daysRaw = json.optString("daysOfWeek")?.trim() ?: ""
+        val days = com.apk.claw.android.tool.impl.ScheduleTaskTool.parseDaysOfWeek(daysRaw)
+            ?: return badRequest("daysOfWeek must be comma-separated 1-7")
+
+        val channel = try {
+            com.apk.claw.android.channel.Channel.valueOf(json.optString("channel")?.trim() ?: "IN_APP")
+        } catch (_: Exception) {
+            com.apk.claw.android.channel.Channel.IN_APP
+        }
+        val sender = json.optString("senderId")?.trim().takeUnless { it.isNullOrEmpty() } ?: "local"
+
+        val scheduled = com.apk.claw.android.agent.store.ScheduledTaskStore.ScheduledTask(
+            id = "st-${java.lang.Long.toString(System.currentTimeMillis(), 36)}-${(100..999).random()}",
+            name = json.optString("name")?.trim().takeUnless { it.isNullOrEmpty() } ?: taskText.take(20),
+            task = taskText,
+            channel = channel.name,
+            senderId = sender,
+            hour = hour,
+            minute = minute,
+            daysOfWeek = days,
+            enabled = true,
+            createdAt = System.currentTimeMillis()
+        )
+        val added = try {
+            com.apk.claw.android.agent.store.ScheduledTaskStore.add(scheduled)
+        } catch (e: Exception) {
+            return badRequest(e.message ?: "failed to add schedule")
+        }
+        com.apk.claw.android.service.TaskScheduler.schedule(context, added)
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok","data":{"id":"${added.id}"}}"""))
+    }
+
+    private fun handlePostScheduleDelete(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val id = json.optString("id") ?: ""
+        if (com.apk.claw.android.agent.store.ScheduledTaskStore.remove(id)) {
+            com.apk.claw.android.service.TaskScheduler.cancel(context, id)
+            return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+        }
+        return badRequest("schedule not found: $id")
+    }
+
+    private fun handlePostScheduleToggle(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val id = json.optString("id") ?: ""
+        val enabled = json.get("enabled")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false
+        val updated = com.apk.claw.android.agent.store.ScheduledTaskStore.setEnabled(id, enabled)
+            ?: return badRequest("schedule not found: $id")
+        com.apk.claw.android.service.TaskScheduler.schedule(context, updated)
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+    }
+
+    private fun readPostJson(session: IHTTPSession): JsonObject? {
+        val files = mutableMapOf<String, String>()
+        session.parseBody(files)
+        val body = files["postData"] ?: ""
+        return try {
+            gson.fromJson(body, JsonObject::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun badRequest(message: String): Response =
+        corsResponse(newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_JSON, """{"code":-1,"message":"$message"}"""))
 
     // ==================== Debug (仅 DEBUG 构建) ====================
     

@@ -109,6 +109,11 @@ object FloatingCircleManager {
                     view?.setOnClickListener {
                         onFloatClick()
                     }
+                    // F6：长按唤起语音输入（与拖动手势并存：静止长按触发，拖动不触发）
+                    view?.setOnLongClickListener {
+                        onFloatLongClick()
+                        true
+                    }
                     // 初始化状态
                     updateStateView(view, currentState)
                     // 布局完成后检测位置，防止圆球卡在屏幕外
@@ -321,6 +326,7 @@ object FloatingCircleManager {
             Channel.DISCORD -> R.drawable.ic_channel_discord
             Channel.TELEGRAM -> R.drawable.ic_channel_telegram
             Channel.WECHAT -> R.drawable.ic_channel_wechat
+            Channel.IN_APP -> R.drawable.ic_launcher
             else -> R.drawable.ic_launcher
         }
     }
@@ -444,4 +450,9 @@ object FloatingCircleManager {
      * 点击回调，可以在外部设置
      */
     var onFloatClick: () -> Unit = {}
+
+    /**
+     * F6：长按回调，唤起语音输入
+     */
+    var onFloatLongClick: () -> Unit = {}
 }

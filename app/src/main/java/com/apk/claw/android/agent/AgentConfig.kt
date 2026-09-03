@@ -16,7 +16,9 @@ data class AgentConfig(
     /** 模型上下文窗口（tokens），决定 ContextBudget 压缩阈值；≤0 用默认值 */
     val contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS,
     /** 危险操作（发送/支付/删除类）执行前是否需用户经渠道确认（F2） */
-    val confirmDangerousOps: Boolean = true
+    val confirmDangerousOps: Boolean = true,
+    /** 核心操作执行后回读设备状态断言，失败自动重试一次（F4） */
+    val verifyResults: Boolean = true
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
@@ -95,6 +97,10 @@ data class AgentConfig(
   记忆过时或用户指出记错时，用 memory_delete 删除对应条目。
   拿不准要不要记，就不记。不要把一次性的任务上下文存进记忆。
 
+规则 12：周期性任务用定时计划。
+  当用户要求"每天/每周几点做某事"这类例行任务时，调用 schedule_task(time="HH:mm", task="指令") 创建计划，
+  而不是当场执行任务本身；创建成功后告知计划内容与触发时间。查询用 list_scheduled_tasks，取消用 cancel_scheduled_task(id)。
+
 ## 安全约束
 - 绝不自动填写账户密码、支付密码、银行卡号等敏感凭证（WiFi 密码等用户明确要求输入的除外）
 - 绝不确认购买/支付操作
@@ -114,6 +120,7 @@ data class AgentConfig(
         private var streaming: Boolean = false
         private var contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS
         private var confirmDangerousOps: Boolean = true
+        private var verifyResults: Boolean = true
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -125,10 +132,11 @@ data class AgentConfig(
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
         fun contextWindowTokens(contextWindowTokens: Int) = apply { this.contextWindowTokens = contextWindowTokens }
         fun confirmDangerousOps(confirmDangerousOps: Boolean) = apply { this.confirmDangerousOps = confirmDangerousOps }
+        fun verifyResults(verifyResults: Boolean) = apply { this.verifyResults = verifyResults }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults)
         }
     }
 }

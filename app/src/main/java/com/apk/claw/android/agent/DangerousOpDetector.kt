@@ -14,7 +14,9 @@ object DangerousOpDetector {
         "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps",
         "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill",
         "open_app", "press_back", "press_home", "system_key", "expand_notifications",
-        "collapse_notifications", "scroll_to_find", "read_clipboard", "send_file"
+        "collapse_notifications", "scroll_to_find", "read_clipboard", "send_file",
+        // F7：管理定时计划本身不执行计划内容；计划内的敏感操作到点仍会过 F2 确认
+        "schedule_task", "cancel_scheduled_task", "list_scheduled_tasks"
     )
 
     /** 不可逆动作关键词（中英文） */

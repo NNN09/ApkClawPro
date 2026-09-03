@@ -42,6 +42,9 @@ object ToolRegistry {
         register(MemoryDeleteTool())
         register(MemoryListTool())
         register(LoadSkillTool())
+        register(ScheduleTaskTool())
+        register(CancelScheduledTaskTool())
+        register(ListScheduledTasksTool())
     }
 
     private fun registerTvTools() {

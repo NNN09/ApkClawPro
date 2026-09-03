@@ -55,6 +55,17 @@ h1 {
 .llm .dot { background: #34C759; }
 .persona .dot { background: #FF9500; }
 .skills .dot { background: #AF52DE; }
+.schedules .dot { background: #FF3B30; }
+.sched-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; }
+.sched-item button {
+  width: auto;
+  padding: 4px 10px;
+  background: #86868b;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
 .field { margin-bottom: 16px; }
 .field:last-child { margin-bottom: 0; }
 label {
@@ -215,6 +226,24 @@ textarea:focus {
       <button id="taskRefreshBtn" type="button" data-i18n="tasks_refresh"></button>
     </div>
 
+    <div class="card schedules">
+      <div class="card-title"><span class="dot"></span><span data-i18n="sched_title"></span></div>
+      <div class="field">
+        <label data-i18n="sched_task"></label>
+        <input type="text" id="schedTask" data-i18n-placeholder="ph_sched_task" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="sched_time"></label>
+        <input type="text" id="schedTime" placeholder="08:30" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="sched_days"></label>
+        <input type="text" id="schedDays" data-i18n-placeholder="ph_sched_days" autocomplete="off">
+      </div>
+      <button id="schedAddBtn" type="button" data-i18n="sched_add"></button>
+      <div id="schedList" style="font-size:12px;color:#86868b;white-space:pre-line;margin-top:16px;max-height:320px;overflow:auto;">...</div>
+    </div>
+
     <div class="card llm">
       <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
       <div class="field">
@@ -239,6 +268,10 @@ textarea:focus {
       <div class="field">
         <label data-i18n="llm_confirm_ops" style="display:inline-block;margin-right:8px;"></label>
         <input type="checkbox" id="confirmDangerousOps" style="width:auto;vertical-align:middle;">
+      </div>
+      <div class="field">
+        <label data-i18n="llm_verify_results" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="verifyResults" style="width:auto;vertical-align:middle;">
       </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
@@ -371,10 +404,25 @@ const i18nMessages = {
     save_success: '配置已保存，通道将自动重连',
     save_failed: '保存失败',
     llm_confirm_ops: '危险操作确认（发送/支付/删除类操作需回复确认）',
+    llm_verify_results: '结果验证（关键操作后回读设备状态，失败自动重试一次）',
     tasks_title: '任务历史',
     tasks_empty: '暂无任务记录',
     tasks_load_failed: '加载失败',
     tasks_refresh: '刷新',
+    sched_title: '定时任务',
+    sched_task: '任务指令（到点执行并回传结果）',
+    sched_time: '触发时间（24 小时制 HH:mm）',
+    sched_days: '星期（可选，逗号分隔 1-7，1=周一；留空=每天）',
+    ph_sched_task: '如：打开飞书查看未读消息并总结',
+    ph_sched_days: '如 1,2,3,4,5 表示工作日',
+    sched_add: '添加定时任务',
+    sched_empty: '暂无定时任务',
+    sched_load_failed: '加载失败',
+    sched_added: '已添加',
+    sched_missing: '请填写任务指令和触发时间',
+    sched_del: '删除',
+    sched_toggle: '启用/停用',
+    sched_everyday: '每天',
     unknown_error: '未知错误',
   },
   'en': {
@@ -427,10 +475,25 @@ const i18nMessages = {
     save_success: 'Saved. Channels will reconnect automatically.',
     save_failed: 'Save failed',
     llm_confirm_ops: 'Dangerous-op confirmation (send/pay/delete requires user confirm)',
+    llm_verify_results: 'Result verification (read back device state after key actions, auto-retry once)',
     tasks_title: 'Task History',
     tasks_empty: 'No task records yet',
     tasks_load_failed: 'Failed to load',
     tasks_refresh: 'Refresh',
+    sched_title: 'Scheduled Tasks',
+    sched_task: 'Task instruction (executed at trigger time, result sent back)',
+    sched_time: 'Trigger time (24h HH:mm)',
+    sched_days: 'Days of week (optional, comma-separated 1-7, 1=Monday; empty = every day)',
+    ph_sched_task: 'e.g. Open Feishu, summarize unread messages',
+    ph_sched_days: 'e.g. 1,2,3,4,5 for weekdays',
+    sched_add: 'Add Scheduled Task',
+    sched_empty: 'No scheduled tasks',
+    sched_load_failed: 'Failed to load',
+    sched_added: 'Added',
+    sched_missing: 'Task instruction and trigger time are required',
+    sched_del: 'Delete',
+    sched_toggle: 'Enable/Disable',
+    sched_everyday: 'daily',
     unknown_error: 'Unknown error',
   },
   'ja': {
@@ -483,10 +546,25 @@ const i18nMessages = {
     save_success: '設定を保存しました。チャネルは自動的に再接続されます。',
     save_failed: '保存に失敗しました',
     llm_confirm_ops: '危険操作の確認（送信/支払い/削除はユーザー確認が必要）',
+    llm_verify_results: '結果検証（主要操作後に端末状態を再読み取りし、失敗時は1回自動再試行）',
     tasks_title: 'タスク履歴',
     tasks_empty: 'タスク記録はまだありません',
     tasks_load_failed: '読み込みに失敗しました',
     tasks_refresh: '更新',
+    sched_title: '定時タスク',
+    sched_task: 'タスク指示（指定時刻に実行し結果を返送）',
+    sched_time: 'トリガー時刻（24時間制 HH:mm）',
+    sched_days: '曜日（任意、カンマ区切り 1-7、1=月曜。空欄=毎日）',
+    ph_sched_task: '例：Feishu を開いて未読メッセージを要約',
+    ph_sched_days: '例：1,2,3,4,5 は平日',
+    sched_add: '定時タスクを追加',
+    sched_empty: '定時タスクはありません',
+    sched_load_failed: '読み込みに失敗しました',
+    sched_added: '追加しました',
+    sched_missing: 'タスク指示とトリガー時刻は必須です',
+    sched_del: '削除',
+    sched_toggle: '有効/無効',
+    sched_everyday: '毎日',
     unknown_error: '不明なエラー',
   },
 };
@@ -536,7 +614,7 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults'];
 
 async function load() {
   try {
@@ -668,9 +746,75 @@ async function refreshTasks() {
 
 document.getElementById('taskRefreshBtn').addEventListener('click', refreshTasks);
 
+// ====== Scheduled tasks (F7) ======
+async function refreshSchedules() {
+  const el = document.getElementById('schedList');
+  try {
+    const r = await fetch('/api/schedules');
+    const j = await r.json();
+    const list = (j.data && j.data.tasks) || [];
+    el.textContent = '';
+    if (!list.length) { el.textContent = t('sched_empty'); return; }
+    list.forEach(x => {
+      const row = document.createElement('div');
+      row.className = 'sched-item';
+      const days = (x.daysOfWeek || []).length ? x.daysOfWeek.slice().sort().join(',') : t('sched_everyday');
+      const time = String(x.hour).padStart(2, '0') + ':' + String(x.minute).padStart(2, '0');
+      const text = document.createElement('div');
+      text.className = 'sched-text';
+      text.textContent = `[${x.enabled ? '●' : '○'}] ${time} (${days}) ${x.name}\n  ${x.task}`;
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.title = t('sched_del');
+      delBtn.addEventListener('click', async () => {
+        await fetch('/api/schedules/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id }) });
+        refreshSchedules();
+      });
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.textContent = x.enabled ? '❚❚' : '▶';
+      toggleBtn.title = t('sched_toggle');
+      toggleBtn.addEventListener('click', async () => {
+        await fetch('/api/schedules/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id, enabled: !x.enabled }) });
+        refreshSchedules();
+      });
+      row.appendChild(text);
+      row.appendChild(toggleBtn);
+      row.appendChild(delBtn);
+      el.appendChild(row);
+    });
+  } catch (e) {
+    el.textContent = t('sched_load_failed');
+  }
+}
+
+document.getElementById('schedAddBtn').addEventListener('click', async () => {
+  const payload = {
+    task: document.getElementById('schedTask').value.trim(),
+    time: document.getElementById('schedTime').value.trim(),
+    daysOfWeek: document.getElementById('schedDays').value.trim()
+  };
+  if (!payload.task || !payload.time) { showToast(t('sched_missing'), 'error'); return; }
+  try {
+    const r = await fetch('/api/schedules', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('sched_added') : j.message, j.code === 0 ? 'success' : 'error');
+    if (j.code === 0) {
+      document.getElementById('schedTask').value = '';
+      document.getElementById('schedTime').value = '';
+      document.getElementById('schedDays').value = '';
+      refreshSchedules();
+    }
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  }
+});
+
 load();
 refreshSkills();
 refreshTasks();
+refreshSchedules();
 </script>
 </body>
 </html>

@@ -69,17 +69,27 @@
         app:cardSubtitle="@string/home_card_storage_subtitle"
         app:layout_constraintTop_toBottomOf="@id/cardBattery" />
 
+    <!-- 开始对话（F5） -->
+    <com.apk.claw.android.widget.KButton
+        android:id="@+id/btnOpenChat"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:layout_marginTop="24pt"
+        android:text="@string/home_open_chat"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/cardStorage" />
+
     <!-- 结束当前会话 -->
     <com.apk.claw.android.widget.KButton
         android:id="@+id/btnCancelTask"
         android:layout_width="match_parent"
         android:layout_height="48pt"
-        android:layout_marginTop="24pt"
+        android:layout_marginTop="12pt"
         android:text="@string/home_cancel_task"
         android:textSize="16sp"
         android:visibility="gone"
         app:btnBackground="@color/colorErrorPrimary"
         app:btnTextColor="@color/colorErrorOnPrimary"
-        app:layout_constraintTop_toBottomOf="@id/cardStorage" />
+        app:layout_constraintTop_toBottomOf="@id/btnOpenChat" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

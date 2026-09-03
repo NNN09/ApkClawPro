@@ -19,6 +19,7 @@ import com.apk.claw.android.appViewModel
 import com.apk.claw.android.base.BaseActivity
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.ui.guide.GuideActivity
+import com.apk.claw.android.ui.chat.ChatActivity
 import com.apk.claw.android.ui.settings.SettingsActivity
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.widget.CommonToolbar
@@ -40,6 +41,7 @@ class HomeActivity : BaseActivity() {
     private lateinit var cardSystemWindow: PermissionCardView
     private lateinit var cardBattery: PermissionCardView
     private lateinit var cardStorage: PermissionCardView
+    private lateinit var btnOpenChat: KButton
     private lateinit var btnCancelTask: KButton
 
     private val handler = Handler(Looper.getMainLooper())
@@ -120,6 +122,12 @@ class HomeActivity : BaseActivity() {
         cardSystemWindow = findViewById(R.id.cardSystemWindow)
         cardBattery = findViewById(R.id.cardBattery)
         cardStorage = findViewById(R.id.cardStorage)
+
+        // 开始对话（F5：App 内渠道，零配置可用）
+        btnOpenChat = findViewById(R.id.btnOpenChat)
+        btnOpenChat.setOnClickListener {
+            startActivity(Intent(this, ChatActivity::class.java))
+        }
 
         // 结束会话按钮
         btnCancelTask = findViewById(R.id.btnCancelTask)

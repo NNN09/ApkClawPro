@@ -1,8 +1,10 @@
 package com.apk.claw.android
 
 import com.apk.claw.android.agent.DefaultAgentService
+import com.apk.claw.android.agent.store.InAppChatStore
 import com.apk.claw.android.agent.store.MemoryStore
 import com.apk.claw.android.agent.store.PersonaStore
+import com.apk.claw.android.agent.store.ScheduledTaskStore
 import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.agent.store.SkillStore
 import com.apk.claw.android.base.BaseApp
@@ -40,6 +42,8 @@ class ClawApplication : BaseApp() {
         SessionStore.init(agentDir)
         MemoryStore.init(agentDir)
         SkillStore.init(agentDir)
+        InAppChatStore.init(agentDir)
+        ScheduledTaskStore.init(agentDir)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 

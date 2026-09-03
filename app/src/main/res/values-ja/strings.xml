@@ -189,6 +189,24 @@
     <string name="agent_task_cancel">タスクキャンセル</string>
     <string name="agent_api_call_failed">AIサービスの呼び出しに失敗: %s</string>
     <string name="agent_max_iterations">タスク未完了のまま最大反復回数 (%d) に達しました</string>
+    <string name="agent_verify_failed">結果の検証に失敗しました（1回再試行済み）：%s</string>
+
+    <!-- チャット（F5） -->
+    <string name="home_open_chat">チャット開始</string>
+    <string name="chat_title">チャット</string>
+    <string name="chat_input_hint">タスクを入力（例：設定を開いてAndroidバージョンを確認）</string>
+    <string name="cd_chat_send">送信</string>
+    <string name="chat_llm_not_configured">LLM が未設定です。先に 設定 → LLM 設定 を完了してください。</string>
+
+    <!-- 音声（F6） -->
+    <string name="voice_listening">音声認識中…お話しください</string>
+    <string name="voice_unavailable">この端末では音声認識を利用できません。チャットで入力してください。</string>
+    <string name="voice_failed">音声認識に失敗しました。チャットで入力してください。</string>
+
+    <!-- 定時タスクツール（F7） -->
+    <string name="tool_name_schedule_task">定時タスクを作成</string>
+    <string name="tool_name_cancel_scheduled_task">定時タスクを取消</string>
+    <string name="tool_name_list_scheduled_tasks">定時タスク一覧</string>
 
     <!-- ファイルツール -->
     <string name="tool_no_storage_permission">ファイルの読み書き権限がありません</string>

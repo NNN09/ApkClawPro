@@ -194,6 +194,7 @@ object KVUtils {
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
     private const val KEY_LLM_CONTEXT_WINDOW = "KEY_LLM_CONTEXT_WINDOW"
     private const val KEY_CONFIRM_DANGEROUS_OPS = "KEY_CONFIRM_DANGEROUS_OPS"
+    private const val KEY_VERIFY_RESULTS = "KEY_VERIFY_RESULTS"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -209,6 +210,10 @@ object KVUtils {
     /** F2：危险操作（发送/支付/删除类）执行前是否需用户经渠道确认，默认开启 */
     fun getConfirmDangerousOps(): Boolean = getBoolean(KEY_CONFIRM_DANGEROUS_OPS, true)
     fun setConfirmDangerousOps(value: Boolean) = putBoolean(KEY_CONFIRM_DANGEROUS_OPS, value)
+
+    /** F4：核心操作执行后回读设备状态断言，默认开启 */
+    fun getVerifyResults(): Boolean = getBoolean(KEY_VERIFY_RESULTS, true)
+    fun setVerifyResults(value: Boolean) = putBoolean(KEY_VERIFY_RESULTS, value)
 
     /** 是否已配置 LLM（API Key 非空即视为已配置） */
     fun hasLlmConfig(): Boolean = getLlmApiKey().isNotEmpty()
