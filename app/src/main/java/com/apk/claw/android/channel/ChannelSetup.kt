@@ -4,6 +4,8 @@ import com.apk.claw.android.ClawApplication
 import com.apk.claw.android.R
 import com.apk.claw.android.TaskOrchestrator
 import com.apk.claw.android.agent.store.SessionStore
+import com.apk.claw.android.compliance.AdmissionControl
+import com.apk.claw.android.compliance.ComplianceConfig
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
@@ -17,7 +19,9 @@ class ChannelSetup(
 ) {
 
     private data class PendingMessage(
-        val channel: Channel, val senderId: String, val message: String, val messageID: String
+        val channel: Channel, val senderId: String, val message: String, val messageID: String,
+        /** C3：是否自动任务（F7 定时等无人值守来源）——决定静默/冷却/熔断是否适用 */
+        val automated: Boolean
     )
 
     private val queueLock = Any()
@@ -64,8 +68,9 @@ class ChannelSetup(
     /**
      * 消息派发统一入口：渠道消息与 F7 定时任务都经此进入任务链路，
      * 保证无障碍检查、确认门控、任务锁与排队行为一致。
+     * @param automated 是否自动任务（定时/事件等无人值守来源；由调用方标注）
      */
-    fun dispatch(channel: Channel, message: String, messageID: String, senderId: String) {
+    fun dispatch(channel: Channel, message: String, messageID: String, senderId: String, automated: Boolean = false) {
         if (inboundDeduper.isDuplicate(channel, senderId, message)) {
             XLog.w(TAG, "重复 dispatch 已拦截: channel=${channel.displayName}, message=${message.take(40)}")
             return
@@ -91,10 +96,25 @@ class ChannelSetup(
             return
         }
 
+        // C3 准入：限频/静默/冷却/熔断（配置活读）。SKIP 回渠道说明后丢弃；NOTICE 先发提示再继续
+        val cfg = KVUtils.loadComplianceConfig()
+        when (val outcome = taskOrchestrator.admission.check(channel.name, automated, cfg, System.currentTimeMillis())) {
+            is AdmissionControl.Outcome.Skip -> {
+                ChannelManager.sendMessage(channel, admissionMessage(cfg, outcome.reason, false), messageID)
+                ChannelManager.flushMessages(channel)
+                return
+            }
+            is AdmissionControl.Outcome.Notice -> {
+                ChannelManager.sendMessage(channel, admissionMessage(cfg, outcome.reason, true), messageID)
+                ChannelManager.flushMessages(channel)
+            }
+            else -> {}
+        }
+
         if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
             val queued = synchronized(queueLock) {
                 if (pendingQueue.size >= MAX_PENDING) null
-                else { pendingQueue.addLast(PendingMessage(channel, senderId, message, messageID)); pendingQueue.size }
+                else { pendingQueue.addLast(PendingMessage(channel, senderId, message, messageID, automated)); pendingQueue.size }
             }
             val reply = if (queued != null) {
                 app.getString(R.string.channel_msg_queued, queued)
@@ -110,14 +130,48 @@ class ChannelSetup(
 
     /**
      * 任务空闲后排空待执行消息队列。每次只启动一条；其结束后 onIdle 会再次触发。
+     * 弹出时重跑 C3 准入（排队期间配置/熔断状态可能已变化），被拒则回渠道说明并继续下一条。
      */
     private fun drainPending() {
         while (true) {
             val next = synchronized(queueLock) { pendingQueue.firstOrNull() } ?: return
+            val cfg = KVUtils.loadComplianceConfig()
+            when (val outcome = taskOrchestrator.admission.check(next.channel.name, next.automated, cfg, System.currentTimeMillis())) {
+                is AdmissionControl.Outcome.Skip -> {
+                    ChannelManager.sendMessage(next.channel, admissionMessage(cfg, outcome.reason, false), next.messageID)
+                    ChannelManager.flushMessages(next.channel)
+                    synchronized(queueLock) { pendingQueue.removeFirst() }
+                    continue
+                }
+                is AdmissionControl.Outcome.Notice -> {
+                    ChannelManager.sendMessage(next.channel, admissionMessage(cfg, outcome.reason, true), next.messageID)
+                    ChannelManager.flushMessages(next.channel)
+                }
+                else -> {}
+            }
             if (!taskOrchestrator.tryAcquireTask(next.messageID, next.channel)) return
             synchronized(queueLock) { pendingQueue.removeFirst() }
             taskOrchestrator.startNewTask(next.channel, next.senderId, next.message, next.messageID)
             return
+        }
+    }
+
+    /** C3 拒绝/提示文案组装；@param notice true 表示放行前的提示（仅熔断未解除的手动任务） */
+    private fun admissionMessage(cfg: ComplianceConfig, reason: AdmissionControl.Reason, notice: Boolean): String {
+        val app = ClawApplication.instance
+        return when (reason) {
+            AdmissionControl.Reason.RATE_LIMITED -> app.getString(R.string.compliance_rate_limited)
+            AdmissionControl.Reason.QUIET_HOURS -> app.getString(
+                R.string.compliance_quiet_hour_skip,
+                ComplianceConfig.formatHm(cfg.quietStartMin),
+                ComplianceConfig.formatHm(cfg.quietEndMin)
+            )
+            AdmissionControl.Reason.COOLDOWN -> app.getString(R.string.compliance_cooldown_skip, cfg.cooldownSec)
+            AdmissionControl.Reason.BREAKER -> if (notice) {
+                app.getString(R.string.compliance_breaker_notice, cfg.failureStreak, cfg.breakerThreshold)
+            } else {
+                app.getString(R.string.compliance_breaker_skip, cfg.failureStreak, cfg.breakerThreshold)
+            }
         }
     }
 }

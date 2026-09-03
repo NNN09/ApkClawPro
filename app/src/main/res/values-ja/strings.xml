@@ -191,6 +191,16 @@
     <string name="agent_max_iterations">タスク未完了のまま最大反復回数 (%d) に達しました</string>
     <string name="agent_verify_failed">結果の検証に失敗しました（1回再試行済み）：%s</string>
 
+    <!-- コンプライアンス（C3/C5/C6） -->
+    <string name="compliance_app_policy_confirm">⚠️ アプリ安全ポリシー\n操作：%1$s\n対象：%2$s はすべての操作で確認が必要に設定されています。\n「continue」で実行、「cancel」でスキップ（2分間無応答で自動キャンセル）。</string>
+    <string name="compliance_app_blocked">アプリポリシーにより操作がブロックされました：%1$s（対象 %2$s）は自動操作禁止に設定されています。設定ページの「コンプライアンス」カードでポリシーを変更してください。</string>
+    <string name="compliance_third_party_disabled">セキュリティポリシーにより操作がブロックされました：%1$s（対象 %2$s）——サードパーティアプリの自動化が無効です。設定ページの「コンプライアンス」カードで有効にしてください。</string>
+    <string name="compliance_rate_limited">短時間にタスクが多すぎるため、このメッセージはスキップされました。しばらく待って再試行してください。</string>
+    <string name="compliance_quiet_hour_skip">⏸ 静音時間（%1$s–%2$s）：自動タスクをスキップしました。手動で実行するか、スケジュールを調整してください。</string>
+    <string name="compliance_cooldown_skip">自動タスクをスキップしました：タスクの起動が速すぎます（最小間隔 %1$d 秒）。しばらくして再試行してください。</string>
+    <string name="compliance_breaker_skip">⛔ サーキットブレーカー作動：連続 %1$d 回失敗（しきい値 %2$d）のため自動タスクを一時停止しました。設定を確認してください。手動タスクが成功すると自動で解除されます。</string>
+    <string name="compliance_breaker_notice">⚠️ サーキットブレーカー作動中：連続 %1$d 回失敗（しきい値 %2$d）。この手動タスクは実行されます。成功すると解除されます。</string>
+
     <!-- チャット（F5） -->
     <string name="home_open_chat">チャット開始</string>
     <string name="chat_title">チャット</string>

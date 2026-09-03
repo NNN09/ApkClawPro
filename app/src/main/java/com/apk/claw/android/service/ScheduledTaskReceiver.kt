@@ -37,8 +37,9 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
             return
         }
         XLog.i(TAG, "Firing scheduled task $taskId via ${channel.displayName}")
+        // automated=true：无人值守来源，C3 静默时段/冷却/熔断对此生效
         ClawApplication.appViewModelInstance.dispatchTask(
-            channel, task.senderId, task.task, "sched-$taskId-$now"
+            channel, task.senderId, task.task, "sched-$taskId-$now", automated = true
         )
     }
 }

@@ -56,6 +56,7 @@ h1 {
 .persona .dot { background: #FF9500; }
 .skills .dot { background: #AF52DE; }
 .schedules .dot { background: #FF3B30; }
+.compliance .dot { background: #5856D6; }
 .sched-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; }
 .sched-item button {
@@ -296,6 +297,66 @@ textarea:focus {
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
 
+    <div class="card compliance">
+      <div class="card-title"><span class="dot"></span><span data-i18n="comp_title"></span></div>
+      <div class="field" style="padding:10px 12px;background:#fff7e6;border:1px solid #ffd977;border-radius:10px;">
+        <span style="font-size:12px;line-height:1.7;color:#8a6100;white-space:pre-line;" data-i18n="comp_risk_notice"></span>
+      </div>
+      <div class="field">
+        <label data-i18n="comp_third_party" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="thirdPartyAutomationEnabled" style="width:auto;vertical-align:middle;">
+      </div>
+      <div class="field">
+        <label data-i18n="comp_quiet_hours" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="quietHoursEnabled" style="width:auto;vertical-align:middle;">
+      </div>
+      <div class="field">
+        <label data-i18n="comp_quiet_window"></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="time" id="quietStart" autocomplete="off">
+          <span style="color:#86868b;">–</span>
+          <input type="time" id="quietEnd" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="comp_cooldown"></label>
+        <input type="number" id="cooldownSec" min="0" max="600" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="comp_rate_global"></label>
+        <input type="number" id="rateGlobalPerMin" min="0" max="600" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="comp_rate_channel"></label>
+        <input type="number" id="rateChannelPerMin" min="0" max="600" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="comp_breaker_threshold"></label>
+        <input type="number" id="breakerThreshold" min="0" max="50" autocomplete="off">
+      </div>
+      <div class="field">
+        <label style="display:inline-block;margin-right:8px;" data-i18n="comp_breaker_streak"></label>
+        <span id="breakerStreak" style="font-size:14px;font-weight:600;color:#ff9500;">0 / -</span>
+        <button type="button" id="breakerResetBtn" style="width:auto;min-width:80px;margin-left:10px;" data-i18n="comp_breaker_reset"></button>
+      </div>
+      <hr style="border:none;border-top:1px solid #e5e5ea;margin:18px 0;">
+      <div class="field">
+        <label data-i18n="comp_policies_title"></label>
+        <p style="font-size:12px;color:#86868b;margin:2px 0 6px;line-height:1.6;" data-i18n="comp_policy_hint"></p>
+        <div id="policyList" style="font-size:13px;color:#86868b;">...</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input type="text" id="policyPkg" data-i18n-placeholder="ph_policy_pkg" autocomplete="off" style="flex:1;min-width:0;">
+          <select id="policyMode" style="width:auto;border:1.5px solid #e5e5ea;border-radius:10px;padding:0 6px;background:#fafafa;font-size:13px;color:#333;">
+            <option value="AUTO" data-i18n="comp_mode_auto"></option>
+            <option value="CONFIRM" data-i18n="comp_mode_confirm" selected></option>
+            <option value="BLOCK" data-i18n="comp_mode_block"></option>
+          </select>
+          <button type="button" id="policyAddBtn" style="width:auto;min-width:72px;" data-i18n="comp_policy_add"></button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="comp_tip"></p>
+    </div>
+
     <div class="card dingtalk">
       <div class="card-title"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
       <div class="field">
@@ -460,6 +521,31 @@ const i18nMessages = {
     skills_delete_confirm: '确认删除技能',
     skills_deleted: '已删除',
     skills_export_all: '导出全部技能 (zip)',
+    comp_title: '合规与自动化策略（C3/C5/C6）',
+    comp_risk_notice: '⚠️ 风险告知：自动操控第三方 App 可能触发其反自动化风控，导致账号受限或封禁。本项目遵循"不做对抗平台检测"原则，只整合官方 API 与系统能力，执行节奏受频控约束。请仅在自有、可信的设备上启用，后果自行承担。',
+    comp_third_party: '第三方 App 自动化总开关（关闭后仅系统 App 与系统级工具可用）',
+    comp_quiet_hours: '夜间静默（只跳过定时/自动任务，手动消息不受影响）',
+    comp_quiet_window: '静默时段（24 小时制；起止相同时视为全天）',
+    comp_cooldown: '自动任务最小间隔（秒，0=关闭）',
+    comp_rate_global: '全局任务频率上限（次/分钟，0=关闭）',
+    comp_rate_channel: '单渠道任务频率上限（次/分钟，0=关闭）',
+    comp_breaker_threshold: '熔断阈值（连续失败次数，0=关闭）',
+    comp_breaker_streak: '当前连续失败',
+    comp_breaker_reset: '复位熔断',
+    comp_breaker_reset_done: '熔断已复位',
+    comp_policies_title: '按 App 自动化策略（未列出的 App 维持"危险操作确认"）',
+    comp_policy_hint: 'AUTO=全自动（危险操作仍会确认）· CONFIRM=该 App 内每次操作都确认 · BLOCK=禁止自动化该 App',
+    comp_policy_add: '添加',
+    comp_policy_empty: '暂无策略',
+    comp_mode_auto: 'AUTO 全自动',
+    comp_mode_confirm: 'CONFIRM 全部确认',
+    comp_mode_block: 'BLOCK 禁止',
+    ph_policy_pkg: '应用包名，如 com.tencent.mm',
+    comp_policy_invalid: '包名格式无效（应为点分式，如 com.tencent.mm）',
+    comp_policy_delete_confirm: '移除该 App 的策略？',
+    comp_policy_saved: '策略已保存',
+    comp_tip: '改动即时生效，无需重启或重连；被拒/需确认时会在渠道内直接提示。',
+    comp_load_failed: '加载失败',
     unknown_error: '未知错误',
   },
   'en': {
@@ -548,6 +634,31 @@ const i18nMessages = {
     skills_delete_confirm: 'Delete skill',
     skills_deleted: 'Deleted',
     skills_export_all: 'Export all skills (zip)',
+    comp_title: 'Compliance & Automation Policy (C3/C5/C6)',
+    comp_risk_notice: '⚠️ Risk notice: automating third-party apps may trigger their anti-automation risk control and cause account restrictions or bans. This project follows the "no anti-detection" principle — official APIs and system capabilities only, with pacing limited by rate controls. Enable only on your own trusted devices; use at your own risk.',
+    comp_third_party: 'Third-party app automation (when off, only system apps and system-level tools work)',
+    comp_quiet_hours: 'Night quiet hours (only scheduled/automated tasks are skipped; manual messages unaffected)',
+    comp_quiet_window: 'Quiet window (24h; same start/end = all day)',
+    comp_cooldown: 'Min interval between automated tasks (seconds, 0=off)',
+    comp_rate_global: 'Global task rate limit (tasks/min, 0=off)',
+    comp_rate_channel: 'Per-channel task rate limit (tasks/min, 0=off)',
+    comp_breaker_threshold: 'Circuit-breaker threshold (consecutive failures, 0=off)',
+    comp_breaker_streak: 'Consecutive failures now',
+    comp_breaker_reset: 'Reset breaker',
+    comp_breaker_reset_done: 'Breaker reset',
+    comp_policies_title: 'Per-app automation policies (apps not listed keep dangerous-op confirmation)',
+    comp_policy_hint: 'AUTO = full auto (dangerous ops still confirmed) · CONFIRM = confirm every op in this app · BLOCK = never automate this app',
+    comp_policy_add: 'Add',
+    comp_policy_empty: 'No policies',
+    comp_mode_auto: 'AUTO full auto',
+    comp_mode_confirm: 'CONFIRM all ops',
+    comp_mode_block: 'BLOCK',
+    ph_policy_pkg: 'Package name, e.g. com.tencent.mm',
+    comp_policy_invalid: 'Invalid package name (dotted form expected, e.g. com.tencent.mm)',
+    comp_policy_delete_confirm: 'Remove this app policy?',
+    comp_policy_saved: 'Policies saved',
+    comp_tip: 'Changes apply immediately — no restart or reconnect needed. Blocks and confirmations are reported in the channel.',
+    comp_load_failed: 'Failed to load',
     unknown_error: 'Unknown error',
   },
   'ja': {
@@ -636,6 +747,31 @@ const i18nMessages = {
     skills_delete_confirm: 'スキルを削除',
     skills_deleted: '削除しました',
     skills_export_all: '全スキルをエクスポート (zip)',
+    comp_title: 'コンプライアンスと自動化ポリシー（C3/C5/C6）',
+    comp_risk_notice: '⚠️ リスクのお知らせ：サードパーティアプリの自動操作は、そのアプリの不正対策機能を誘発し、アカウント制限・停止につながる可能性があります。本プロジェクトは「検出への対抗策は作らない」方針に従い、公式 API とシステム機能のみを統合し、実行ペースはレート制限で抑制しています。信頼できる自分の端末でのみ有効にし、結果は自己責任でお願いします。',
+    comp_third_party: 'サードパーティアプリの自動化（オフ時はシステムアプリとシステムツールのみ利用可）',
+    comp_quiet_hours: '夜間静音（定時/自動タスクのみスキップ。手動メッセージは影響なし）',
+    comp_quiet_window: '静音時間帯（24時間表記。開始=終了は終日）',
+    comp_cooldown: '自動タスクの最小間隔（秒、0=無効）',
+    comp_rate_global: '全体のタスク頻度上限（回/分、0=無効）',
+    comp_rate_channel: 'チャネル別のタスク頻度上限（回/分、0=無効）',
+    comp_breaker_threshold: 'サーキットブレーカーしきい値（連続失敗数、0=無効）',
+    comp_breaker_streak: '現在の連続失敗数',
+    comp_breaker_reset: 'ブレーカー解除',
+    comp_breaker_reset_done: '解除しました',
+    comp_policies_title: 'アプリ別自動化ポリシー（未設定のアプリは危険操作確認を維持）',
+    comp_policy_hint: 'AUTO=全自動（危険操作は要確認）· CONFIRM=このアプリの全操作を確認 · BLOCK=このアプリの自動化を禁止',
+    comp_policy_add: '追加',
+    comp_policy_empty: 'ポリシーなし',
+    comp_mode_auto: 'AUTO 全自動',
+    comp_mode_confirm: 'CONFIRM 毎回確認',
+    comp_mode_block: 'BLOCK 禁止',
+    ph_policy_pkg: 'パッケージ名（例: com.tencent.mm）',
+    comp_policy_invalid: 'パッケージ名が無効です（ドット区切り、例: com.tencent.mm）',
+    comp_policy_delete_confirm: 'このアプリのポリシーを削除しますか？',
+    comp_policy_saved: 'ポリシーを保存しました',
+    comp_tip: '変更は即時反映され、再起動や再接続は不要です。ブロックや確認はチャネル内で通知されます。',
+    comp_load_failed: '読み込みに失敗しました',
     unknown_error: '不明なエラー',
   },
 };
@@ -686,6 +822,27 @@ function togglePassword(inputId, btn) {
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
 const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults', 'visionEnabled'];
+// C3/C5：合规设置（与 /api/compliance 键一一对应）
+const complianceFields = ['thirdPartyAutomationEnabled', 'quietHoursEnabled', 'quietStart', 'quietEnd', 'cooldownSec', 'rateGlobalPerMin', 'rateChannelPerMin', 'breakerThreshold'];
+
+function fillCompliance(d) {
+  complianceFields.forEach(f => {
+    const el = document.getElementById(f);
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!d[f];
+    else if (d[f] !== undefined && d[f] !== null) el.value = d[f];
+  });
+  const streakEl = document.getElementById('breakerStreak');
+  if (streakEl) streakEl.textContent = (d.failureStreak !== undefined ? d.failureStreak : 0) + ' / ' + (d.breakerThreshold !== undefined ? d.breakerThreshold : '-');
+}
+
+async function refreshCompliance() {
+  try {
+    const r = await fetch('/api/compliance');
+    const j = await r.json();
+    if (j.code === 0 && j.data) fillCompliance(j.data);
+  } catch (e) { /* 主配置已尽力显示，此处静默降级 */ }
+}
 
 async function load() {
   try {
@@ -711,6 +868,11 @@ async function load() {
       const el = document.getElementById('persona');
       if (el) el.value = personaJson.data.persona || '';
     }
+    try {
+      const compRes = await fetch('/api/compliance');
+      const compJson = await compRes.json();
+      if (compJson.code === 0 && compJson.data) fillCompliance(compJson.data);
+    } catch (e) { /* compliance 拉取失败不影响主配置展示 */ }
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
   } catch (e) {
@@ -734,19 +896,27 @@ async function save() {
       if (!el) return;
       llmBody[f] = el.type === 'checkbox' ? el.checked : el.value.trim();
     });
-    const [chanRes, llmRes, personaRes] = await Promise.all([
+    const compBody = {};
+    complianceFields.forEach(f => {
+      const el = document.getElementById(f);
+      if (!el) return;
+      compBody[f] = el.type === 'checkbox' ? el.checked : el.value.trim();
+    });
+    const [chanRes, llmRes, personaRes, compRes] = await Promise.all([
       fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
       fetch('/api/llm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(llmBody) }),
-      fetch('/api/persona', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ persona: document.getElementById('persona').value }) })
+      fetch('/api/persona', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ persona: document.getElementById('persona').value }) }),
+      fetch('/api/compliance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(compBody) })
     ]);
     const chanJson = await chanRes.json();
     const llmJson = await llmRes.json();
     const personaJson = await personaRes.json();
-    if (chanJson.code === 0 && llmJson.code === 0 && personaJson.code === 0) {
+    const compJson = await compRes.json();
+    if (chanJson.code === 0 && llmJson.code === 0 && personaJson.code === 0 && compJson.code === 0) {
       showToast(t('save_success'), 'success');
       setTimeout(load, 500);
     } else {
-      const msg = [chanJson, llmJson, personaJson].find(j => j.code !== 0)?.message;
+      const msg = [chanJson, llmJson, personaJson, compJson].find(j => j.code !== 0)?.message;
       showToast(t('save_failed') + ': ' + (msg || t('unknown_error')), 'error');
     }
   } catch (e) {
@@ -941,6 +1111,94 @@ document.getElementById('skillUploadBtn').addEventListener('click', async () => 
   }
 });
 
+// ====== Compliance: per-app policies (C6) ======
+let policies = [];
+const POLICY_PKG_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/;
+
+function modeLabel(m) {
+  if (m === 'AUTO') return t('comp_mode_auto');
+  if (m === 'CONFIRM') return t('comp_mode_confirm');
+  return t('comp_mode_block');
+}
+
+async function refreshPolicies() {
+  const el = document.getElementById('policyList');
+  try {
+    const r = await fetch('/api/policies');
+    const j = await r.json();
+    policies = j.code === 0 ? (j.data || []) : [];
+    if (!policies.length) { el.textContent = t('comp_policy_empty'); return; }
+    el.innerHTML = '';
+    policies.forEach(p => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.textContent = p.packageName + ' — ' + modeLabel(p.mode);
+      label.title = p.packageName;
+      const delBtn = document.createElement('a');
+      delBtn.href = 'javascript:void(0)';
+      delBtn.textContent = '✕';
+      delBtn.title = t('comp_policy_delete_confirm');
+      delBtn.style.color = '#ff3b30';
+      delBtn.onclick = () => deletePolicy(p.packageName);
+      row.appendChild(label);
+      row.appendChild(delBtn);
+      el.appendChild(row);
+    });
+  } catch (e) {
+    el.textContent = t('comp_load_failed');
+  }
+}
+
+// 整体替换保存（服务端校验整表，任一非法整体拒绝，保持原子性）
+async function savePolicies() {
+  try {
+    const r = await fetch('/api/policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ policies: policies }) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('comp_policy_saved') : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+    return j.code === 0;
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+    return false;
+  }
+}
+
+async function addPolicy() {
+  const pkgInput = document.getElementById('policyPkg');
+  const pkg = pkgInput.value.trim();
+  if (!POLICY_PKG_RE.test(pkg) || pkg.length > 255) { showToast(t('comp_policy_invalid'), 'error'); return; }
+  const mode = document.getElementById('policyMode').value;
+  policies = policies.filter(p => p.packageName !== pkg);
+  policies.push({ packageName: pkg, mode: mode });
+  if (await savePolicies()) {
+    pkgInput.value = '';
+    document.getElementById('policyMode').value = 'CONFIRM';
+    refreshPolicies();
+  }
+}
+
+async function deletePolicy(pkg) {
+  if (!confirm(t('comp_policy_delete_confirm') + '\n' + pkg)) return;
+  policies = policies.filter(p => p.packageName !== pkg);
+  if (await savePolicies()) refreshPolicies();
+}
+
+// C3：手动复位熔断（连续失败计数清零）
+async function resetBreaker() {
+  try {
+    const r = await fetch('/api/compliance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resetBreaker: true }) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('comp_breaker_reset_done') : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+    if (j.code === 0) refreshCompliance();
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  }
+}
+
+document.getElementById('policyAddBtn').addEventListener('click', addPolicy);
+document.getElementById('breakerResetBtn').addEventListener('click', resetBreaker);
+
 // ====== Task history (F3) ======
 async function refreshTasks() {
   const el = document.getElementById('taskList');
@@ -1031,6 +1289,7 @@ refreshSkills();
 refreshTemplates();
 refreshTasks();
 refreshSchedules();
+refreshPolicies();
 // F11：技能列表轮询 + 窗口聚焦刷新，深链/二维码在手机侧导入后 PC 页自动可见
 window.addEventListener('focus', refreshSkills);
 setInterval(() => { if (!document.hidden) refreshSkills(); }, 10000);

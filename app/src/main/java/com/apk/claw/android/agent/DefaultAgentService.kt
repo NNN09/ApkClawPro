@@ -16,10 +16,13 @@ import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.PromptComposer
 import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.agent.store.SkillStore
+import com.apk.claw.android.compliance.AppPolicyEngine
+import com.apk.claw.android.compliance.AppPolicyStore
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.impl.GetScreenInfoTool
 import com.apk.claw.android.tool.ToolResult
+import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -445,23 +448,48 @@ class DefaultAgentService : AgentService {
                 }
                 if (params == null) params = HashMap()
 
-                // F2：疑似不可逆操作（发送/支付/删除类关键词）→ 经渠道请求用户确认后再执行
-                var result = if (config.confirmDangerousOps) {
-                    val risk = DangerousOpDetector.assess(toolName, params)
-                    if (risk != null) {
+                // C6/C5：按 App 自动化策略门（活读——总开关与策略表每次调用即时生效）。
+                // BLOCK/总开关关闭 → 不执行并回传说明；CONFIRM（逐操作确认）命中后跳过 F2，避免双重弹窗。
+                // F2 是全局硬底线：Allow 后仍走危险操作关键词确认，策略 AUTO 不会弱化它。
+                val appPolicyCtx = AppPolicyEngine.Ctx(
+                    foregroundPackage = DeviceProbe.foregroundPackage(),
+                    masterThirdPartyEnabled = KVUtils.getThirdPartyAutomationEnabled(),
+                    isSystemApp = { pkg -> DeviceProbe.isSystemPackage(pkg) },
+                    modeOf = { pkg -> AppPolicyStore.find(pkg)?.mode }
+                )
+                var result = when (val verdict = AppPolicyEngine.evaluate(toolName, params, appPolicyCtx)) {
+                    is AppPolicyEngine.Verdict.Block ->
+                        ToolResult.error(policyBlockMessage(verdict, displayName))
+                    is AppPolicyEngine.Verdict.Confirm -> {
                         val prompt = ClawApplication.instance.getString(
-                            R.string.agent_confirm_prompt, displayName, risk)
+                            R.string.compliance_app_policy_confirm, displayName, verdict.targetPackage)
                         val confirmed = callback.onAwaitUser(prompt, UserDecisionGate.CONFIRM_TIMEOUT_MS)
-                        if (!confirmed) {
+                        if (confirmed) {
+                            ToolRegistry.getInstance().executeTool(toolName, params)
+                        } else {
                             ToolResult.error(ClawApplication.instance.getString(R.string.agent_confirm_rejected_skip))
+                        }
+                    }
+                    // F2：疑似不可逆操作（发送/支付/删除类关键词）→ 经渠道请求用户确认后再执行
+                    AppPolicyEngine.Verdict.Allow -> {
+                        if (config.confirmDangerousOps) {
+                            val risk = DangerousOpDetector.assess(toolName, params)
+                            if (risk != null) {
+                                val prompt = ClawApplication.instance.getString(
+                                    R.string.agent_confirm_prompt, displayName, risk)
+                                val confirmed = callback.onAwaitUser(prompt, UserDecisionGate.CONFIRM_TIMEOUT_MS)
+                                if (!confirmed) {
+                                    ToolResult.error(ClawApplication.instance.getString(R.string.agent_confirm_rejected_skip))
+                                } else {
+                                    ToolRegistry.getInstance().executeTool(toolName, params)
+                                }
+                            } else {
+                                ToolRegistry.getInstance().executeTool(toolName, params)
+                            }
                         } else {
                             ToolRegistry.getInstance().executeTool(toolName, params)
                         }
-                    } else {
-                        ToolRegistry.getInstance().executeTool(toolName, params)
                     }
-                } else {
-                    ToolRegistry.getInstance().executeTool(toolName, params)
                 }
 
                 // F4：结果验证闭环——执行成功后回读设备状态断言，失败自动重试一次，仍失败才暴露给模型
@@ -609,6 +637,17 @@ class DefaultAgentService : AgentService {
     }
 
     override fun isRunning(): Boolean = running.get()
+
+    /** C6：策略拒绝文案（BLOCK 策略 vs 总开关关闭），含目标包名与处理指引 */
+    private fun policyBlockMessage(verdict: AppPolicyEngine.Verdict.Block, displayName: String): String {
+        val app = ClawApplication.instance
+        return when (verdict.reason) {
+            AppPolicyEngine.Verdict.Reason.APP_BLOCKED -> app.getString(
+                R.string.compliance_app_blocked, displayName, verdict.targetPackage)
+            AppPolicyEngine.Verdict.Reason.MASTER_DISABLED -> app.getString(
+                R.string.compliance_third_party_disabled, displayName, verdict.targetPackage)
+        }
+    }
 
     /** 用一次无工具的 LLM 调用合并旧摘要与新增轮次；失败返回 null（退化为丢弃，即现状行为） */
     private fun summarizeDigest(oldDigest: String, turns: List<SessionStore.Turn>): String? {

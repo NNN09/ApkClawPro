@@ -236,9 +236,9 @@ class AppViewModel : ViewModel() {
     fun startNewTask(channel: Channel, senderId: String, task: String, messageID: String) =
         taskOrchestrator.startNewTask(channel, senderId, task, messageID)
 
-    /** F7：定时任务到点后的派发入口，与渠道消息共用队列与任务锁 */
-    fun dispatchTask(channel: Channel, senderId: String, message: String, messageID: String) =
-        channelSetup.dispatch(channel, message, messageID, senderId)
+    /** F7：定时任务到点后的派发入口，与渠道消息共用队列与任务锁；@param automated 标注无人值守来源（C3 准入据此区分） */
+    fun dispatchTask(channel: Channel, senderId: String, message: String, messageID: String, automated: Boolean = false) =
+        channelSetup.dispatch(channel, message, messageID, senderId, automated)
 
     /**
      * F5：发送 App 内消息（聊天页输入 / F6 语音识别共用入口）。

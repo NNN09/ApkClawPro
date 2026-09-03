@@ -10,9 +10,11 @@ import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.agent.store.TaskHistoryStore
 import com.apk.claw.android.channel.Channel
 import com.apk.claw.android.channel.ChannelManager
+import com.apk.claw.android.compliance.AdmissionControl
 import com.apk.claw.android.floating.FloatingCircleManager
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.tool.ToolResult
+import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
 
 /**
@@ -55,6 +57,9 @@ class TaskOrchestrator(
     /** 查询某渠道某发送者当前排队中的任务文本（由 ChannelSetup 注入，避免反向依赖队列实现） */
     @Volatile
     var pendingTasksProvider: ((Channel, String) -> List<String>)? = null
+
+    /** C3：任务准入控制（限频/静默/冷却/熔断），ChannelSetup 到达与排空共用同一实例 */
+    val admission = AdmissionControl()
 
     // ==================== 用户决策门控（F1 挂起恢复 / F2 危险操作确认） ====================
 
@@ -206,6 +211,8 @@ class TaskOrchestrator(
             }
         }
 
+        admission.recordStart(channel.name, System.currentTimeMillis())   // C3：登记启动时刻与频率窗口
+
         FloatingCircleManager.showTaskNotify(task, channel)
 
         /** 任务列表文案：正在执行的本任务 + 本发送者的排队任务（无内容则返回 null） */
@@ -240,6 +247,12 @@ class TaskOrchestrator(
         var verifyFailures = 0
 
         fun recordHistory(status: TaskHistoryStore.Status, totalTokens: Int, error: String = "") {
+            // C3 熔断计数与 F3 历史同点落账：失败 +1、成功清零；等待超时/取消不计入失败
+            when (status) {
+                TaskHistoryStore.Status.FAILED -> KVUtils.setFailureStreak(KVUtils.getFailureStreak() + 1)
+                TaskHistoryStore.Status.COMPLETED -> KVUtils.setFailureStreak(0)
+                else -> {}
+            }
             try {
                 TaskHistoryStore.append(
                     TaskHistoryStore.TaskRecord(

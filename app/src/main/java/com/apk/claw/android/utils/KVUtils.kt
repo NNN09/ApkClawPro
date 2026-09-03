@@ -220,6 +220,71 @@ object KVUtils {
     fun getVisionEnabled(): Boolean = getBoolean(KEY_VISION_ENABLED, true)
     fun setVisionEnabled(value: Boolean) = putBoolean(KEY_VISION_ENABLED, value)
 
+    // ==================== C3/C5/C6 合规与自动化策略（ROADMAP §6） ====================
+    private const val KEY_THIRD_PARTY_AUTOMATION_ENABLED = "KEY_THIRD_PARTY_AUTOMATION_ENABLED"
+    private const val KEY_QUIET_HOURS_ENABLED = "KEY_QUIET_HOURS_ENABLED"
+    private const val KEY_QUIET_START_MIN = "KEY_QUIET_START_MIN"
+    private const val KEY_QUIET_END_MIN = "KEY_QUIET_END_MIN"
+    private const val KEY_MIN_TASK_COOLDOWN_SEC = "KEY_MIN_TASK_COOLDOWN_SEC"
+    private const val KEY_RATE_GLOBAL_PER_MIN = "KEY_RATE_GLOBAL_PER_MIN"
+    private const val KEY_RATE_CHANNEL_PER_MIN = "KEY_RATE_CHANNEL_PER_MIN"
+    private const val KEY_BREAKER_THRESHOLD = "KEY_BREAKER_THRESHOLD"
+    private const val KEY_FAILURE_STREAK = "KEY_FAILURE_STREAK"
+
+    /** C5：第三方 App 自动化总开关（关闭后改动类 UI 操作被拒，系统 App 与 Intent 工具不受影响） */
+    fun getThirdPartyAutomationEnabled(): Boolean = getBoolean(KEY_THIRD_PARTY_AUTOMATION_ENABLED, true)
+    fun setThirdPartyAutomationEnabled(value: Boolean) = putBoolean(KEY_THIRD_PARTY_AUTOMATION_ENABLED, value)
+
+    /** C3：夜间静默时段（只作用于自动任务），默认关闭 */
+    fun getQuietHoursEnabled(): Boolean = getBoolean(KEY_QUIET_HOURS_ENABLED, false)
+    fun setQuietHoursEnabled(value: Boolean) = putBoolean(KEY_QUIET_HOURS_ENABLED, value)
+
+    /** 静默时段起点，分钟自零点（默认 22:00） */
+    fun getQuietStartMin(): Int = getInt(KEY_QUIET_START_MIN, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_QUIET_START_MIN)
+    fun setQuietStartMin(value: Int) = putInt(KEY_QUIET_START_MIN, value.coerceIn(0, 1439))
+
+    /** 静默时段终点，分钟自零点（默认 07:00） */
+    fun getQuietEndMin(): Int = getInt(KEY_QUIET_END_MIN, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_QUIET_END_MIN)
+    fun setQuietEndMin(value: Int) = putInt(KEY_QUIET_END_MIN, value.coerceIn(0, 1439))
+
+    /** C3：自动任务间最小间隔秒数；0 = 关闭 */
+    fun getMinTaskCooldownSec(): Int = getInt(KEY_MIN_TASK_COOLDOWN_SEC, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_COOLDOWN_SEC)
+    fun setMinTaskCooldownSec(value: Int) =
+        putInt(KEY_MIN_TASK_COOLDOWN_SEC, value.coerceIn(0, com.apk.claw.android.compliance.ComplianceConfig.MAX_COOLDOWN_SEC))
+
+    /** C3：全局每分钟任务启动上限；0 = 关闭 */
+    fun getRateGlobalPerMin(): Int = getInt(KEY_RATE_GLOBAL_PER_MIN, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_RATE_GLOBAL_PER_MIN)
+    fun setRateGlobalPerMin(value: Int) =
+        putInt(KEY_RATE_GLOBAL_PER_MIN, value.coerceIn(0, com.apk.claw.android.compliance.ComplianceConfig.MAX_RATE_PER_MIN))
+
+    /** C3：单渠道每分钟任务启动上限；0 = 关闭 */
+    fun getRateChannelPerMin(): Int = getInt(KEY_RATE_CHANNEL_PER_MIN, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_RATE_CHANNEL_PER_MIN)
+    fun setRateChannelPerMin(value: Int) =
+        putInt(KEY_RATE_CHANNEL_PER_MIN, value.coerceIn(0, com.apk.claw.android.compliance.ComplianceConfig.MAX_RATE_PER_MIN))
+
+    /** C3：连续失败熔断阈值；0 = 关闭。达到后自动任务暂停，手动任务仍可执行，成功一次即复位 */
+    fun getBreakerThreshold(): Int = getInt(KEY_BREAKER_THRESHOLD, com.apk.claw.android.compliance.ComplianceConfig.DEFAULT_BREAKER_THRESHOLD)
+    fun setBreakerThreshold(value: Int) =
+        putInt(KEY_BREAKER_THRESHOLD, value.coerceIn(0, com.apk.claw.android.compliance.ComplianceConfig.MAX_BREAKER_THRESHOLD))
+
+    /** 当前连续失败数（熔断状态，任务收尾时在 recordHistory 更新） */
+    fun getFailureStreak(): Int = getInt(KEY_FAILURE_STREAK, 0)
+    fun setFailureStreak(value: Int) = putInt(KEY_FAILURE_STREAK, value.coerceAtLeast(0))
+
+    /** C3/C5 合规设置快照：准入判定与策略门每次调用时活读组装 */
+    fun loadComplianceConfig(): com.apk.claw.android.compliance.ComplianceConfig =
+        com.apk.claw.android.compliance.ComplianceConfig(
+            thirdPartyAutomationEnabled = getThirdPartyAutomationEnabled(),
+            quietHoursEnabled = getQuietHoursEnabled(),
+            quietStartMin = getQuietStartMin(),
+            quietEndMin = getQuietEndMin(),
+            cooldownSec = getMinTaskCooldownSec(),
+            rateGlobalPerMin = getRateGlobalPerMin(),
+            rateChannelPerMin = getRateChannelPerMin(),
+            breakerThreshold = getBreakerThreshold(),
+            failureStreak = getFailureStreak()
+        )
+
     /** 是否已配置 LLM（API Key 非空即视为已配置） */
     fun hasLlmConfig(): Boolean = getLlmApiKey().isNotEmpty()
 }

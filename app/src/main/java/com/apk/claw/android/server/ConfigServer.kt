@@ -8,6 +8,9 @@ import com.apk.claw.android.agent.store.SkillImportScanner
 import com.apk.claw.android.agent.store.SkillPackager
 import com.apk.claw.android.agent.store.SkillStore
 import com.apk.claw.android.channel.ChannelManager
+import com.apk.claw.android.compliance.AppPolicy
+import com.apk.claw.android.compliance.AppPolicyStore
+import com.apk.claw.android.compliance.ComplianceConfig
 import com.apk.claw.android.tool.ToolRegistry
 import com.apk.claw.android.tool.ToolResult
 import com.apk.claw.android.utils.KVUtils
@@ -88,6 +91,11 @@ class ConfigServer(
                 uri == "/api/schedules" && method == Method.POST -> handlePostSchedule(session)
                 uri == "/api/schedules/delete" && method == Method.POST -> handlePostScheduleDelete(session)
                 uri == "/api/schedules/toggle" && method == Method.POST -> handlePostScheduleToggle(session)
+                // C3/C5/C6：合规设置与按 App 自动化策略（活读生效，无需重启/重初始化 Agent）
+                uri == "/api/compliance" && method == Method.GET -> handleGetCompliance()
+                uri == "/api/compliance" && method == Method.POST -> handlePostCompliance(session)
+                uri == "/api/policies" && method == Method.GET -> handleGetPolicies()
+                uri == "/api/policies" && method == Method.POST -> handlePostPolicies(session)
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -765,6 +773,92 @@ class ConfigServer(
         com.apk.claw.android.service.TaskScheduler.schedule(context, updated)
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
     }
+
+    // ==================== C3/C5/C6 合规设置与按 App 策略 ====================
+
+    private fun handleGetCompliance(): Response {
+        val data = JsonObject().apply {
+            addProperty("thirdPartyAutomationEnabled", KVUtils.getThirdPartyAutomationEnabled())
+            addProperty("quietHoursEnabled", KVUtils.getQuietHoursEnabled())
+            addProperty("quietStart", ComplianceConfig.formatHm(KVUtils.getQuietStartMin()))
+            addProperty("quietEnd", ComplianceConfig.formatHm(KVUtils.getQuietEndMin()))
+            addProperty("cooldownSec", KVUtils.getMinTaskCooldownSec())
+            addProperty("rateGlobalPerMin", KVUtils.getRateGlobalPerMin())
+            addProperty("rateChannelPerMin", KVUtils.getRateChannelPerMin())
+            addProperty("breakerThreshold", KVUtils.getBreakerThreshold())
+            addProperty("failureStreak", KVUtils.getFailureStreak())
+        }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    /**
+     * 保存合规设置。字段均可选，缺失即保留原值；resetBreaker=true 复位熔断计数。
+     * 不触发 notifyConfigChanged：C3/C5/C6 全部活读（每次到达/每次工具调用读 KV），
+     * 无需重建 Agent，也不应打断正在执行的任务。
+     */
+    private fun handlePostCompliance(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        json.get("thirdPartyAutomationEnabled")?.takeIf { it.isJsonPrimitive }?.let {
+            KVUtils.setThirdPartyAutomationEnabled(it.asBoolean)
+        }
+        json.get("quietHoursEnabled")?.takeIf { it.isJsonPrimitive }?.let {
+            KVUtils.setQuietHoursEnabled(it.asBoolean)
+        }
+        json.optString("quietStart")?.let { ComplianceConfig.parseHm(it) }?.let(KVUtils::setQuietStartMin)
+        json.optString("quietEnd")?.let { ComplianceConfig.parseHm(it) }?.let(KVUtils::setQuietEndMin)
+        json.optInt("cooldownSec")?.let(KVUtils::setMinTaskCooldownSec)
+        json.optInt("rateGlobalPerMin")?.let(KVUtils::setRateGlobalPerMin)
+        json.optInt("rateChannelPerMin")?.let(KVUtils::setRateChannelPerMin)
+        json.optInt("breakerThreshold")?.let(KVUtils::setBreakerThreshold)
+        if (json.get("resetBreaker")?.takeIf { it.isJsonPrimitive }?.asBoolean == true) {
+            KVUtils.setFailureStreak(0)
+        }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    private fun handleGetPolicies(): Response {
+        val arr = JsonArray()
+        AppPolicyStore.list().forEach { p ->
+            arr.add(JsonObject().apply {
+                addProperty("packageName", p.packageName)
+                addProperty("mode", p.mode.name)
+            })
+        }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", arr)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    /** 整体替换策略表；任一条目非法则整体拒绝（保持原子性） */
+    private fun handlePostPolicies(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val raw = json.get("policies")?.takeIf { it.isJsonArray } ?: return badRequest("policies array required")
+        val policies = mutableListOf<AppPolicy>()
+        raw.asJsonArray.forEach { el ->
+            val obj = el.takeIf { it.isJsonObject }?.asJsonObject ?: return badRequest("invalid policy entry")
+            val pkg = obj.optString("packageName")?.trim() ?: return badRequest("packageName required")
+            val mode = AppPolicy.modeOf(obj.optString("mode")) ?: return badRequest("invalid mode for $pkg")
+            policies.add(AppPolicy(pkg, mode))
+        }
+        val error = AppPolicyStore.replaceAll(policies)
+        if (error != null) return badRequest(error)
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+    }
+
+    private fun JsonObject.optInt(key: String): Int? =
+        try { get(key)?.takeIf { it.isJsonPrimitive }?.asInt } catch (_: Exception) { null }
 
     private fun readPostJson(session: IHTTPSession): JsonObject? {
         val files = mutableMapOf<String, String>()

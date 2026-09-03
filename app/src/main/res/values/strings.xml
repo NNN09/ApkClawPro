@@ -198,6 +198,16 @@
     <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
     <string name="agent_verify_failed">Result verification failed after one retry: %s</string>
 
+    <!-- Compliance C3/C5/C6 -->
+    <string name="compliance_app_policy_confirm">⚠️ App safety policy\nOperation: %1$s\nTarget: %2$s is configured to require confirmation for every operation.\nReply “continue” to proceed, or “cancel” to skip (auto-cancelled after 2 minutes without reply).</string>
+    <string name="compliance_app_blocked">Operation blocked by app policy: %1$s (target %2$s) is configured as do-not-automate. Adjust its policy on the config page (Compliance card) to allow it.</string>
+    <string name="compliance_third_party_disabled">Operation blocked by security policy: %1$s (target %2$s) — automation of third-party apps is disabled. Enable it on the config page (Compliance card).</string>
+    <string name="compliance_rate_limited">Too many tasks in a short time — this one was skipped. Wait a moment and try again.</string>
+    <string name="compliance_quiet_hour_skip">⏸ Quiet hours (%1$s–%2$s): the scheduled task was skipped. Trigger it manually or adjust the schedule.</string>
+    <string name="compliance_cooldown_skip">Automated task skipped: tasks start too quickly (min interval %1$d s). Try again shortly.</string>
+    <string name="compliance_breaker_skip">⛔ Circuit breaker open: %1$d consecutive failures (threshold %2$d). Automated tasks are paused. Check the setup in settings; a manual task that succeeds resets the breaker.</string>
+    <string name="compliance_breaker_notice">⚠️ Circuit breaker open: %1$d consecutive failures (threshold %2$d). This manual task still runs — one success resets the breaker.</string>
+
     <!-- Chat (F5) -->
     <string name="home_open_chat">Start Chat</string>
     <string name="chat_title">Chat</string>

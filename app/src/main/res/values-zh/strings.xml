@@ -198,6 +198,16 @@
     <string name="agent_max_iterations">在未完成任务的情况下达到了最大迭代次数 (%d)</string>
     <string name="agent_verify_failed">结果验证失败（已自动重试一次）：%s</string>
 
+    <!-- 合规（C3/C5/C6） -->
+    <string name="compliance_app_policy_confirm">⚠️ App 安全策略\n操作：%1$s\n目标：%2$s 配置为每次操作都需人工确认。\n回复“继续”执行，或“取消”跳过（2 分钟无回复自动取消）。</string>
+    <string name="compliance_app_blocked">操作被应用策略阻止：%1$s（目标 %2$s）配置为禁止自动化。如需执行，请在配置页“合规”卡片调整该应用的策略。</string>
+    <string name="compliance_third_party_disabled">操作被安全策略阻止：%1$s（目标 %2$s）——第三方 App 自动化已关闭。可在配置页“合规”卡片开启。</string>
+    <string name="compliance_rate_limited">短时间内任务过于频繁，本条已跳过。请稍后再试。</string>
+    <string name="compliance_quiet_hour_skip">⏸ 静默时段（%1$s–%2$s）：自动任务已跳过。可手动触发，或调整定时计划。</string>
+    <string name="compliance_cooldown_skip">自动任务已跳过：任务启动过快（最小间隔 %1$d 秒）。请稍后再试。</string>
+    <string name="compliance_breaker_skip">⛔ 已熔断：连续 %1$d 次失败（阈值 %2$d），自动任务暂停。请检查配置；手动任务成功一次即可自动恢复。</string>
+    <string name="compliance_breaker_notice">⚠️ 熔断提示：已连续 %1$d 次失败（阈值 %2$d）。本条手动任务仍会执行，成功一次即恢复熔断。</string>
+
     <!-- 对话（F5） -->
     <string name="home_open_chat">开始对话</string>
     <string name="chat_title">对话</string>
