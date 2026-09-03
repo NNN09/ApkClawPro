@@ -208,6 +208,45 @@
     <string name="tool_name_cancel_scheduled_task">定時タスクを取消</string>
     <string name="tool_name_list_scheduled_tasks">定時タスク一覧</string>
 
+    <!-- ホーム：連絡先/カレンダーカード（F9） -->
+    <string name="home_card_contacts_title">連絡先とカレンダー</string>
+    <string name="home_card_contacts_subtitle">許可するとシステムツールで連絡先検索・カレンダー管理が可能に</string>
+    <string name="home_contacts_enabled">連絡先とカレンダーの権限を許可済み</string>
+    <string name="home_enable_contacts">連絡先とカレンダーの権限を許可してください</string>
+
+    <!-- システムサービスツールキット（F9） -->
+    <string name="tool_name_set_alarm">アラーム設定</string>
+    <string name="tool_name_set_timer">タイマー設定</string>
+    <string name="tool_name_query_contacts">連絡先検索</string>
+    <string name="tool_name_create_calendar_event">カレンダー作成</string>
+    <string name="tool_name_query_calendar">カレンダー照会</string>
+    <string name="tool_name_media_control">メディア制御</string>
+    <string name="tool_name_set_volume">音量設定</string>
+    <string name="tool_name_set_brightness">明るさ設定</string>
+    <string name="tool_name_set_dnd">おやすみモード</string>
+    <string name="tool_name_open_settings_page">設定ページを開く</string>
+    <string name="tool_name_dial_prefill">ダイヤル入力</string>
+    <string name="tool_name_sms_prefill">SMS下書き</string>
+    <string name="tool_name_open_url">Webページを開く</string>
+    <string name="tool_name_query_battery">バッテリー照会</string>
+
+    <!-- スキル深リンクインポート（F11） -->
+    <string name="skill_import_title">スキルをインポート</string>
+    <string name="skill_import_invalid_link">無効なインポートリンク</string>
+    <string name="skill_import_downloading">スキルをダウンロード中…</string>
+    <string name="skill_import_invalid_content">有効なスキルパッケージではありません</string>
+    <string name="skill_import_download_failed">ダウンロードに失敗：%s</string>
+    <string name="skill_import_name">スキル：%s</string>
+    <string name="skill_import_desc">説明：%s</string>
+    <string name="skill_import_source">ソース：%s</string>
+    <string name="skill_import_scan_clean">安全スキャンに問題はありません。</string>
+    <string name="skill_import_scan_findings">安全スキャンの結果：</string>
+    <string name="skill_import_blocked_title">インポートをブロック</string>
+    <string name="skill_import_warn_title">セキュリティ警告</string>
+    <string name="skill_import_confirm">インポート</string>
+    <string name="skill_import_cancel">キャンセル</string>
+    <string name="skill_import_success">スキルをインポートしました</string>
+
     <!-- ファイルツール -->
     <string name="tool_no_storage_permission">ファイルの読み書き権限がありません</string>
     <string name="tool_file_not_found">ファイルが見つかりません: %s</string>

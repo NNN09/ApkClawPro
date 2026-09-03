@@ -49,7 +49,9 @@ class DefaultAgentService : AgentService {
         /** 这些工具不改变设备状态，触发前无需重置到桌面 */
         private val OBSERVATION_ONLY_TOOLS = setOf(
             "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps",
-            "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill"
+            "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill",
+            // F9 只读查询：不改前台、不动设备状态
+            "query_contacts", "query_calendar", "query_battery"
         )
 
         /** 发送前分级压缩的保护区：最近 N 轮完整保留 */
@@ -237,16 +239,8 @@ class DefaultAgentService : AgentService {
      * - 保护区外：AI thinking 不动，tool result 压缩为一行摘要
      */
     private fun compressHistoryForSend(messages: MutableList<ChatMessage>) {
-        // 压缩前统计总字符数
-        val charsBefore = messages.sumOf { msg ->
-            when (msg) {
-                is AiMessage -> (msg.text()?.length ?: 0) + (msg.toolExecutionRequests()?.sumOf { it.arguments()?.length ?: 0 } ?: 0)
-                is ToolExecutionResultMessage -> msg.text().length
-                is UserMessage -> msg.singleText().length
-                is SystemMessage -> msg.text().length
-                else -> 0
-            }
-        }
+        // 压缩前统计总字符数（ContextBudget.charsOf 兼容含图像的多 content UserMessage）
+        val charsBefore = messages.sumOf { ContextBudget.charsOf(it) }
         val msgCountBefore = messages.size
 
         // 0. get_screen_info 特殊处理：无视分级，全局只保留最新一条完整结果
@@ -286,15 +280,7 @@ class DefaultAgentService : AgentService {
         }
 
         // 压缩后统计
-        val charsAfter = messages.sumOf { msg ->
-            when (msg) {
-                is AiMessage -> (msg.text()?.length ?: 0) + (msg.toolExecutionRequests()?.sumOf { it.arguments()?.length ?: 0 } ?: 0)
-                is ToolExecutionResultMessage -> msg.text().length
-                is UserMessage -> msg.singleText().length
-                is SystemMessage -> msg.text().length
-                else -> 0
-            }
-        }
+        val charsAfter = messages.sumOf { ContextBudget.charsOf(it) }
         val saved = charsBefore - charsAfter
         if (saved > 0) {
             XLog.i(TAG, "上下文压缩: ${charsBefore}→${charsAfter}字符, 节省${saved}字符(${saved * 100 / charsBefore}%), 轮数=${aiIndices.size}")
@@ -385,6 +371,7 @@ class DefaultAgentService : AgentService {
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
         var homeResetDone = false
+        var screenshotCount = 0   // F10：本任务已注入视觉上下文的截图数
 
         loop@ while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -401,14 +388,19 @@ class DefaultAgentService : AgentService {
                 }
             }
 
-            // LLM 调用（带重试）
-            val llmResponse: LlmResponse
-            try {
-                llmResponse = chatWithRetry(messages, callback, iterations)
-            } catch (e: Exception) {
-                XLog.e(TAG, "LLM API call failed after retries", e)
-                callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, e.message)), totalTokens)
-                return
+            // LLM 调用（带重试）；模型不支持视觉输入时报错会降级为纯文本消息后重试一次
+            val llmResponse: LlmResponse = runCatching { chatWithRetry(messages, callback, iterations) }.getOrElse { e ->
+                if (!ContextBudget.stripImages(messages)) {
+                    XLog.e(TAG, "LLM API call failed after retries", e)
+                    callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, e.message)), totalTokens)
+                    return
+                }
+                XLog.w(TAG, "LLM call failed with images present, stripped image contents and retry once", e)
+                runCatching { chatWithRetry(messages, callback, iterations) }.getOrElse { retry ->
+                    XLog.e(TAG, "LLM API call failed after vision fallback", retry)
+                    callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, retry.message)), totalTokens)
+                    return
+                }
             }
 
             // 累加 token 用量
@@ -553,6 +545,25 @@ class DefaultAgentService : AgentService {
                 // 添加工具结果到消息
                 val resultJson = GSON.toJson(result)
                 messages.add(ToolExecutionResultMessage.from(toolRequest, resultJson))
+
+                // F10：截图作为图像消息进入 LLM 上下文，单任务有上限控制 token 成本
+                if (toolName == "take_screenshot" && result.isSuccess && result.data != null) {
+                    when {
+                        !config.visionEnabled -> messages.add(ScreenshotEncoder.disabledMessage())
+                        screenshotCount < ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK -> {
+                            val encoded = ScreenshotEncoder.encode(File(result.data))
+                            if (encoded != null) {
+                                screenshotCount++
+                                messages.add(ScreenshotEncoder.imageMessage(encoded, screenshotCount, result.data!!))
+                            }
+                            if (screenshotCount >= ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK) {
+                                messages.add(ScreenshotEncoder.capReachedMessage())
+                            }
+                        }
+                        // 超上限后不加提示：工具结果里已有路径文本，避免重复注入相同系统提示
+                    }
+                }
+
                 XLog.d(TAG, "displayName:$displayName toolName:$toolName")
             }
 

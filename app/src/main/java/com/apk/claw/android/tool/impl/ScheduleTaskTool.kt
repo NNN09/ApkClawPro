@@ -1,6 +1,7 @@
 package com.apk.claw.android.tool.impl
 
 import com.apk.claw.android.ClawApplication
+import com.apk.claw.android.R
 import com.apk.claw.android.agent.TaskContext
 import com.apk.claw.android.agent.store.ScheduledTaskStore
 import com.apk.claw.android.agent.store.ScheduledTaskStore.ScheduledTask
@@ -19,6 +20,8 @@ import java.util.Locale
 class ScheduleTaskTool : BaseTool() {
 
     override fun getName() = "schedule_task"
+
+    override fun getDisplayName() = ClawApplication.instance.getString(R.string.tool_name_schedule_task)
 
     override fun getParameters() = listOf(
         ToolParameter("task", "string", "The instruction to execute at the scheduled time, e.g. '打开飞书查看未读消息并总结'", true),

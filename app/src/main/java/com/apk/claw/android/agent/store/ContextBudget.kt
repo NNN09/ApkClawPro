@@ -4,7 +4,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dev.langchain4j.data.message.AiMessage
 import dev.langchain4j.data.message.ChatMessage
+import dev.langchain4j.data.message.Content
+import dev.langchain4j.data.message.ImageContent
 import dev.langchain4j.data.message.SystemMessage
+import dev.langchain4j.data.message.TextContent
 import dev.langchain4j.data.message.ToolExecutionResultMessage
 import dev.langchain4j.data.message.UserMessage
 
@@ -25,6 +28,12 @@ object ContextBudget {
     private const val SAFETY_FACTOR = 0.8
     private const val CHARS_PER_TOKEN = 1.5
 
+    /**
+     * 单张视觉图像折算的字符成本（F10）：截图经 ScreenshotEncoder 压到 896px JPEG，
+     * 视觉 token 约 1k-2k，按 3000 字符（≈2000 token）估算即可保证预算不被图像悄悄吃穿。
+     */
+    const val IMAGE_COST_CHARS = 3000
+
     private val GSON = Gson()
 
     /** 由模型上下文窗口（tokens）推算字符预算；windowTokens ≤ 0 视为未设置 */
@@ -37,20 +46,35 @@ object ContextBudget {
         return (tokens * SAFETY_FACTOR * CHARS_PER_TOKEN).toInt()
     }
 
-    fun estimateChars(messages: List<ChatMessage>): Int = messages.sumOf { chars(it) }
+    fun estimateChars(messages: List<ChatMessage>): Int = messages.sumOf { charsOf(it) }
 
-    private fun chars(msg: ChatMessage): Int = when (msg) {
+    /**
+     * 单条消息的字符成本（DefaultAgentService 压缩统计与预算估算共用）。
+     * UserMessage 可能含图像 content（F10），不能调 singleText()（多 content 会抛异常）。
+     */
+    fun charsOf(msg: ChatMessage): Int = when (msg) {
         is AiMessage -> (msg.text()?.length ?: 0) +
             (msg.toolExecutionRequests()?.sumOf { it.arguments()?.length ?: 0 } ?: 0)
         is ToolExecutionResultMessage -> msg.text().length
-        is UserMessage -> msg.singleText().length
+        is UserMessage -> msg.contents().sumOf { contentChars(it) }
         is SystemMessage -> msg.text().length
         else -> 0
     }
 
+    private fun contentChars(content: Content): Int = when (content) {
+        is TextContent -> content.text().length
+        is ImageContent -> IMAGE_COST_CHARS
+        else -> 0
+    }
+
+    /** 消息列表中是否存在图像 content（F10） */
+    fun hasImages(messages: List<ChatMessage>): Boolean =
+        messages.any { it is UserMessage && it.contents().any { c -> c is ImageContent } }
+
     /**
      * 激进压缩：对所有轮次（含保护区）的超长工具结果做一行摘要，
      * 但始终保留最新一条 get_screen_info 完整内容（Agent 依赖它感知当前屏幕）。
+     * F10：同时把更早的截图图像折叠为文本占位，只保留最新一张（控制视觉 token）。
      */
     fun compressAllToolResults(messages: MutableList<ChatMessage>): Boolean {
         val lastScreenIdx = messages.indexOfLast {
@@ -61,6 +85,45 @@ object ContextBudget {
             val msg = messages[i]
             if (msg is ToolExecutionResultMessage && msg.text().length > 100 && i != lastScreenIdx) {
                 messages[i] = ToolExecutionResultMessage.from(msg.id(), msg.toolName(), summarize(msg.text()))
+                changed = true
+            }
+        }
+        return foldOldImages(messages).or(changed)
+    }
+
+    /**
+     * 折叠历史截图：只保留最新一张图像消息，其余换成文本占位。
+     * @return 是否发生了替换
+     */
+    fun foldOldImages(messages: MutableList<ChatMessage>): Boolean {
+        val lastImageIdx = messages.indexOfLast {
+            it is UserMessage && it.contents().any { c -> c is ImageContent }
+        }
+        var changed = false
+        for (i in messages.indices) {
+            val msg = messages[i]
+            if (i == lastImageIdx) continue
+            if (msg is UserMessage && msg.contents().any { it is ImageContent }) {
+                messages[i] = UserMessage.from("[系统提示] 早期截图已省略")
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    /**
+     * 视觉降级（F10）：模型不支持视觉输入导致 API 报错时，移除全部图像 content，
+     * 把图像消息替换为文本占位，让任务能在纯文本模式下继续。
+     * @return 是否替换过（false = 本来就没有图像，无需重试）
+     */
+    fun stripImages(messages: MutableList<ChatMessage>): Boolean {
+        var changed = false
+        for (i in messages.indices) {
+            val msg = messages[i]
+            if (msg is UserMessage && msg.contents().any { it is ImageContent }) {
+                messages[i] = UserMessage.from(
+                    "[系统提示] 当前模型不支持视觉输入，截图已移除，请改用 get_screen_info 获取屏幕信息。"
+                )
                 changed = true
             }
         }

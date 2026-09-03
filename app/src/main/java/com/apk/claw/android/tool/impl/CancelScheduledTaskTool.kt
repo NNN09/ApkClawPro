@@ -1,6 +1,7 @@
 package com.apk.claw.android.tool.impl
 
 import com.apk.claw.android.ClawApplication
+import com.apk.claw.android.R
 import com.apk.claw.android.agent.store.ScheduledTaskStore
 import com.apk.claw.android.service.TaskScheduler
 import com.apk.claw.android.tool.BaseTool
@@ -11,6 +12,8 @@ import com.apk.claw.android.tool.ToolResult
 class CancelScheduledTaskTool : BaseTool() {
 
     override fun getName() = "cancel_scheduled_task"
+
+    override fun getDisplayName() = ClawApplication.instance.getString(R.string.tool_name_cancel_scheduled_task)
 
     override fun getParameters() = listOf(
         ToolParameter("id", "string", "The id of the scheduled task to cancel (from list_scheduled_tasks)", true)

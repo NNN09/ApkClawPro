@@ -203,7 +203,22 @@ textarea:focus {
       <div class="card-title"><span class="dot"></span><span data-i18n="skills_title"></span></div>
       <div class="field">
         <label data-i18n="skills_installed"></label>
-        <div id="skillList" style="font-size:13px;color:#86868b;white-space:pre-line;">...</div>
+        <div id="skillList" style="font-size:13px;color:#86868b;">...</div>
+      </div>
+      <div class="field">
+        <label data-i18n="skills_import_file"></label>
+        <input type="file" id="skillFile" accept=".md,.zip,text/markdown,application/zip" style="font-size:12px;color:#86868b;">
+      </div>
+      <div class="field">
+        <label data-i18n="skills_import_url"></label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="skillImportUrl" data-i18n-placeholder="ph_skill_import_url" autocomplete="off" style="flex:1;">
+          <button type="button" id="skillImportUrlBtn" style="width:auto;min-width:72px;" data-i18n="skills_import_btn"></button>
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="skills_templates"></label>
+        <div id="templateList" style="font-size:13px;color:#86868b;">...</div>
       </div>
       <div class="field">
         <label data-i18n="skills_name"></label>
@@ -218,6 +233,7 @@ textarea:focus {
         <textarea id="skillBody" rows="6" data-i18n-placeholder="ph_skills_body"></textarea>
       </div>
       <button id="skillUploadBtn" type="button" data-i18n="skills_upload"></button>
+      <button id="skillExportAllBtn" type="button" style="margin-top:8px;" data-i18n="skills_export_all"></button>
     </div>
 
     <div class="card tasks">
@@ -272,6 +288,10 @@ textarea:focus {
       <div class="field">
         <label data-i18n="llm_verify_results" style="display:inline-block;margin-right:8px;"></label>
         <input type="checkbox" id="verifyResults" style="width:auto;vertical-align:middle;">
+      </div>
+      <div class="field">
+        <label data-i18n="llm_vision_enabled" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="visionEnabled" style="width:auto;vertical-align:middle;">
       </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
@@ -423,6 +443,20 @@ const i18nMessages = {
     sched_del: '删除',
     sched_toggle: '启用/停用',
     sched_everyday: '每天',
+    llm_vision_enabled: '视觉输入（截图注入上下文，需模型支持）',
+    skills_import_file: '从文件导入（.md，解析后预填下方表单）',
+    skills_import_url: '从 URL 导入（.md 或 zip，自动安全扫描）',
+    ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
+    skills_import_btn: '导入',
+    skills_url_required: '请填写 URL',
+    skills_imported: '导入成功',
+    skills_file_loaded: '文件已解析，请检查并点击保存',
+    skills_templates: '内置模板',
+    skills_templates_empty: '无内置模板',
+    skills_template_install: '安装',
+    skills_export: '导出',
+    skills_qr: '二维码',
+    skills_export_all: '导出全部技能 (zip)',
     unknown_error: '未知错误',
   },
   'en': {
@@ -456,6 +490,20 @@ const i18nMessages = {
     skills_load_failed: 'Failed to load',
     skills_name_required: 'Please enter a skill name',
     skills_saved: 'Saved',
+    llm_vision_enabled: 'Vision input (inject screenshots, model must support it)',
+    skills_import_file: 'Import from file (.md, parsed into the form below)',
+    skills_import_url: 'Import from URL (.md or zip, security-scanned)',
+    ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
+    skills_import_btn: 'Import',
+    skills_url_required: 'Please enter a URL',
+    skills_imported: 'Imported',
+    skills_file_loaded: 'File parsed, review and click save',
+    skills_templates: 'Built-in templates',
+    skills_templates_empty: 'No templates',
+    skills_template_install: 'Install',
+    skills_export: 'Export',
+    skills_qr: 'QR',
+    skills_export_all: 'Export all skills (zip)',
     load_failed: 'Failed to load, please check connection',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -494,6 +542,20 @@ const i18nMessages = {
     sched_del: 'Delete',
     sched_toggle: 'Enable/Disable',
     sched_everyday: 'daily',
+    llm_vision_enabled: 'Vision input (inject screenshots, model must support it)',
+    skills_import_file: 'Import from file (.md, parsed into the form below)',
+    skills_import_url: 'Import from URL (.md or zip, security-scanned)',
+    ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
+    skills_import_btn: 'Import',
+    skills_url_required: 'Please enter a URL',
+    skills_imported: 'Imported',
+    skills_file_loaded: 'File parsed, review and click save',
+    skills_templates: 'Built-in templates',
+    skills_templates_empty: 'No templates',
+    skills_template_install: 'Install',
+    skills_export: 'Export',
+    skills_qr: 'QR',
+    skills_export_all: 'Export all skills (zip)',
     unknown_error: 'Unknown error',
   },
   'ja': {
@@ -565,6 +627,20 @@ const i18nMessages = {
     sched_del: '削除',
     sched_toggle: '有効/無効',
     sched_everyday: '毎日',
+    llm_vision_enabled: '視覚入力（スクリーンショット注入、モデル対応必要）',
+    skills_import_file: 'ファイルからインポート（.md、解析して下のフォームに反映）',
+    skills_import_url: 'URLからインポート（.md/zip、安全スキャン付き）',
+    ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
+    skills_import_btn: 'インポート',
+    skills_url_required: 'URLを入力してください',
+    skills_imported: 'インポートしました',
+    skills_file_loaded: 'ファイルを解析しました、確認して保存してください',
+    skills_templates: '内蔵テンプレート',
+    skills_templates_empty: 'テンプレートなし',
+    skills_template_install: 'インストール',
+    skills_export: 'エクスポート',
+    skills_qr: 'QR',
+    skills_export_all: '全スキルをエクスポート (zip)',
     unknown_error: '不明なエラー',
   },
 };
@@ -614,7 +690,7 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults', 'visionEnabled'];
 
 async function load() {
   try {
@@ -701,13 +777,120 @@ async function refreshSkills() {
     const r = await fetch('/api/skills');
     const j = await r.json();
     const list = (j.data && j.data.skills) || [];
-    el.textContent = list.length
-      ? list.map(s => s.name + ' — ' + s.description).join('\n')
-      : t('skills_empty');
+    if (!list.length) { el.textContent = t('skills_empty'); return; }
+    el.innerHTML = '';
+    list.forEach(s => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.textContent = s.name + ' — ' + s.description;
+      label.title = s.description;
+      const exportBtn = document.createElement('a');
+      exportBtn.href = '/api/skills/export?name=' + encodeURIComponent(s.name);
+      exportBtn.textContent = t('skills_export');
+      exportBtn.style.color = '#0071e3';
+      const qrBtn = document.createElement('a');
+      qrBtn.href = '/api/skills/qr?name=' + encodeURIComponent(s.name);
+      qrBtn.target = '_blank';
+      qrBtn.textContent = t('skills_qr');
+      qrBtn.style.color = '#0071e3';
+      row.appendChild(label);
+      row.appendChild(exportBtn);
+      row.appendChild(qrBtn);
+      el.appendChild(row);
+    });
   } catch (e) {
     el.textContent = t('skills_load_failed');
   }
 }
+
+// F11：内置模板库
+async function refreshTemplates() {
+  const el = document.getElementById('templateList');
+  try {
+    const r = await fetch('/api/skills/templates');
+    const j = await r.json();
+    const list = (j.data && j.data.templates) || [];
+    if (!list.length) { el.textContent = t('skills_templates_empty'); return; }
+    el.innerHTML = '';
+    list.forEach(tp => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.textContent = tp.name + ' — ' + tp.description;
+      label.title = tp.description;
+      const installBtn = document.createElement('a');
+      installBtn.href = 'javascript:void(0)';
+      installBtn.textContent = t('skills_template_install');
+      installBtn.style.color = '#0071e3';
+      installBtn.onclick = () => installTemplate(tp.file);
+      row.appendChild(label);
+      row.appendChild(installBtn);
+      el.appendChild(row);
+    });
+  } catch (e) {
+    el.textContent = t('skills_load_failed');
+  }
+}
+
+async function installTemplate(file) {
+  try {
+    const r = await fetch('/api/skills/install-template', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: file }) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('skills_saved') : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+    if (j.code === 0) refreshSkills();
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  }
+}
+
+// F11：文件导入（.md 直接解析 frontmatter 预填表单；.zip 交给 import-url 的 zip 通道走不通，此处仅 .md）
+document.getElementById('skillFile').addEventListener('change', async (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
+    if (m) {
+      const nameM = m[1].match(/^name:\s*(.+)$/m);
+      const descM = m[1].match(/^description:\s*(.+)$/m);
+      if (nameM) document.getElementById('skillName').value = nameM[1].trim();
+      if (descM) document.getElementById('skillDesc').value = descM[1].trim();
+      document.getElementById('skillBody').value = text.slice(m[0].length).trim();
+    } else {
+      document.getElementById('skillBody').value = text;
+    }
+    showToast(t('skills_file_loaded'), 'success');
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  } finally {
+    ev.target.value = '';
+  }
+});
+
+// F11：URL 导入（服务端拉取 + 安全扫描）
+document.getElementById('skillImportUrlBtn').addEventListener('click', async () => {
+  const url = document.getElementById('skillImportUrl').value.trim();
+  if (!url) { showToast(t('skills_url_required'), 'error'); return; }
+  try {
+    const r = await fetch('/api/skills/import-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url }) });
+    const j = await r.json();
+    if (j.code === 0) {
+      showToast(t('skills_imported') + (j.data && j.data.imported ? ': ' + j.data.imported : '') + (j.data && j.data.warnings ? '\n' + j.data.warnings : ''), 'success');
+      refreshSkills();
+    } else {
+      showToast(j.message || t('unknown_error'), 'error');
+    }
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  }
+});
+
+document.getElementById('skillExportAllBtn').addEventListener('click', () => {
+  window.open('/api/skills/export-all', '_blank');
+});
 
 document.getElementById('skillUploadBtn').addEventListener('click', async () => {
   const payload = {
@@ -813,6 +996,7 @@ document.getElementById('schedAddBtn').addEventListener('click', async () => {
 
 load();
 refreshSkills();
+refreshTemplates();
 refreshTasks();
 refreshSchedules();
 </script>

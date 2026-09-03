@@ -52,6 +52,18 @@ object SkillStore {
         stripFrontmatter(md.readText()).trim().ifEmpty { null }
     }
 
+    /** F11：导出 SKILL.md 原文（含 frontmatter），供分发；非法名或不存在返回 null */
+    @JvmStatic
+    fun exportRaw(name: String): String? = synchronized(lock) {
+        if (!NAME_REGEX.matches(name)) return null
+        val md = File(dir, "$name${File.separator}SKILL.md")
+        if (!md.exists()) null else md.readText()
+    }
+
+    /** F11：技能根目录（zip 导出用）；未 init 前调用会抛异常，与其它方法一致 */
+    @JvmStatic
+    fun skillsDir(): File = synchronized(lock) { dir }
+
     fun catalogSection(): String {
         val skills = list()
         if (skills.isEmpty()) return ""

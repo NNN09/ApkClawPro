@@ -64,4 +64,18 @@ class SkillStoreTest {
         assertEquals("手写的技能正文", SkillStore.load("hand"))
         assertEquals("", SkillStore.list().first { it.name == "hand" }.description)
     }
+
+    @Test fun exportRaw_returnsFullFrontmatterDocument() {
+        SkillStore.init(tmp.root)
+        SkillStore.upsert("demo", "演示描述", "正文步骤")
+        val raw = SkillStore.exportRaw("demo")!!
+        // 原文含 frontmatter，可再经 SkillPackager 解析还原
+        assertTrue(raw.startsWith("---\n"))
+        val parsed = SkillPackager.parseSkillMd(raw)!!
+        assertEquals("demo", parsed.name)
+        assertEquals("演示描述", parsed.description)
+        assertEquals("正文步骤", parsed.body)
+        assertNull(SkillStore.exportRaw("nope"))
+        assertNull(SkillStore.exportRaw("../etc"))
+    }
 }

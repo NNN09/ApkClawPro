@@ -215,6 +215,45 @@
     <string name="tool_name_cancel_scheduled_task">Cancel Scheduled Task</string>
     <string name="tool_name_list_scheduled_tasks">List Scheduled Tasks</string>
 
+    <!-- Home: contacts/calendar card (F9) -->
+    <string name="home_card_contacts_title">Contacts &amp; Calendar</string>
+    <string name="home_card_contacts_subtitle">Read contacts and manage calendar events for the system toolkit</string>
+    <string name="home_contacts_enabled">Contacts &amp; calendar permissions granted</string>
+    <string name="home_enable_contacts">Please grant contacts and calendar permissions</string>
+
+    <!-- System toolkit tools (F9) -->
+    <string name="tool_name_set_alarm">Set Alarm</string>
+    <string name="tool_name_set_timer">Set Timer</string>
+    <string name="tool_name_query_contacts">Query Contacts</string>
+    <string name="tool_name_create_calendar_event">Create Calendar Event</string>
+    <string name="tool_name_query_calendar">Query Calendar</string>
+    <string name="tool_name_media_control">Media Control</string>
+    <string name="tool_name_set_volume">Set Volume</string>
+    <string name="tool_name_set_brightness">Set Brightness</string>
+    <string name="tool_name_set_dnd">Do Not Disturb</string>
+    <string name="tool_name_open_settings_page">Open Settings Page</string>
+    <string name="tool_name_dial_prefill">Dial Prefill</string>
+    <string name="tool_name_sms_prefill">SMS Prefill</string>
+    <string name="tool_name_open_url">Open URL</string>
+    <string name="tool_name_query_battery">Query Battery</string>
+
+    <!-- Skill import via deep link (F11) -->
+    <string name="skill_import_title">Import Skill</string>
+    <string name="skill_import_invalid_link">Invalid import link</string>
+    <string name="skill_import_downloading">Downloading skill…</string>
+    <string name="skill_import_invalid_content">The content is not a valid skill package</string>
+    <string name="skill_import_download_failed">Download failed: %s</string>
+    <string name="skill_import_name">Skill: %s</string>
+    <string name="skill_import_desc">Description: %s</string>
+    <string name="skill_import_source">Source: %s</string>
+    <string name="skill_import_scan_clean">Security scan passed with no findings.</string>
+    <string name="skill_import_scan_findings">Security scan findings:</string>
+    <string name="skill_import_blocked_title">Import Blocked</string>
+    <string name="skill_import_warn_title">Security Warnings</string>
+    <string name="skill_import_confirm">Import</string>
+    <string name="skill_import_cancel">Cancel</string>
+    <string name="skill_import_success">Skill imported</string>
+
     <!-- File Tool -->
     <string name="tool_no_storage_permission">No file read/write permission</string>
     <string name="tool_file_not_found">File not found: %s</string>

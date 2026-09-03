@@ -63,6 +63,7 @@ class AppViewModel : ViewModel() {
             .contextWindowTokens(KVUtils.getLlmContextWindow())
             .confirmDangerousOps(KVUtils.getConfirmDangerousOps())
             .verifyResults(KVUtils.getVerifyResults())
+            .visionEnabled(KVUtils.getVisionEnabled())
             .temperature(0.1)
             .maxIterations(60)
             .build()

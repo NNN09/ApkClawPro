@@ -16,7 +16,12 @@ object DangerousOpDetector {
         "open_app", "press_back", "press_home", "system_key", "expand_notifications",
         "collapse_notifications", "scroll_to_find", "read_clipboard", "send_file",
         // F7：管理定时计划本身不执行计划内容；计划内的敏感操作到点仍会过 F2 确认
-        "schedule_task", "cancel_scheduled_task", "list_scheduled_tasks"
+        "schedule_task", "cancel_scheduled_task", "list_scheduled_tasks",
+        // F9：Intent 只读/低危工具（查询类、媒体控制、闹钟计时、页面导航）；
+        // 拨号/短信仅预填不发送；日历写入/音量/亮度/勿扰不豁免，仍走关键词评估
+        "query_contacts", "query_calendar", "query_battery",
+        "set_alarm", "set_timer", "media_control", "open_url",
+        "dial_prefill", "sms_prefill", "open_settings_page"
     )
 
     /** 不可逆动作关键词（中英文） */

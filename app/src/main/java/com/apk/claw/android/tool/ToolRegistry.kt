@@ -2,6 +2,7 @@ package com.apk.claw.android.tool
 
 import com.apk.claw.android.tool.impl.*
 import com.apk.claw.android.tool.impl.mobile.*
+import com.apk.claw.android.tool.impl.system.*
 import com.apk.claw.android.tool.impl.tv.*
 
 object ToolRegistry {
@@ -64,6 +65,25 @@ object ToolRegistry {
         register(LongPressTool())
         register(SwipeTool())
         register(ScrollToFindTool())
+        registerSystemTools()
+    }
+
+    /** F9：系统服务工具组（Intent/系统 API，比 UI 自动化可靠；手机设备才有电话/日历等能力） */
+    private fun registerSystemTools() {
+        register(SetAlarmTool())
+        register(SetTimerTool())
+        register(QueryContactsTool())
+        register(CreateCalendarEventTool())
+        register(QueryCalendarTool())
+        register(MediaControlTool())
+        register(SetVolumeTool())
+        register(SetBrightnessTool())
+        register(SetDndTool())
+        register(OpenSettingsPageTool())
+        register(DialPrefillTool())
+        register(SmsPrefillTool())
+        register(OpenUrlTool())
+        register(QueryBatteryTool())
     }
 
     fun register(tool: BaseTool) {

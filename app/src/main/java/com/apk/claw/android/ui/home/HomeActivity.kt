@@ -41,6 +41,7 @@ class HomeActivity : BaseActivity() {
     private lateinit var cardSystemWindow: PermissionCardView
     private lateinit var cardBattery: PermissionCardView
     private lateinit var cardStorage: PermissionCardView
+    private lateinit var cardContacts: PermissionCardView
     private lateinit var btnOpenChat: KButton
     private lateinit var btnCancelTask: KButton
 
@@ -63,6 +64,19 @@ class HomeActivity : BaseActivity() {
             Toast.makeText(this, R.string.home_enable_storage, Toast.LENGTH_SHORT).show()
         }
         updateStorageStatus()
+    }
+
+    // F9：联系人/日历运行时权限（系统服务工具包）
+    private val contactsPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val allGranted = results.values.all { it }
+        if (allGranted) {
+            Toast.makeText(this, R.string.home_contacts_enabled, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, R.string.home_enable_contacts, Toast.LENGTH_SHORT).show()
+        }
+        updateContactsStatus()
     }
 
     // Activity Result API - 通知权限请求
@@ -122,6 +136,7 @@ class HomeActivity : BaseActivity() {
         cardSystemWindow = findViewById(R.id.cardSystemWindow)
         cardBattery = findViewById(R.id.cardBattery)
         cardStorage = findViewById(R.id.cardStorage)
+        cardContacts = findViewById(R.id.cardContacts)
 
         // 开始对话（F5：App 内渠道，零配置可用）
         btnOpenChat = findViewById(R.id.btnOpenChat)
@@ -147,6 +162,7 @@ class HomeActivity : BaseActivity() {
         cardSystemWindow.setOnClickListener { requestSystemWindowPermission() }
         cardBattery.setOnClickListener { requestBatteryPermission() }
         cardStorage.setOnClickListener { requestStoragePermission() }
+        cardContacts.setOnClickListener { requestContactsPermission() }
     }
 
     private fun updateAllPermissionStatus() {
@@ -155,6 +171,7 @@ class HomeActivity : BaseActivity() {
         updateSystemWindowStatus()
         updateBatteryStatus()
         updateStorageStatus()
+        updateContactsStatus()
         updateCancelTaskVisibility()
     }
 
@@ -185,6 +202,14 @@ class HomeActivity : BaseActivity() {
 
     private fun updateStorageStatus() {
         cardStorage.setPermissionEnabled(isStoragePermissionGranted())
+    }
+
+    private fun updateContactsStatus() {
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        cardContacts.setPermissionEnabled(granted)
     }
 
     private fun isStoragePermissionGranted(): Boolean {
@@ -283,6 +308,23 @@ class HomeActivity : BaseActivity() {
             startActivity(intent)
         } else {
             Toast.makeText(this, R.string.home_battery_ignored, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** F9：联系人/日历运行时权限（系统服务工具包） */
+    private fun requestContactsPermission() {
+        val missing = arrayOf(
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.READ_CALENDAR,
+            Manifest.permission.WRITE_CALENDAR
+        ).filter {
+            ContextCompat.checkSelfPermission(this, it) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) {
+            Toast.makeText(this, R.string.home_contacts_enabled, Toast.LENGTH_SHORT).show()
+        } else {
+            contactsPermissionLauncher.launch(missing.toTypedArray())
         }
     }
 

@@ -69,6 +69,17 @@
         app:cardSubtitle="@string/home_card_storage_subtitle"
         app:layout_constraintTop_toBottomOf="@id/cardBattery" />
 
+    <!-- F9：联系人/日历（系统工具包运行时权限） -->
+    <com.apk.claw.android.widget.PermissionCardView
+        android:id="@+id/cardContacts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12pt"
+        app:cardIcon="@drawable/ic_accessibility"
+        app:cardTitle="@string/home_card_contacts_title"
+        app:cardSubtitle="@string/home_card_contacts_subtitle"
+        app:layout_constraintTop_toBottomOf="@id/cardStorage" />
+
     <!-- 开始对话（F5） -->
     <com.apk.claw.android.widget.KButton
         android:id="@+id/btnOpenChat"
@@ -77,7 +88,7 @@
         android:layout_marginTop="24pt"
         android:text="@string/home_open_chat"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/cardStorage" />
+        app:layout_constraintTop_toBottomOf="@id/cardContacts" />
 
     <!-- 结束当前会话 -->
     <com.apk.claw.android.widget.KButton

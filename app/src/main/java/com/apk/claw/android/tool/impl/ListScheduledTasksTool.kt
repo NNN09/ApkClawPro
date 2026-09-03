@@ -1,5 +1,7 @@
 package com.apk.claw.android.tool.impl
 
+import com.apk.claw.android.ClawApplication
+import com.apk.claw.android.R
 import com.apk.claw.android.agent.store.ScheduledTaskStore
 import com.apk.claw.android.tool.BaseTool
 import com.apk.claw.android.tool.ToolParameter
@@ -12,6 +14,8 @@ import java.util.Locale
 class ListScheduledTasksTool : BaseTool() {
 
     override fun getName() = "list_scheduled_tasks"
+
+    override fun getDisplayName() = ClawApplication.instance.getString(R.string.tool_name_list_scheduled_tasks)
 
     override fun getParameters() = emptyList<ToolParameter>()
 

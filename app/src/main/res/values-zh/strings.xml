@@ -215,6 +215,45 @@
     <string name="tool_name_cancel_scheduled_task">取消定时任务</string>
     <string name="tool_name_list_scheduled_tasks">查看定时任务</string>
 
+    <!-- 首页：联系人/日历卡片（F9） -->
+    <string name="home_card_contacts_title">联系人与日历</string>
+    <string name="home_card_contacts_subtitle">授权后系统工具可查联系人、管理日历事件</string>
+    <string name="home_contacts_enabled">联系人与日历权限已授予</string>
+    <string name="home_enable_contacts">请授予联系人与日历权限</string>
+
+    <!-- 系统服务工具包（F9） -->
+    <string name="tool_name_set_alarm">设置闹钟</string>
+    <string name="tool_name_set_timer">设置计时器</string>
+    <string name="tool_name_query_contacts">查询联系人</string>
+    <string name="tool_name_create_calendar_event">创建日历事件</string>
+    <string name="tool_name_query_calendar">查询日历</string>
+    <string name="tool_name_media_control">媒体控制</string>
+    <string name="tool_name_set_volume">设置音量</string>
+    <string name="tool_name_set_brightness">设置亮度</string>
+    <string name="tool_name_set_dnd">勿扰模式</string>
+    <string name="tool_name_open_settings_page">打开设置页</string>
+    <string name="tool_name_dial_prefill">拨号预填</string>
+    <string name="tool_name_sms_prefill">短信预填</string>
+    <string name="tool_name_open_url">打开网页</string>
+    <string name="tool_name_query_battery">查询电量</string>
+
+    <!-- 技能深链导入（F11） -->
+    <string name="skill_import_title">导入技能</string>
+    <string name="skill_import_invalid_link">无效的导入链接</string>
+    <string name="skill_import_downloading">正在下载技能…</string>
+    <string name="skill_import_invalid_content">内容不是有效的技能包</string>
+    <string name="skill_import_download_failed">下载失败：%s</string>
+    <string name="skill_import_name">技能：%s</string>
+    <string name="skill_import_desc">描述：%s</string>
+    <string name="skill_import_source">来源：%s</string>
+    <string name="skill_import_scan_clean">安全扫描通过，未发现风险。</string>
+    <string name="skill_import_scan_findings">安全扫描发现：</string>
+    <string name="skill_import_blocked_title">已拦截导入</string>
+    <string name="skill_import_warn_title">安全警告</string>
+    <string name="skill_import_confirm">导入</string>
+    <string name="skill_import_cancel">取消</string>
+    <string name="skill_import_success">技能导入成功</string>
+
     <!-- 文件工具 -->
     <string name="tool_no_storage_permission">没有读写文件的权限</string>
     <string name="tool_file_not_found">文件不存在: %s</string>

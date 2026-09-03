@@ -18,7 +18,9 @@ data class AgentConfig(
     /** 危险操作（发送/支付/删除类）执行前是否需用户经渠道确认（F2） */
     val confirmDangerousOps: Boolean = true,
     /** 核心操作执行后回读设备状态断言，失败自动重试一次（F4） */
-    val verifyResults: Boolean = true
+    val verifyResults: Boolean = true,
+    /** 截图作为图像注入 LLM 上下文（F10，需要模型支持视觉输入） */
+    val visionEnabled: Boolean = true
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
@@ -101,6 +103,14 @@ data class AgentConfig(
   当用户要求"每天/每周几点做某事"这类例行任务时，调用 schedule_task(time="HH:mm", task="指令") 创建计划，
   而不是当场执行任务本身；创建成功后告知计划内容与触发时间。查询用 list_scheduled_tasks，取消用 cancel_scheduled_task(id)。
 
+规则 13：系统能力优先用系统服务工具（F9）。
+  闹钟/计时(set_alarm, set_timer)、联系人(query_contacts)、日历(create_calendar_event, query_calendar)、
+  媒体/音量/亮度/勿扰(media_control, set_volume, set_brightness, set_dnd)、
+  拨号/短信预填(dial_prefill, sms_prefill——只预填绝不自动呼出/发送)、
+  打开网页(open_url)、设置页导航(open_settings_page)。
+  这些走系统 Intent/API，比模拟 UI 点击可靠一个数量级；只有没有对应系统工具的场景才用 UI 自动化。
+  take_screenshot 返回截图图像时，优先直接观察图像内容，无需再调用 get_screen_info。
+
 ## 安全约束
 - 绝不自动填写账户密码、支付密码、银行卡号等敏感凭证（WiFi 密码等用户明确要求输入的除外）
 - 绝不确认购买/支付操作
@@ -121,6 +131,7 @@ data class AgentConfig(
         private var contextWindowTokens: Int = ContextBudget.DEFAULT_CONTEXT_WINDOW_TOKENS
         private var confirmDangerousOps: Boolean = true
         private var verifyResults: Boolean = true
+        private var visionEnabled: Boolean = true
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -133,10 +144,11 @@ data class AgentConfig(
         fun contextWindowTokens(contextWindowTokens: Int) = apply { this.contextWindowTokens = contextWindowTokens }
         fun confirmDangerousOps(confirmDangerousOps: Boolean) = apply { this.confirmDangerousOps = confirmDangerousOps }
         fun verifyResults(verifyResults: Boolean) = apply { this.verifyResults = verifyResults }
+        fun visionEnabled(visionEnabled: Boolean) = apply { this.visionEnabled = visionEnabled }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults, visionEnabled)
         }
     }
 }
