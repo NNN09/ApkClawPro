@@ -62,39 +62,59 @@ object ChannelManager {
         wechatBotToken: String? = null,
         wechatApiBaseUrl: String? = null
     ) {
-        handlers[Channel.DINGTALK] = DingTalkChannelHandler(
-            scope, httpClient,
-            dingtalkAppKey?.takeIf { it.isNotEmpty() } ?: "",
-            dingtalkAppSecret?.takeIf { it.isNotEmpty() } ?: "",
+        installHandlers(
+            mapOf(
+                Channel.DINGTALK to DingTalkChannelHandler(
+                    scope, httpClient,
+                    dingtalkAppKey?.takeIf { it.isNotEmpty() } ?: "",
+                    dingtalkAppSecret?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                Channel.FEISHU to FeiShuChannelHandler(
+                    scope,
+                    feishuAppId?.takeIf { it.isNotEmpty() } ?: "",
+                    feishuAppSecret?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                Channel.QQ to QQChannelHandler(
+                    scope,
+                    qqAppId?.takeIf { it.isNotEmpty() } ?: "",
+                    qqAppSecret?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                Channel.DISCORD to DiscordChannelHandler(
+                    scope,
+                    discordBotToken?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                Channel.TELEGRAM to TelegramChannelHandler(
+                    scope, httpClient,
+                    telegramBotToken?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                Channel.WECHAT to WeChatChannelHandler(
+                    scope,
+                    wechatBotToken?.takeIf { it.isNotEmpty() } ?: "",
+                    wechatApiBaseUrl?.takeIf { it.isNotEmpty() } ?: "",
+                ),
+                // F5：App 内渠道，无需任何凭证，始终可用
+                Channel.IN_APP to InAppChannelHandler(),
+            )
         )
-        handlers[Channel.FEISHU] = FeiShuChannelHandler(
-            scope,
-            feishuAppId?.takeIf { it.isNotEmpty() } ?: "",
-            feishuAppSecret?.takeIf { it.isNotEmpty() } ?: "",
-        )
-        handlers[Channel.QQ] = QQChannelHandler(
-            scope,
-            qqAppId?.takeIf { it.isNotEmpty() } ?: "",
-            qqAppSecret?.takeIf { it.isNotEmpty() } ?: "",
-        )
-        handlers[Channel.DISCORD] = DiscordChannelHandler(
-            scope,
-            discordBotToken?.takeIf { it.isNotEmpty() } ?: "",
-        )
-        handlers[Channel.TELEGRAM] = TelegramChannelHandler(
-            scope, httpClient,
-            telegramBotToken?.takeIf { it.isNotEmpty() } ?: "",
-        )
-        handlers[Channel.WECHAT] = WeChatChannelHandler(
-            scope,
-            wechatBotToken?.takeIf { it.isNotEmpty() } ?: "",
-            wechatApiBaseUrl?.takeIf { it.isNotEmpty() } ?: "",
-        )
-        // F5：App 内渠道，无需任何凭证，始终可用
-        handlers[Channel.IN_APP] = InAppChannelHandler()
-
-        handlers.values.forEach { it.init() }
         XLog.i(TAG, "ChannelManager 初始化完成")
+    }
+
+    /**
+     * 替换全部通道 handler 并启动新实例。
+     * 必须先断开旧实例（停掉轮询/长连接线程）：否则旧线程与新线程并存，
+     * 同一消息会被多个实例各投递一次，导致任务重复排队执行。
+     */
+    @JvmStatic
+    internal fun installHandlers(newHandlers: Map<Channel, ChannelHandler>) {
+        handlers.values.toList().forEach { old ->
+            if (old.isConnected()) {
+                XLog.i(TAG, "重新初始化前断开${old.channel.displayName}通道")
+                old.disconnect()
+            }
+        }
+        handlers.clear()
+        handlers.putAll(newHandlers)
+        newHandlers.values.forEach { it.init() }
     }
 
     /**

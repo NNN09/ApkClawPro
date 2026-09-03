@@ -56,7 +56,7 @@ class LlmConfigActivity : BaseActivity() {
 
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()
-            ClawApplication.appViewModelInstance.afterInit()
+            ClawApplication.appViewModelInstance.refreshChannels()
             Toast.makeText(this, getString(R.string.llm_config_saved), Toast.LENGTH_SHORT).show()
             finish()
         }

@@ -23,6 +23,9 @@ class ChannelSetup(
     private val queueLock = Any()
     private val pendingQueue = ArrayDeque<PendingMessage>()
 
+    /** dispatch 层进程级兜底去重，防御渠道层多实例重复投递 */
+    private val inboundDeduper = InboundDeduper()
+
     companion object {
         private const val TAG = "ChannelSetup"
         private const val MAX_PENDING = 3
@@ -63,6 +66,11 @@ class ChannelSetup(
      * 保证无障碍检查、确认门控、任务锁与排队行为一致。
      */
     fun dispatch(channel: Channel, message: String, messageID: String, senderId: String) {
+        if (inboundDeduper.isDuplicate(channel, senderId, message)) {
+            XLog.w(TAG, "重复 dispatch 已拦截: channel=${channel.displayName}, message=${message.take(40)}")
+            return
+        }
+
         val app = ClawApplication.instance
         if (!ClawAccessibilityService.isRunning()) {
             ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)

@@ -154,7 +154,7 @@ class SettingsActivity : BaseActivity() {
                     ConfigServerManager.configChanged.collect {
                         viewModel.refresh()
                         appViewModel.initAgent()
-                        appViewModel.afterInit()
+                        appViewModel.refreshChannels()
                     }
                 }
 

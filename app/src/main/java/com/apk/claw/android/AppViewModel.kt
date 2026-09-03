@@ -71,6 +71,13 @@ class AppViewModel : ViewModel() {
 
     fun updateAgentConfig(): Boolean = taskOrchestrator.updateAgentConfig()
 
+    /**
+     * 配置变更后的轻量通道刷新：复用已有 handler 实例重新读取各通道配置并重启连接。
+     * 不能走完整的 [afterInit]（其内部 setup() 会重建 handler；历史上旧实例不被断开，
+     * 轮询线程越叠越多，导致同一条消息被投递多次、任务重复排队执行）。
+     */
+    fun refreshChannels() = ChannelManager.reinitFromStorage()
+
     fun afterInit() {
         acquireScreenWakeLock()
         ForegroundService.start(ClawApplication.instance)
