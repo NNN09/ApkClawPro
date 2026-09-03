@@ -45,4 +45,32 @@ class DangerousOpDetectorTest {
         val risk = DangerousOpDetector.assess("tap", mapOf("text" to "删除照片"))
         assertEquals("目标文本\"删除\"疑似不可逆操作", risk)
     }
+
+    // ==================== 真机验收回归：tap 携带 text 语义 + sms_prefill 敏感正文 ====================
+
+    @Test
+    fun tapWithCoordinatesAndSendLabel_flagged() {
+        // tap(x, y, text) —— 有语义参数后才可能命中；此前纯坐标永远不触发确认
+        val risk = DangerousOpDetector.assess("tap", mapOf("x" to 540, "y" to 1900, "text" to "发送"))
+        assertNotNull(risk)
+    }
+
+    @Test
+    fun smsPrefillWithOtpBody_flagged() {
+        assertNotNull(
+            DangerousOpDetector.assess("sms_prefill", mapOf("number" to "10086", "body" to "您的验证码是123456"))
+        )
+    }
+
+    @Test
+    fun smsPrefillWithNormalBody_notFlagged() {
+        assertNull(
+            DangerousOpDetector.assess("sms_prefill", mapOf("number" to "10086", "body" to "查询套餐余额"))
+        )
+    }
+
+    @Test
+    fun dialPrefill_stillExempt() {
+        assertNull(DangerousOpDetector.assess("dial_prefill", mapOf("number" to "10086")))
+    }
 }

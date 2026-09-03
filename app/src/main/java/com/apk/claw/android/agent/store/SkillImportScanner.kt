@@ -16,7 +16,7 @@ object SkillImportScanner {
     /** 高危：凭证/验证码外传、支付诱导、恢复出厂、指令覆盖后回传数据 */
     private val HIGH_RULES: List<Pair<String, Regex>> = listOf(
         "凭证外传" to
-            Regex("(密码|password|passwd|支付密码|银行卡号|信用卡号|验证码|otp|助记词|私钥)[^\\n]{0,40}(发送|上传|转发|发到|回传|发给我|send|upload|forward|post)[^\\n]{0,40}", RegexOption.IGNORE_CASE),
+            Regex("(密码|password|passwd|支付密码|银行卡号|信用卡号|验证码|短信内容|otp|助记词|私钥)[^\\n]{0,40}(发送|发出|发给|发到|发送到|发送至|转给|转发|上传|回传|发给我|提交给|send|upload|forward|post)[^\\n]{0,40}", RegexOption.IGNORE_CASE),
         "外链带凭证回传" to
             Regex("https?://[^\\s]{0,80}(token|key|secret|password|pwd)[^\\s]{0,40}", RegexOption.IGNORE_CASE),
         "验证码自动处置" to

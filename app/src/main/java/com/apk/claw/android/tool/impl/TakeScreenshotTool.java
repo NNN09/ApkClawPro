@@ -29,12 +29,12 @@ public class TakeScreenshotTool extends BaseTool {
 
     @Override
     public String getDescriptionEN() {
-        return "Take a screenshot of the current screen. Returns the local file path of the saved PNG image. Requires Android 11+ (API 30).";
+        return "Take a screenshot; the image is injected into your context for direct visual inspection (also saved as PNG, path returned). Use when the accessibility tree cannot read the screen content (WebView, custom-drawn UI, games) or when visual confirmation is needed. Requires Android 11+ (API 30).";
     }
 
     @Override
     public String getDescriptionCN() {
-        return "对当前屏幕进行截图，保存为 PNG 文件并返回本地文件路径。需要 Android 11+（API 30）。";
+        return "截取当前屏幕，图像会直接进入你的上下文供视觉观察（同时保存 PNG 并返回路径）。当无障碍节点树读不到界面内容时使用（典型：WebView 网页、自绘 UI、游戏），或需要确认界面视觉效果时使用。需要 Android 11+（API 30）。";
     }
 
     @Override

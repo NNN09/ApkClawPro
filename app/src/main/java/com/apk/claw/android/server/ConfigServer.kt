@@ -77,6 +77,7 @@ class ConfigServer(
                 uri == "/api/skills/export-all" && method == Method.GET -> handleExportAllSkills()
                 uri == "/api/skills/qr" && method == Method.GET -> handleSkillQr(session)
                 uri == "/api/skills/import-url" && method == Method.POST -> handleImportSkillFromUrl(session)
+                uri == "/api/skills/import-content" && method == Method.POST -> handleImportSkillContent(session)
                 uri == "/api/skills/templates" && method == Method.GET -> handleGetSkillTemplates()
                 uri == "/api/skills/install-template" && method == Method.POST -> handleInstallSkillTemplate(session)
                 uri == "/api/persona/export" && method == Method.GET -> handleExportPersona()
@@ -390,18 +391,24 @@ class ConfigServer(
         val content = json.optString("content") ?: ""
         val outcome = importSkillWithScan(name, description, content)
         return if (outcome.ok) {
-            corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, outcome.message))
+            val message = if (outcome.warnings.isEmpty()) "ok"
+                else "saved with warnings:\n${outcome.warnings}"
+            corsResponse(newFixedLengthResponse(
+                Response.Status.OK, MIME_JSON,
+                """{"code":0,"message":"${jsonEscape(message)}"}"""
+            ))
         } else {
             corsResponse(newFixedLengthResponse(
                 Response.Status.BAD_REQUEST, MIME_JSON,
-                """{"code":-1,"message":"${jsonEscape(outcome.message)}"}"""
+                """{"code":-1,"message":"${jsonEscape("import blocked by security scan:\n${outcome.warnings}")}"}"""
             ))
         }
     }
 
     // ==================== F11：技能/人格分发 ====================
 
-    private data class ImportOutcome(val ok: Boolean, val message: String)
+    /** 导入结果：ok=是否成功；warnings=扫描报告（成功时为放行告警，失败时为拦截原因） */
+    private data class ImportOutcome(val ok: Boolean, val warnings: String)
 
     /**
      * 统一的技能导入入口：先做提示注入安全审查（F11），
@@ -410,15 +417,12 @@ class ConfigServer(
     private fun importSkillWithScan(name: String, description: String, body: String): ImportOutcome {
         val findings = SkillImportScanner.scan("$description\n$body")
         if (SkillImportScanner.hasBlocking(findings)) {
-            return ImportOutcome(false, "import blocked by security scan:\n${SkillImportScanner.report(findings)}")
+            return ImportOutcome(false, SkillImportScanner.report(findings))
         }
         if (!SkillStore.upsert(name, description, body)) {
             return ImportOutcome(false, "invalid skill name (a-z, 0-9, '-'; max 40)")
         }
-        val warnings = SkillImportScanner.report(findings)
-        val message = if (warnings.isEmpty()) """{"code":0,"message":"ok"}"""
-        else """{"code":0,"message":"${jsonEscape("saved with warnings:\n$warnings")}"}"""
-        return ImportOutcome(true, message)
+        return ImportOutcome(true, SkillImportScanner.report(findings))
     }
 
     private fun jsonEscape(text: String): String =
@@ -477,6 +481,47 @@ class ConfigServer(
         }
     }
 
+    /** 字节内容导入结果：ok + 已导入技能名 + 告警（失败时 warnings 为失败原因） */
+    private data class ImportBytesResult(val ok: Boolean, val imported: List<String>, val warnings: String)
+
+    /** .md / zip 字节内容 → 解析 → 逐个安全扫描导入（URL 下载与 content 上传共用） */
+    private fun importBytes(bytes: ByteArray, overrideName: String?): ImportBytesResult {
+        val imported = mutableListOf<String>()
+        val warnings = mutableListOf<String>()
+        if (bytes.size >= 2 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()) {
+            val skills = SkillPackager.importZip(bytes)
+            if (skills.isEmpty()) return ImportBytesResult(false, emptyList(), "no valid SKILL.md entries found in zip")
+            for (skill in skills) {
+                val outcome = importSkillWithScan(skill.name, skill.description, skill.body)
+                if (outcome.ok) imported.add(skill.name) else warnings.add("${skill.name}: ${outcome.warnings}")
+            }
+        } else {
+            val raw = bytes.toString(Charsets.UTF_8)
+            val parsed = SkillPackager.parseSkillMd(raw)
+                ?: return ImportBytesResult(false, emptyList(), "content is not a valid SKILL.md (frontmatter with name/description required)")
+            val name = overrideName?.trim()?.takeIf { it.isNotEmpty() } ?: parsed.name
+            val outcome = importSkillWithScan(name, parsed.description, parsed.body)
+            if (!outcome.ok) return ImportBytesResult(false, emptyList(), outcome.warnings)
+            imported.add(name)
+            if (outcome.warnings.isNotEmpty()) warnings.add(outcome.warnings)
+        }
+        return ImportBytesResult(true, imported, warnings.joinToString("\n"))
+    }
+
+    private fun importBytesResponse(result: ImportBytesResult): Response {
+        if (!result.ok) return badRequest(result.warnings)
+        val data = JsonObject().apply {
+            addProperty("imported", result.imported.joinToString(","))
+            if (result.warnings.isNotEmpty()) addProperty("warnings", result.warnings)
+        }
+        val json = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, json.toString()))
+    }
+
     /** POST /api/skills/import-url {url, name?}：从 URL 拉取 SKILL.md 或 zip 导入（内容仍过安全扫描） */
     private fun handleImportSkillFromUrl(session: IHTTPSession): Response {
         val json = readPostJson(session) ?: return badRequest("invalid json")
@@ -498,35 +543,23 @@ class ConfigServer(
         } catch (e: Exception) {
             return badRequest("download failed: ${e.message}")
         }
-        val imported = mutableListOf<String>()
-        val warnings = mutableListOf<String>()
-        if (bytes.size >= 2 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()) {
-            // zip 包：逐个解析导入
-            val skills = SkillPackager.importZip(bytes)
-            if (skills.isEmpty()) return badRequest("no valid SKILL.md entries found in zip")
-            for (skill in skills) {
-                val outcome = importSkillWithScan(skill.name, skill.description, skill.body)
-                if (outcome.ok) imported.add(skill.name) else warnings.add("${skill.name}: ${outcome.message}")
-            }
-        } else {
-            val raw = bytes.toString(Charsets.UTF_8)
-            val parsed = SkillPackager.parseSkillMd(raw)
-                ?: return badRequest("content is not a valid SKILL.md (frontmatter with name/description required)")
-            val name = json.optString("name")?.trim()?.takeIf { it.isNotEmpty() } ?: parsed.name
-            val outcome = importSkillWithScan(name, parsed.description, parsed.body)
-            if (outcome.ok) imported.add(name) else return badRequest(outcome.message)
-            if (outcome.message != """{"code":0,"message":"ok"}""") warnings.add(outcome.message)
+        return importBytesResponse(importBytes(bytes, json.optString("name")))
+    }
+
+    /** POST /api/skills/import-content {contentB64, name?}：直接上传 .md / zip 内容导入（安全扫描同路） */
+    private fun handleImportSkillContent(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val b64 = json.optString("contentB64")?.trim() ?: ""
+        if (b64.isEmpty()) return badRequest("contentB64 is required")
+        val bytes = try {
+            android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        } catch (_: Exception) {
+            return badRequest("invalid base64 content")
         }
-        val data = JsonObject().apply {
-            addProperty("imported", imported.joinToString(","))
-            if (warnings.isNotEmpty()) addProperty("warnings", warnings.joinToString("\n"))
+        if (bytes.isEmpty() || bytes.size > MAX_IMPORT_BYTES) {
+            return badRequest("content is empty or too large (max ${MAX_IMPORT_BYTES / 1024}KB)")
         }
-        val result = JsonObject().apply {
-            addProperty("code", 0)
-            add("data", data)
-            addProperty("message", "ok")
-        }
-        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+        return importBytesResponse(importBytes(bytes, json.optString("name")))
     }
 
     /** GET /api/skills/templates → 内置模板库列表 */
@@ -568,9 +601,14 @@ class ConfigServer(
         val parsed = SkillPackager.parseSkillMd(raw) ?: return badRequest("template is not a valid SKILL.md")
         val outcome = importSkillWithScan(parsed.name, parsed.description, parsed.body)
         return if (outcome.ok) {
-            corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, outcome.message))
+            val message = if (outcome.warnings.isEmpty()) "ok"
+                else "saved with warnings:\n${outcome.warnings}"
+            corsResponse(newFixedLengthResponse(
+                Response.Status.OK, MIME_JSON,
+                """{"code":0,"message":"${jsonEscape(message)}"}"""
+            ))
         } else {
-            badRequest(outcome.message)
+            badRequest("import blocked by security scan:\n${outcome.warnings}")
         }
     }
 
@@ -728,7 +766,7 @@ class ConfigServer(
     }
 
     private fun badRequest(message: String): Response =
-        corsResponse(newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_JSON, """{"code":-1,"message":"$message"}"""))
+        corsResponse(newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_JSON, """{"code":-1,"message":"${jsonEscape(message)}"}"""))
 
     // ==================== Debug (仅 DEBUG 构建) ====================
     

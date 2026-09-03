@@ -18,10 +18,11 @@ object DangerousOpDetector {
         // F7：管理定时计划本身不执行计划内容；计划内的敏感操作到点仍会过 F2 确认
         "schedule_task", "cancel_scheduled_task", "list_scheduled_tasks",
         // F9：Intent 只读/低危工具（查询类、媒体控制、闹钟计时、页面导航）；
-        // 拨号/短信仅预填不发送；日历写入/音量/亮度/勿扰不豁免，仍走关键词评估
+        // 拨号仅预填不拨出；日历写入/音量/亮度/勿扰不豁免，仍走关键词评估。
+        // sms_prefill 不豁免：正文含验证码/密码时需确认（见下方专项规则）
         "query_contacts", "query_calendar", "query_battery",
         "set_alarm", "set_timer", "media_control", "open_url",
-        "dial_prefill", "sms_prefill", "open_settings_page"
+        "dial_prefill", "open_settings_page"
     )
 
     /** 不可逆动作关键词（中英文） */
@@ -44,6 +45,15 @@ object DangerousOpDetector {
      */
     fun assess(toolName: String, params: Map<String, Any>): String? {
         if (toolName in EXEMPT_TOOLS) return null
+
+        // sms_prefill 专项：正文携带验证码/密码类信息时，即使只预填也需用户确认
+        if (toolName == "sms_prefill") {
+            val body = params["body"]?.toString() ?: ""
+            if (listOf("验证码", "password", "密码", "otp").any { body.lowercase().contains(it) }) {
+                return "短信正文包含验证码/密码类敏感信息"
+            }
+        }
+
         val stringValues = params.values.filterIsInstance<String>()
         val joined = stringValues.joinToString(" ").lowercase()
 

@@ -69,6 +69,19 @@ object ScreenshotEncoder {
     const val MAX_SCREENSHOTS_PER_TASK = 8
 
     /**
+     * 节点查找连续失败时自动附加的截图消息（F10 视觉兜底）：
+     * WebView/自绘界面的无障碍节点读不到内容，提示模型改用视觉而非继续重试。
+     */
+    fun autoTriggeredMessage(encoded: Encoded, index: Int): UserMessage =
+        UserMessage.from(
+            TextContent(
+                "[截图 #$index·自动附加] 节点查找连续失败，当前界面很可能是 WebView 或自绘 UI（无障碍节点树读不到内容）。" +
+                    "已附当前屏幕图像（${encoded.width}x${encoded.height}），请直接观察图像继续任务，不要继续用 find_node_info 重试。"
+            ),
+            ImageContent.from(encoded.base64, encoded.mimeType)
+        )
+
+    /**
      * 构造带图像的用户消息（纯 langchain4j，可 JVM 单测）。
      * 文本在前：OpenAI 兼容端点对 content part 顺序无要求，但对部分
      * OpenAI 兼容代理文本先行更稳。

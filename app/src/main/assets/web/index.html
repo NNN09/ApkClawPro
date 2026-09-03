@@ -444,7 +444,7 @@ const i18nMessages = {
     sched_toggle: '启用/停用',
     sched_everyday: '每天',
     llm_vision_enabled: '视觉输入（截图注入上下文，需模型支持）',
-    skills_import_file: '从文件导入（.md，解析后预填下方表单）',
+    skills_import_file: '从文件导入（.md 直接保存，.zip 解包导入，自动安全扫描）',
     skills_import_url: '从 URL 导入（.md 或 zip，自动安全扫描）',
     ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
     skills_import_btn: '导入',
@@ -490,20 +490,6 @@ const i18nMessages = {
     skills_load_failed: 'Failed to load',
     skills_name_required: 'Please enter a skill name',
     skills_saved: 'Saved',
-    llm_vision_enabled: 'Vision input (inject screenshots, model must support it)',
-    skills_import_file: 'Import from file (.md, parsed into the form below)',
-    skills_import_url: 'Import from URL (.md or zip, security-scanned)',
-    ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
-    skills_import_btn: 'Import',
-    skills_url_required: 'Please enter a URL',
-    skills_imported: 'Imported',
-    skills_file_loaded: 'File parsed, review and click save',
-    skills_templates: 'Built-in templates',
-    skills_templates_empty: 'No templates',
-    skills_template_install: 'Install',
-    skills_export: 'Export',
-    skills_qr: 'QR',
-    skills_export_all: 'Export all skills (zip)',
     load_failed: 'Failed to load, please check connection',
     dingtalk: 'DingTalk',
     feishu: 'Feishu (Lark)',
@@ -543,7 +529,7 @@ const i18nMessages = {
     sched_toggle: 'Enable/Disable',
     sched_everyday: 'daily',
     llm_vision_enabled: 'Vision input (inject screenshots, model must support it)',
-    skills_import_file: 'Import from file (.md, parsed into the form below)',
+    skills_import_file: 'Import from file (.md saves directly, .zip unpacked; security-scanned)',
     skills_import_url: 'Import from URL (.md or zip, security-scanned)',
     ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
     skills_import_btn: 'Import',
@@ -628,7 +614,7 @@ const i18nMessages = {
     sched_toggle: '有効/無効',
     sched_everyday: '毎日',
     llm_vision_enabled: '視覚入力（スクリーンショット注入、モデル対応必要）',
-    skills_import_file: 'ファイルからインポート（.md、解析して下のフォームに反映）',
+    skills_import_file: 'ファイルからインポート（.md は直接保存、.zip は展開、安全スキャン付き）',
     skills_import_url: 'URLからインポート（.md/zip、安全スキャン付き）',
     ph_skill_import_url: 'https://example.com/my-skill.SKILL.md',
     skills_import_btn: 'インポート',
@@ -846,23 +832,40 @@ async function installTemplate(file) {
   }
 }
 
-// F11：文件导入（.md 直接解析 frontmatter 预填表单；.zip 交给 import-url 的 zip 通道走不通，此处仅 .md）
+// F11：文件导入——.md 直接保存（含 frontmatter 时自动取名），zip 上传服务端解包，均过安全扫描
 document.getElementById('skillFile').addEventListener('change', async (ev) => {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
   try {
-    const text = await file.text();
-    const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
-    if (m) {
-      const nameM = m[1].match(/^name:\s*(.+)$/m);
-      const descM = m[1].match(/^description:\s*(.+)$/m);
-      if (nameM) document.getElementById('skillName').value = nameM[1].trim();
-      if (descM) document.getElementById('skillDesc').value = descM[1].trim();
-      document.getElementById('skillBody').value = text.slice(m[0].length).trim();
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const isZip = buf.length > 1 && buf[0] === 0x50 && buf[1] === 0x4B;
+    if (isZip) {
+      let bin = '';
+      for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+      const r = await fetch('/api/skills/import-content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentB64: btoa(bin) }) });
+      const j = await r.json();
+      if (j.code === 0) {
+        showToast(t('skills_imported') + (j.data && j.data.imported ? ': ' + j.data.imported : '') + (j.data && j.data.warnings ? '\n' + j.data.warnings : ''), 'success');
+        refreshSkills();
+      } else {
+        showToast(j.message || t('unknown_error'), 'error');
+      }
     } else {
-      document.getElementById('skillBody').value = text;
+      const text = new TextDecoder().decode(buf);
+      const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
+      const nameM = m && m[1].match(/^name:\s*(.+)$/m);
+      const descM = m && m[1].match(/^description:\s*(.+)$/m);
+      if (m && nameM) {
+        const r = await fetch('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ name: nameM[1].trim(), description: (descM ? descM[1].trim() : ''), content: text.slice(m[0].length).trim() }) });
+        const j = await r.json();
+        showToast(j.code === 0 ? (j.message || t('skills_saved')) : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+        if (j.code === 0) refreshSkills();
+      } else {
+        // 无 frontmatter：预填表单让用户补名称后手动保存
+        document.getElementById('skillBody').value = text;
+        showToast(t('skills_file_loaded'), 'success');
+      }
     }
-    showToast(t('skills_file_loaded'), 'success');
   } catch (e) {
     showToast(t('save_failed') + ': ' + e.message, 'error');
   } finally {
@@ -999,6 +1002,9 @@ refreshSkills();
 refreshTemplates();
 refreshTasks();
 refreshSchedules();
+// F11：技能列表轮询 + 窗口聚焦刷新，深链/二维码在手机侧导入后 PC 页自动可见
+window.addEventListener('focus', refreshSkills);
+setInterval(() => { if (!document.hidden) refreshSkills(); }, 10000);
 </script>
 </body>
 </html>

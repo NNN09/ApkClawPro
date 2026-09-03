@@ -65,6 +65,13 @@ android {
 
     }
 
+    testOptions {
+        unitTests {
+            // JVM 单测中 android.util.Log 等框架方法返回默认值，避免被测代码打日志即崩溃
+            isReturnDefaultValues = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

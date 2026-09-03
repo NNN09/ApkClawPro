@@ -25,19 +25,21 @@ public class TapTool extends BaseTool {
 
     @Override
     public String getDescriptionEN() {
-        return "Tap at the specified screen coordinates (x, y).";
+        return "Tap at the specified screen coordinates (x, y). Always pass the visible label of the target element in 'text' - it is used for safety review and execution traces.";
     }
 
     @Override
     public String getDescriptionCN() {
-        return "在指定的屏幕坐标 (x, y) 处点击。";
+        return "在指定的屏幕坐标 (x, y) 处点击。必须传 text 参数：目标元素的可见文字，用于安全审查与执行轨迹。";
     }
 
     @Override
     public List<ToolParameter> getParameters() {
         return Arrays.asList(
                 new ToolParameter("x", "integer", "X coordinate on screen", true),
-                new ToolParameter("y", "integer", "Y coordinate on screen", true)
+                new ToolParameter("y", "integer", "Y coordinate on screen", true),
+                new ToolParameter("text", "string",
+                        "Visible label/description of the element being tapped, e.g. '发送' or '确认支付'. Used for safety review - always provide it", false)
         );
     }
 

@@ -46,13 +46,8 @@ class DefaultAgentService : AgentService {
         /** 死循环检测：滑动窗口大小 */
         private const val LOOP_DETECT_WINDOW = 4
 
-        /** 这些工具不改变设备状态，触发前无需重置到桌面 */
-        private val OBSERVATION_ONLY_TOOLS = setOf(
-            "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps",
-            "wait", "finish", "memory_save", "memory_delete", "memory_list", "load_skill",
-            // F9 只读查询：不改前台、不动设备状态
-            "query_contacts", "query_calendar", "query_battery"
-        )
+        /** F10：find_node_info 连续失败 N 次后自动截图注入（WebView/自绘界面节点读不到时的视觉兜底） */
+        private const val AUTO_SCREENSHOT_AFTER_FIND_MISSES = 2
 
         /** 发送前分级压缩的保护区：最近 N 轮完整保留 */
         private const val COMPRESS_PROTECT_ROUNDS = 3
@@ -370,8 +365,8 @@ class DefaultAgentService : AgentService {
         val charBudget = ContextBudget.charBudget(config.contextWindowTokens)
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
-        var homeResetDone = false
         var screenshotCount = 0   // F10：本任务已注入视觉上下文的截图数
+        var findMissStreak = 0    // F10：find_node_info 连续失败计数（视觉兜底触发器）
 
         loop@ while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -449,12 +444,6 @@ class DefaultAgentService : AgentService {
                     HashMap()
                 }
                 if (params == null) params = HashMap()
-
-                // 第一个改状态工具执行前才重置到桌面，纯聊天/观察类任务不打扰当前应用
-                if (!homeResetDone && toolName !in OBSERVATION_ONLY_TOOLS) {
-                    ClawAccessibilityService.getInstance()?.pressHome()
-                    homeResetDone = true
-                }
 
                 // F2：疑似不可逆操作（发送/支付/删除类关键词）→ 经渠道请求用户确认后再执行
                 var result = if (config.confirmDangerousOps) {
@@ -561,6 +550,27 @@ class DefaultAgentService : AgentService {
                             }
                         }
                         // 超上限后不加提示：工具结果里已有路径文本，避免重复注入相同系统提示
+                    }
+                }
+
+                // F10 视觉兜底：find_node_info 连续失败（WebView/自绘界面读不到节点）时自动截图注入
+                if (toolName == "find_node_info") {
+                    findMissStreak = if (result.isSuccess) 0 else findMissStreak + 1
+                    if (config.visionEnabled &&
+                        findMissStreak >= AUTO_SCREENSHOT_AFTER_FIND_MISSES &&
+                        screenshotCount < ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK
+                    ) {
+                        val shot = ToolRegistry.getInstance().executeTool("take_screenshot", emptyMap())
+                        val shotPath = shot.data
+                        if (shot.isSuccess && shotPath != null) {
+                            val encoded = ScreenshotEncoder.encode(File(shotPath))
+                            if (encoded != null) {
+                                screenshotCount++
+                                XLog.i(TAG, "Auto screenshot injected after $findMissStreak find_node_info misses")
+                                messages.add(ScreenshotEncoder.autoTriggeredMessage(encoded, screenshotCount))
+                            }
+                        }
+                        findMissStreak = 0   // 触发后清零，避免每轮都补截图
                     }
                 }
 
