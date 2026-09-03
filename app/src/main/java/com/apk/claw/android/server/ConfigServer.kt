@@ -72,6 +72,7 @@ class ConfigServer(
                 uri == "/api/persona" && method == Method.POST -> handlePostPersona(session)
                 uri == "/api/skills" && method == Method.GET -> handleGetSkills()
                 uri == "/api/skills" && method == Method.POST -> handlePostSkill(session)
+                uri == "/api/skills/delete" && method == Method.POST -> handlePostSkillDelete(session)
                 // F11：技能/人格分发
                 uri == "/api/skills/export" && method == Method.GET -> handleExportSkill(session)
                 uri == "/api/skills/export-all" && method == Method.GET -> handleExportAllSkills()
@@ -423,6 +424,17 @@ class ConfigServer(
             return ImportOutcome(false, "invalid skill name (a-z, 0-9, '-'; max 40)")
         }
         return ImportOutcome(true, SkillImportScanner.report(findings))
+    }
+
+    /** POST /api/skills/delete {name}：删除技能 */
+    private fun handlePostSkillDelete(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val name = json.optString("name")?.trim() ?: ""
+        return if (SkillStore.delete(name)) {
+            corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+        } else {
+            badRequest("skill not found: $name")
+        }
     }
 
     private fun jsonEscape(text: String): String =

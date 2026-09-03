@@ -456,6 +456,9 @@ const i18nMessages = {
     skills_template_install: '安装',
     skills_export: '导出',
     skills_qr: '二维码',
+    skills_delete: '删除',
+    skills_delete_confirm: '确认删除技能',
+    skills_deleted: '已删除',
     skills_export_all: '导出全部技能 (zip)',
     unknown_error: '未知错误',
   },
@@ -541,6 +544,9 @@ const i18nMessages = {
     skills_template_install: 'Install',
     skills_export: 'Export',
     skills_qr: 'QR',
+    skills_delete: 'Delete',
+    skills_delete_confirm: 'Delete skill',
+    skills_deleted: 'Deleted',
     skills_export_all: 'Export all skills (zip)',
     unknown_error: 'Unknown error',
   },
@@ -626,6 +632,9 @@ const i18nMessages = {
     skills_template_install: 'インストール',
     skills_export: 'エクスポート',
     skills_qr: 'QR',
+    skills_delete: '削除',
+    skills_delete_confirm: 'スキルを削除',
+    skills_deleted: '削除しました',
     skills_export_all: '全スキルをエクスポート (zip)',
     unknown_error: '不明なエラー',
   },
@@ -781,13 +790,33 @@ async function refreshSkills() {
       qrBtn.target = '_blank';
       qrBtn.textContent = t('skills_qr');
       qrBtn.style.color = '#0071e3';
+      const delBtn = document.createElement('a');
+      delBtn.href = 'javascript:void(0)';
+      delBtn.textContent = '✕';
+      delBtn.title = t('skills_delete');
+      delBtn.style.color = '#ff3b30';
+      delBtn.onclick = () => deleteSkill(s.name);
       row.appendChild(label);
       row.appendChild(exportBtn);
       row.appendChild(qrBtn);
+      row.appendChild(delBtn);
       el.appendChild(row);
     });
   } catch (e) {
     el.textContent = t('skills_load_failed');
+  }
+}
+
+// F11：删除技能（含确认）
+async function deleteSkill(name) {
+  if (!confirm(t('skills_delete_confirm') + ': ' + name)) return;
+  try {
+    const r = await fetch('/api/skills/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('skills_deleted') : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+    if (j.code === 0) refreshSkills();
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
   }
 }
 

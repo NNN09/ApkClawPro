@@ -64,6 +64,16 @@ object SkillStore {
     @JvmStatic
     fun skillsDir(): File = synchronized(lock) { dir }
 
+    /** F11：删除技能（连同目录）；非法名或不存在返回 false */
+    @JvmStatic
+    fun delete(name: String): Boolean = synchronized(lock) {
+        if (!NAME_REGEX.matches(name)) return false
+        val skillDir = File(dir, name)
+        if (!skillDir.isDirectory) return false
+        skillDir.walkBottomUp().forEach { it.delete() }
+        !skillDir.exists()
+    }
+
     fun catalogSection(): String {
         val skills = list()
         if (skills.isEmpty()) return ""

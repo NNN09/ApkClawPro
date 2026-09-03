@@ -78,4 +78,22 @@ class SkillStoreTest {
         assertNull(SkillStore.exportRaw("nope"))
         assertNull(SkillStore.exportRaw("../etc"))
     }
+
+    @Test fun delete_removesSkillFromListAndDisk() {
+        SkillStore.init(tmp.root)
+        SkillStore.upsert("demo", "d", "b")
+        assertTrue(SkillStore.delete("demo"))
+        assertTrue(SkillStore.list().isEmpty())
+        assertNull(SkillStore.load("demo"))
+        assertFalse(tmp.root.resolve("skills/demo").exists())
+        // 再删同一技能：已不存在
+        assertFalse(SkillStore.delete("demo"))
+    }
+
+    @Test fun delete_rejectsInvalidOrMissingNames() {
+        SkillStore.init(tmp.root)
+        assertFalse(SkillStore.delete("../etc"))
+        assertFalse(SkillStore.delete("Bad Name"))
+        assertFalse(SkillStore.delete("nope"))
+    }
 }
