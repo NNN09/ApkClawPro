@@ -69,6 +69,18 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun initMenuGroups() {
+        // 模型
+        val modelGroup = findViewById<MenuGroup>(R.id.modelGroup)
+        modelGroup.setTitle(getString(R.string.settings_group_model))
+
+        menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name] = modelGroup.addMenuItem(
+            leadingIcon = R.drawable.icon_current_model,
+            title = getString(R.string.menu_llm_config),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.LLM_CONFIG) },
+            showDivider = false
+        )
+        menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
         // 通道
         val channelGroup = findViewById<MenuGroup>(R.id.channelGroup)
         channelGroup.setTitle(getString(R.string.settings_group_channel))
@@ -107,27 +119,20 @@ class SettingsActivity : BaseActivity() {
             leadingIcon = R.drawable.ic_channel_wechat,
             title = getString(R.string.menu_wechat),
             onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.WECHAT) },
-            showDivider = true
+            showDivider = false
         )
-        menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name] = channelGroup.addMenuItem(
+
+        // 通用
+        val generalGroup = findViewById<MenuGroup>(R.id.generalGroup)
+        generalGroup.setTitle(getString(R.string.settings_group_general))
+
+        menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name] = generalGroup.addMenuItem(
             leadingIcon = R.drawable.ic_lan_config,
             title = getString(R.string.menu_lan_config),
             onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.LAN_CONFIG) },
             showDivider = false
         )
-        menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
-
-
-        val modelGroup = findViewById<MenuGroup>(R.id.modelGroup)
-        modelGroup.setTitle(getString(R.string.settings_group_model))
-
-        menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name] = modelGroup.addMenuItem(
-            leadingIcon = R.drawable.icon_current_model,
-            title = getString(R.string.menu_llm_config),
-            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.LLM_CONFIG) },
-            showDivider = false
-        )
-        menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
+        menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
     }
 
     private fun observeViewModel() {
@@ -141,8 +146,15 @@ class SettingsActivity : BaseActivity() {
                                 is SettingsViewModel.SettingValue.Text -> {
                                     menuItems[key]?.setTrailingText(value.text)
                                 }
-                                is SettingsViewModel.SettingValue.Switch -> {
-                                    // 如果有开关，可以在这里更新
+                                is SettingsViewModel.SettingValue.Status -> {
+                                    menuItems[key]?.setTrailingText(value.text)
+                                    menuItems[key]?.setTrailingTextColor(
+                                        getColor(
+                                            if (value.active) R.color.colorSuccessPrimary
+                                            else R.color.colorTextTertiary
+                                        )
+                                    )
+                                    menuItems[key]?.setSubtitle(value.subtitle)
                                 }
                             }
                         }

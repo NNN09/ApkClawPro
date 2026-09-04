@@ -20,8 +20,8 @@
             android:paddingEnd="16pt"
             android:paddingTop="4pt"
             android:paddingBottom="4pt"
-            android:textColor="@color/colorTextPrimary"
-            android:textSize="14pt"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="13pt"
             android:visibility="gone"
             tools:text="分组标题"
             tools:visibility="visible" />
@@ -36,8 +36,7 @@
             app:cardBackgroundColor="@color/colorBgPrimary"
             app:cardCornerRadius="12pt"
             app:cardElevation="0dp"
-            app:strokeWidth="1pt"
-            app:strokeColor="@color/colorBorderHigh">
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:id="@+id/itemsContainer"

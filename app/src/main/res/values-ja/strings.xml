@@ -65,6 +65,7 @@
     <string name="settings_title">設定</string>
     <string name="settings_group_channel">チャネル</string>
     <string name="settings_group_model">モデル</string>
+    <string name="settings_group_general">一般</string>
 
     <!-- 接続解除 -->
     <string name="unbind_title">接続を解除</string>
@@ -132,6 +133,7 @@
     <string name="menu_wechat">WeChat</string>
     <string name="menu_lan_config">LAN設定</string>
     <string name="lan_config_stopped">オフ</string>
+    <string name="lan_config_running">実行中</string>
     <string name="lan_config_no_wifi">WiFiに接続してください</string>
 
     <!-- プロトコル -->

@@ -65,6 +65,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_group_channel">Channels</string>
     <string name="settings_group_model">Model</string>
+    <string name="settings_group_general">General</string>
 
     <!-- Unbind -->
     <string name="unbind_title">Disconnect</string>
@@ -132,6 +133,7 @@
     <string name="menu_wechat">WeChat</string>
     <string name="menu_lan_config">LAN Config</string>
     <string name="lan_config_stopped">Off</string>
+    <string name="lan_config_running">Running</string>
     <string name="lan_config_no_wifi">Please connect to WiFi first</string>
 
     <!-- Protocol -->

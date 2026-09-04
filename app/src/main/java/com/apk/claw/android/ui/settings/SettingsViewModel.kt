@@ -36,42 +36,43 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun refresh() {
-        val dingtalkAppKey = KVUtils.getDingtalkAppKey().isNotEmpty()
-        val dingtalkAppSecret = KVUtils.getDingtalkAppSecret().isNotEmpty()
-        val feishuAppId = KVUtils.getFeishuAppId().isNotEmpty()
-        val feishuAppSecret = KVUtils.getFeishuAppSecret().isNotEmpty()
-        val qqAppId = KVUtils.getQqAppId().isNotEmpty()
-        val qqAppSecret = KVUtils.getQqAppSecret().isNotEmpty()
-        val discordBotToken = KVUtils.getDiscordBotToken().isNotEmpty()
-        val telegramBotToken = KVUtils.getTelegramBotToken().isNotEmpty()
-        val wechatBotToken = KVUtils.getWechatBotToken().isNotEmpty()
         val map = mapOf(
-            MenuAction.LLM_CONFIG.name to SettingValue.Text(if (KVUtils.hasLlmConfig()) KVUtils.getLlmModelName() else ClawApplication.instance.getString(R.string.common_unconfigured)),
-            MenuAction.DINGDING.name to SettingValue.Text(ClawApplication.instance.getString(if (dingtalkAppKey && dingtalkAppSecret) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.FEISHU.name to SettingValue.Text(ClawApplication.instance.getString(if (feishuAppId && feishuAppSecret) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.QQ.name to SettingValue.Text(ClawApplication.instance.getString(if (qqAppId && qqAppSecret) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.DISCORD.name to SettingValue.Text(ClawApplication.instance.getString(if (discordBotToken) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.TELEGRAM.name to SettingValue.Text(ClawApplication.instance.getString(if (telegramBotToken) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.WECHAT.name to SettingValue.Text(ClawApplication.instance.getString(if (wechatBotToken) R.string.common_bound else R.string.common_unbound)),
-            MenuAction.LAN_CONFIG.name to SettingValue.Text(getLanConfigTrailingText())
+            MenuAction.LLM_CONFIG.name to llmStatus(),
+            MenuAction.DINGDING.name to channelStatus(KVUtils.getDingtalkAppKey().isNotEmpty() && KVUtils.getDingtalkAppSecret().isNotEmpty()),
+            MenuAction.FEISHU.name to channelStatus(KVUtils.getFeishuAppId().isNotEmpty() && KVUtils.getFeishuAppSecret().isNotEmpty()),
+            MenuAction.QQ.name to channelStatus(KVUtils.getQqAppId().isNotEmpty() && KVUtils.getQqAppSecret().isNotEmpty()),
+            MenuAction.DISCORD.name to channelStatus(KVUtils.getDiscordBotToken().isNotEmpty()),
+            MenuAction.TELEGRAM.name to channelStatus(KVUtils.getTelegramBotToken().isNotEmpty()),
+            MenuAction.WECHAT.name to channelStatus(KVUtils.getWechatBotToken().isNotEmpty()),
+            MenuAction.LAN_CONFIG.name to lanStatus()
         )
         _settingItems.value = map
     }
 
-    /**
-     * 更新设置项值
-     */
-    fun updateSettingValue(key: String, value: SettingValue) {
-        _settingItems.value = _settingItems.value.toMutableMap().apply {
-            put(key, value)
+    private fun channelStatus(bound: Boolean): SettingValue.Status {
+        val text = ClawApplication.instance.getString(if (bound) R.string.common_bound else R.string.common_unbound)
+        return SettingValue.Status(text, active = bound)
+    }
+
+    private fun llmStatus(): SettingValue.Status {
+        return if (KVUtils.hasLlmConfig()) {
+            // 已配置：模型名放副标题，尾部只留箭头
+            SettingValue.Status("", subtitle = KVUtils.getLlmModelName().ifEmpty { null }, active = true)
+        } else {
+            SettingValue.Status(ClawApplication.instance.getString(R.string.common_unconfigured))
         }
     }
 
-    /**
-     * 更新尾部文字
-     */
-    fun updateTrailingText(key: String, text: String) {
-        updateSettingValue(key, SettingValue.Text(text))
+    private fun lanStatus(): SettingValue.Status {
+        return if (ConfigServerManager.isRunning()) {
+            SettingValue.Status(
+                ClawApplication.instance.getString(R.string.lan_config_running),
+                subtitle = ConfigServerManager.getAddress(),
+                active = true
+            )
+        } else {
+            SettingValue.Status(ClawApplication.instance.getString(R.string.lan_config_stopped))
+        }
     }
 
     /**
@@ -173,27 +174,18 @@ class SettingsViewModel : ViewModel() {
         return if (ConfigServerManager.isRunning()) {
             ConfigServerManager.stop()
             KVUtils.setConfigServerEnabled(false)
-            val text = getLanConfigTrailingText()
-            updateTrailingText(MenuAction.LAN_CONFIG.name, text)
-            text
+            refresh()
+            ClawApplication.instance.getString(R.string.lan_config_stopped)
         } else {
             val started = ConfigServerManager.start(context)
             if (started) {
                 KVUtils.setConfigServerEnabled(true)
-                val text = getLanConfigTrailingText()
-                updateTrailingText(MenuAction.LAN_CONFIG.name, text)
-                text
+                refresh()
+                ConfigServerManager.getAddress()
+                    ?: ClawApplication.instance.getString(R.string.lan_config_running)
             } else {
                 ClawApplication.instance.getString(R.string.lan_config_no_wifi)
             }
-        }
-    }
-
-    private fun getLanConfigTrailingText(): String {
-        return if (ConfigServerManager.isRunning()) {
-            ConfigServerManager.getAddress() ?: ClawApplication.instance.getString(R.string.lan_config_stopped)
-        } else {
-            ClawApplication.instance.getString(R.string.lan_config_stopped)
         }
     }
 
@@ -270,7 +262,16 @@ class SettingsViewModel : ViewModel() {
      */
     sealed class SettingValue {
         data class Text(val text: String) : SettingValue()
-        data class Switch(val isOn: Boolean) : SettingValue()
+
+        /**
+         * 带状态的设置项：text 为尾部状态文字，subtitle 为第二行说明，
+         * active 为 true 时尾部文字使用成功色（已连接/运行中）
+         */
+        data class Status(
+            val text: String,
+            val subtitle: String? = null,
+            val active: Boolean = false
+        ) : SettingValue()
     }
 
     /**

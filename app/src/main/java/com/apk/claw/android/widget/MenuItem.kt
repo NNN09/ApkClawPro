@@ -24,6 +24,7 @@ class MenuItem @JvmOverloads constructor(
 
     private val ivLeading: ImageView
     private val tvTitle: TextView
+    private val tvSubtitle: TextView
     private val viewRedDot: View
     private val tvTrailing: TextView
     private val ivTrailing: ImageView
@@ -35,6 +36,7 @@ class MenuItem @JvmOverloads constructor(
 
         ivLeading = findViewById(R.id.ivLeading)
         tvTitle = findViewById(R.id.tvTitle)
+        tvSubtitle = findViewById(R.id.tvSubtitle)
         viewRedDot = findViewById(R.id.viewRedDot)
         tvTrailing = findViewById(R.id.tvTrailing)
         ivTrailing = findViewById(R.id.ivTrailing)
@@ -63,6 +65,14 @@ class MenuItem @JvmOverloads constructor(
      */
     fun setTitle(title: CharSequence) {
         tvTitle.text = title
+    }
+
+    /**
+     * 设置副标题，null 或空字符串时隐藏
+     */
+    fun setSubtitle(subtitle: CharSequence?) {
+        tvSubtitle.isVisible = !subtitle.isNullOrEmpty()
+        tvSubtitle.text = subtitle
     }
 
     /**

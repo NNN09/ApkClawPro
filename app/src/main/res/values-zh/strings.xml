@@ -65,6 +65,7 @@
     <string name="settings_title">设置</string>
     <string name="settings_group_channel">通道</string>
     <string name="settings_group_model">模型</string>
+    <string name="settings_group_general">通用</string>
 
     <!-- 解绑 -->
     <string name="unbind_title">解除绑定</string>
@@ -132,6 +133,7 @@
     <string name="menu_wechat">微信</string>
     <string name="menu_lan_config">局域网配置</string>
     <string name="lan_config_stopped">已关闭</string>
+    <string name="lan_config_running">运行中</string>
     <string name="lan_config_no_wifi">请先连接 WiFi</string>
 
     <!-- 协议弹窗 -->
