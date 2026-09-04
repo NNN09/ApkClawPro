@@ -12,6 +12,7 @@ import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.compliance.AppPolicyStore
 import com.apk.claw.android.service.ForegroundService
 import com.apk.claw.android.tool.ToolRegistry
+import com.apk.claw.android.trigger.TriggerRuleStore
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
 import com.blankj.utilcode.util.NetworkUtils
@@ -46,6 +47,7 @@ class ClawApplication : BaseApp() {
         InAppChatStore.init(agentDir)
         ScheduledTaskStore.init(agentDir)
         AppPolicyStore.init(agentDir)
+        TriggerRuleStore.init(agentDir)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 

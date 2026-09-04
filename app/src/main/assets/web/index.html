@@ -58,6 +58,7 @@ h1 {
 .schedules .dot { background: #FF3B30; }
 .compliance .dot { background: #5856D6; }
 .stats .dot { background: #007AFF; }
+.trigger .dot { background: #FF2D55; }
 .sched-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; }
 .sched-item button {
@@ -388,6 +389,46 @@ textarea:focus {
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="comp_tip"></p>
     </div>
 
+    <div class="card trigger">
+      <div class="card-title"><span class="dot"></span><span data-i18n="trig_title"></span></div>
+      <div class="field" style="padding:10px 12px;background:#fff7e6;border:1px solid #ffd977;border-radius:10px;">
+        <span style="font-size:12px;line-height:1.7;color:#8a6100;white-space:pre-line;" data-i18n="trig_notice"></span>
+      </div>
+      <div class="field">
+        <label data-i18n="trig_enabled" style="display:inline-block;margin-right:8px;"></label>
+        <input type="checkbox" id="triggerEnabled" style="width:auto;vertical-align:middle;">
+      </div>
+      <div class="field">
+        <label data-i18n="trig_listener" style="display:inline-block;margin-right:8px;"></label>
+        <span id="triggerListenerStatus" style="font-size:13px;font-weight:600;">–</span>
+      </div>
+      <div class="field">
+        <label data-i18n="trig_whitelist"></label>
+        <div id="triggerWhitelist" style="font-size:13px;color:#86868b;">...</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input type="text" id="triggerWlPkg" data-i18n-placeholder="ph_trig_wl_pkg" autocomplete="off" style="flex:1;min-width:0;">
+          <button type="button" id="triggerWlAddBtn" style="width:auto;min-width:72px;" data-i18n="trig_add"></button>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid #e5e5ea;margin:18px 0;">
+      <div class="field">
+        <label data-i18n="trig_rules"></label>
+        <p style="font-size:12px;color:#86868b;margin:2px 0 6px;line-height:1.6;" data-i18n="trig_rule_hint"></p>
+        <div id="triggerRuleList" style="font-size:13px;color:#86868b;">...</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+          <input type="text" id="triggerRuleName" data-i18n-placeholder="ph_trig_name" autocomplete="off">
+          <input type="text" id="triggerRulePkg" data-i18n-placeholder="ph_trig_pkg" autocomplete="off">
+          <input type="text" id="triggerRuleRegex" data-i18n-placeholder="ph_trig_regex" autocomplete="off">
+          <textarea id="triggerRuleTpl" rows="2" data-i18n-placeholder="ph_trig_tpl"></textarea>
+          <div style="display:flex;gap:8px;">
+            <button type="button" id="triggerPresetBtn" style="width:auto;min-width:100px;flex:none;" data-i18n="trig_preset"></button>
+            <button type="button" id="triggerRuleAddBtn" style="flex:1;" data-i18n="trig_add"></button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="trig_tip"></p>
+    </div>
+
     <div class="card dingtalk">
       <div class="card-title"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
       <div class="field">
@@ -530,6 +571,33 @@ const i18nMessages = {
     stats_top_tasks: '高频任务 Top 5（次数 · tokens）',
     stats_tip: '数据来源为任务历史（最多保留 200 条）；发送者仅显示前 6 位。',
     stats_summary: '近 {days} 天：{tasks} 个任务 · 成功率 {rate} · 共 {tokens} tokens · 平均 {avg}/任务',
+    trig_title: '事件驱动触发',
+    trig_notice: '监听白名单 App 的通知，命中规则后自动派发任务。默认关闭：需开启总开关、配置白名单并添加规则才生效。仅读取白名单 App 的通知文本做规则匹配，不存储通知原文；每次触发生成一条自动化任务（受频控/静默/熔断约束，记入任务历史）。',
+    trig_enabled: '启用事件触发（总开关）',
+    trig_listener: '系统"通知使用权"',
+    trig_listener_ok: '已授予',
+    trig_listener_missing: '未授予：请在手机 系统设置 → 通知使用权 中允许本应用',
+    trig_whitelist: '通知来源白名单',
+    trig_rules: '触发规则',
+    trig_rule_hint: '通知"标题+正文"命中正则即派发任务；模板可用占位符：{app} 来源包、{title} 标题、{text} 正文、{match} 正则命中片段',
+    trig_add: '添加',
+    trig_preset: '验证码预设',
+    trig_saved: '触发配置已保存',
+    trig_rule_delete: '删除规则',
+    trig_empty: '暂无',
+    trig_invalid_pkg: '包名格式不合法',
+    trig_dup_pkg: '该包已在白名单中',
+    trig_limit: '数量已达上限（10）',
+    trig_invalid_rule: '规则字段不合法（名称/正则/模板）',
+    trig_dup_rule: '规则名已存在',
+    trig_preset_name: '短信验证码',
+    trig_preset_tpl: '收到 {app} 的验证码短信：{match}。请把验证码填入当前屏幕的验证码输入框，不要点击提交或登录按钮。',
+    trig_tip: '验证码场景：手机停留在目标 App 登录页，短信到达后 Agent 自动填入验证码；请在规则模板中明确"不要点击提交/登录"。',
+    ph_trig_wl_pkg: '如 com.android.mms（系统短信）',
+    ph_trig_name: '规则名，如：短信验证码',
+    ph_trig_pkg: '可选，限定通知来源包，如 com.android.mms',
+    ph_trig_regex: '正则，如 (?:验证码|Code)[^0-9]{0,12}(\\d{4,8})',
+    ph_trig_tpl: '任务模板，如：收到 {app} 的验证码 {match}，请填入当前屏幕的验证码输入框，不要点击提交',
     sched_title: '定时任务',
     sched_task: '任务指令（到点执行并回传结果）',
     sched_time: '触发时间（24 小时制 HH:mm）',
@@ -652,6 +720,33 @@ const i18nMessages = {
     stats_top_tasks: 'Top 5 tasks (count · tokens)',
     stats_tip: 'Source: task history (last 200 records kept); senders show first 6 chars only.',
     stats_summary: 'Last {days} days: {tasks} tasks · success {rate} · {tokens} tokens · avg {avg}/task',
+    trig_title: 'Event Triggers',
+    trig_notice: 'Listens to notifications from whitelisted apps and dispatches a task when a rule matches. Off by default: requires the master switch, a whitelist and at least one rule. Only whitelisted apps\' notification text is read for matching and never stored; each trigger becomes an automated task (subject to rate limits / quiet hours / breaker, recorded in task history).',
+    trig_enabled: 'Enable event triggers (master switch)',
+    trig_listener: 'System "Notification access"',
+    trig_listener_ok: 'Granted',
+    trig_listener_missing: 'Not granted: allow this app in phone System settings → Notification access',
+    trig_whitelist: 'Notification source whitelist',
+    trig_rules: 'Trigger rules',
+    trig_rule_hint: 'A rule fires when its regex matches "title + text"; the rendered template becomes the task. Placeholders: {app} source package, {title} title, {text} text, {match} regex match',
+    trig_add: 'Add',
+    trig_preset: 'OTP preset',
+    trig_saved: 'Trigger config saved',
+    trig_rule_delete: 'Delete rule',
+    trig_empty: 'None',
+    trig_invalid_pkg: 'Invalid package name',
+    trig_dup_pkg: 'Package already whitelisted',
+    trig_limit: 'Limit reached (10)',
+    trig_invalid_rule: 'Invalid rule fields (name / regex / template)',
+    trig_dup_rule: 'Rule name already exists',
+    trig_preset_name: 'SMS OTP',
+    trig_preset_tpl: 'Received OTP from {app}: {match}. Fill it into the OTP field on the current screen; do NOT tap submit or sign-in.',
+    trig_tip: 'OTP scenario: stay on the target app\'s login screen; when the SMS arrives the Agent fills the code automatically. State "do not tap submit/sign-in" explicitly in the template.',
+    ph_trig_wl_pkg: 'e.g. com.google.android.apps.messaging',
+    ph_trig_name: 'Rule name, e.g. SMS OTP',
+    ph_trig_pkg: 'Optional: limit to source package, e.g. com.google.android.apps.messaging',
+    ph_trig_regex: 'Regex, e.g. (?:code|OTP)[^0-9]{0,12}(\\d{4,8})',
+    ph_trig_tpl: 'Task template, e.g. received OTP {match} from {app}; fill it into the OTP field on the current screen, do NOT tap submit',
     sched_title: 'Scheduled Tasks',
     sched_task: 'Task instruction (executed at trigger time, result sent back)',
     sched_time: 'Trigger time (24h HH:mm)',
@@ -774,6 +869,33 @@ const i18nMessages = {
     stats_top_tasks: '高頻度タスク Top 5（回数 · tokens）',
     stats_tip: 'データはタスク履歴由来（最大200件保持）；送信者は先頭6文字のみ表示。',
     stats_summary: '直近{days}日間：{tasks}タスク · 成功率 {rate} · 計 {tokens} tokens · 平均 {avg}/タスク',
+    trig_title: 'イベントトリガー',
+    trig_notice: 'ホワイトリスト登録したアプリの通知を監視し、ルール一致でタスクを自動送信します。デフォルトはオフ：マスタースイッチ・ホワイトリスト・ルールの 3 点を設定してはじめて有効になります。ホワイトリスト内アプリの通知テキストのみ照合に使用し、原文は保存しません。発火のたびに自動化タスクが 1 件生成され（頻度制限・夜間サイレント・サーキットブレーカーの対象）、タスク履歴に記録されます。',
+    trig_enabled: 'イベントトリガーを有効化（マスター）',
+    trig_listener: 'システムの「通知アクセス」',
+    trig_listener_ok: '許可済み',
+    trig_listener_missing: '未許可：スマホの システム設定 → 通知アクセス で本アプリを許可してください',
+    trig_whitelist: '通知元ホワイトリスト',
+    trig_rules: 'トリガールール',
+    trig_rule_hint: '通知の「タイトル＋本文」が正規表現に一致するとタスクを派信。テンプレートのプレースホルダー：{app} 発信元パッケージ、{title} タイトル、{text} 本文、{match} 正規表現の一致部分',
+    trig_add: '追加',
+    trig_preset: '認証コード preset',
+    trig_saved: 'トリガー設定を保存しました',
+    trig_rule_delete: 'ルールを削除',
+    trig_empty: 'なし',
+    trig_invalid_pkg: 'パッケージ名の形式が不正です',
+    trig_dup_pkg: 'このパッケージは既にホワイトリストにあります',
+    trig_limit: '上限に達しました（10）',
+    trig_invalid_rule: 'ルールの項目が不正です（名前/正規表現/テンプレート）',
+    trig_dup_rule: 'ルール名が既に存在します',
+    trig_preset_name: 'SMS 認証コード',
+    trig_preset_tpl: '{app} から認証コードを受信：{match}。現在の画面の認証コード入力欄に入力してください（送信・ログインボタンは押さないこと）。',
+    trig_tip: '認証コード用途：対象アプリのログイン画面を開いたままにし、SMS 受信時に Agent がコードを自動入力します。テンプレートで「送信・ログインボタンを押さない」ことを明示してください。',
+    ph_trig_wl_pkg: '例：com.google.android.apps.messaging',
+    ph_trig_name: 'ルール名、例：SMS 認証コード',
+    ph_trig_pkg: '任意：通知元パッケージを限定、例：com.google.android.apps.messaging',
+    ph_trig_regex: '正規表現、例：(?:認証ｺｰﾄﾞ|code|OTP)[^0-9]{0,12}(\\d{4,8})',
+    ph_trig_tpl: 'タスクテンプレート、例：{app} の認証ｺｰﾄﾞ {match} を受信。現在の画面の入力欄に入力（送信は押さない）',
     sched_title: '定時タスク',
     sched_task: 'タスク指示（指定時刻に実行し結果を返送）',
     sched_time: 'トリガー時刻（24時間制 HH:mm）',
@@ -1257,6 +1379,145 @@ async function resetBreaker() {
 document.getElementById('policyAddBtn').addEventListener('click', addPolicy);
 document.getElementById('breakerResetBtn').addEventListener('click', resetBreaker);
 
+// ====== Event triggers (F8) ======
+let triggerCfg = { whitelist: [], rules: [] };
+const TRIG_PKG_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/;
+const TRIG_OTP_REGEX = '(?:验证码|認証ｺｰﾄﾞ|code|Code|OTP)[^0-9]{0,12}(\\d{4,8})';
+
+function renderTriggerListener(ok) {
+  const el = document.getElementById('triggerListenerStatus');
+  el.textContent = ok ? t('trig_listener_ok') : t('trig_listener_missing');
+  el.style.color = ok ? '#34c759' : '#ff9500';
+}
+
+async function refreshTrigger() {
+  try {
+    const r = await fetch('/api/trigger');
+    const j = await r.json();
+    if (j.code !== 0 || !j.data) return;
+    const d = j.data;
+    document.getElementById('triggerEnabled').checked = !!d.enabled;
+    renderTriggerListener(!!d.listenerBound);
+    triggerCfg.whitelist = d.whitelist || [];
+    triggerCfg.rules = d.rules || [];
+    renderTriggerWhitelist();
+    renderTriggerRules();
+  } catch (e) { /* 服务未起时静默 */ }
+}
+
+// 全量保存（服务端整体校验、原子替换）；patch 只覆盖部分字段
+async function saveTrigger(patch) {
+  const payload = Object.assign({
+    enabled: document.getElementById('triggerEnabled').checked,
+    whitelist: triggerCfg.whitelist,
+    rules: triggerCfg.rules
+  }, patch || {});
+  try {
+    const r = await fetch('/api/trigger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const j = await r.json();
+    showToast(j.code === 0 ? t('trig_saved') : (j.message || t('unknown_error')), j.code === 0 ? 'success' : 'error');
+    if (j.code !== 0) refreshTrigger();
+    return j.code === 0;
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+    return false;
+  }
+}
+
+function renderTriggerWhitelist() {
+  const el = document.getElementById('triggerWhitelist');
+  if (!triggerCfg.whitelist.length) { el.textContent = t('trig_empty'); return; }
+  el.innerHTML = '';
+  triggerCfg.whitelist.forEach(pkg => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+    const label = document.createElement('span');
+    label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    label.textContent = pkg;
+    const del = document.createElement('a');
+    del.href = 'javascript:void(0)';
+    del.textContent = '✕';
+    del.style.color = '#ff3b30';
+    del.onclick = async () => {
+      const next = triggerCfg.whitelist.filter(x => x !== pkg);
+      if (await saveTrigger({ whitelist: next })) { triggerCfg.whitelist = next; renderTriggerWhitelist(); }
+    };
+    row.appendChild(label);
+    row.appendChild(del);
+    el.appendChild(row);
+  });
+}
+
+function renderTriggerRules() {
+  const el = document.getElementById('triggerRuleList');
+  if (!triggerCfg.rules.length) { el.textContent = t('trig_empty'); return; }
+  el.innerHTML = '';
+  triggerCfg.rules.forEach(rule => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;';
+    const text = document.createElement('div');
+    text.style.cssText = 'flex:1;min-width:0;font-size:12px;line-height:1.5;word-break:break-all;white-space:pre-line;';
+    text.textContent = rule.name + (rule.appPackage ? ' @' + rule.appPackage : '')
+      + '\n/' + rule.keywordRegex + '/\n→ ' + rule.taskTemplate;
+    const del = document.createElement('a');
+    del.href = 'javascript:void(0)';
+    del.textContent = '✕';
+    del.style.color = '#ff3b30';
+    del.onclick = async () => {
+      if (!confirm(t('trig_rule_delete') + '\n' + rule.name)) return;
+      const next = triggerCfg.rules.filter(x => x.name !== rule.name);
+      if (await saveTrigger({ rules: next })) { triggerCfg.rules = next; renderTriggerRules(); }
+    };
+    row.appendChild(text);
+    row.appendChild(del);
+    el.appendChild(row);
+  });
+}
+
+async function addWhitelistPkg() {
+  const input = document.getElementById('triggerWlPkg');
+  const pkg = input.value.trim();
+  if (!TRIG_PKG_RE.test(pkg) || pkg.length > 255) { showToast(t('trig_invalid_pkg'), 'error'); return; }
+  if (triggerCfg.whitelist.includes(pkg)) { showToast(t('trig_dup_pkg'), 'error'); return; }
+  if (triggerCfg.whitelist.length >= 10) { showToast(t('trig_limit'), 'error'); return; }
+  const next = triggerCfg.whitelist.concat(pkg);
+  if (await saveTrigger({ whitelist: next })) {
+    triggerCfg.whitelist = next;
+    input.value = '';
+    renderTriggerWhitelist();
+  }
+}
+
+async function addTriggerRule() {
+  const name = document.getElementById('triggerRuleName').value.trim();
+  const pkg = document.getElementById('triggerRulePkg').value.trim();
+  const regex = document.getElementById('triggerRuleRegex').value.trim();
+  const tpl = document.getElementById('triggerRuleTpl').value.trim();
+  if (!name || name.length > 40) { showToast(t('trig_invalid_rule'), 'error'); return; }
+  if (pkg && (!TRIG_PKG_RE.test(pkg) || pkg.length > 255)) { showToast(t('trig_invalid_pkg'), 'error'); return; }
+  if (!regex || regex.length > 200) { showToast(t('trig_invalid_rule'), 'error'); return; }
+  try { new RegExp(regex); } catch (e) { showToast(t('trig_invalid_rule'), 'error'); return; }
+  if (!tpl || tpl.length > 500) { showToast(t('trig_invalid_rule'), 'error'); return; }
+  if (triggerCfg.rules.some(r => r.name === name)) { showToast(t('trig_dup_rule'), 'error'); return; }
+  if (triggerCfg.rules.length >= 10) { showToast(t('trig_limit'), 'error'); return; }
+  const next = triggerCfg.rules.concat([{ name: name, appPackage: pkg, keywordRegex: regex, taskTemplate: tpl }]);
+  if (await saveTrigger({ rules: next })) {
+    triggerCfg.rules = next;
+    ['triggerRuleName', 'triggerRulePkg', 'triggerRuleRegex', 'triggerRuleTpl'].forEach(id => { document.getElementById(id).value = ''; });
+    renderTriggerRules();
+  }
+}
+
+document.getElementById('triggerEnabled').addEventListener('change', e => { saveTrigger({ enabled: e.target.checked }); });
+document.getElementById('triggerWlAddBtn').addEventListener('click', addWhitelistPkg);
+document.getElementById('triggerRuleAddBtn').addEventListener('click', addTriggerRule);
+document.getElementById('triggerPresetBtn').addEventListener('click', () => {
+  document.getElementById('triggerRuleName').value = t('trig_preset_name');
+  document.getElementById('triggerRulePkg').value = '';
+  document.getElementById('triggerRuleRegex').value = TRIG_OTP_REGEX;
+  document.getElementById('triggerRuleTpl').value = t('trig_preset_tpl');
+});
+
 // ====== Task history (F3) ======
 async function refreshTasks() {
   const el = document.getElementById('taskList');
@@ -1401,6 +1662,7 @@ refreshTasks();
 refreshSchedules();
 refreshPolicies();
 refreshStats();
+refreshTrigger();
 // F11：技能列表轮询 + 窗口聚焦刷新，深链/二维码在手机侧导入后 PC 页自动可见
 window.addEventListener('focus', refreshSkills);
 setInterval(() => { if (!document.hidden) refreshSkills(); }, 10000);

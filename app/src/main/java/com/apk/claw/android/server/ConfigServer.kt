@@ -4,6 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.apk.claw.android.BuildConfig
 import com.apk.claw.android.stats.UsageStatsAggregator
+import com.apk.claw.android.service.TriggerNotificationListener
+import com.apk.claw.android.trigger.TriggerConfig
+import com.apk.claw.android.trigger.TriggerRule
+import com.apk.claw.android.trigger.TriggerRuleStore
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.SkillImportScanner
 import com.apk.claw.android.agent.store.SkillPackager
@@ -100,6 +104,9 @@ class ConfigServer(
                 uri == "/api/compliance" && method == Method.POST -> handlePostCompliance(session)
                 uri == "/api/policies" && method == Method.GET -> handleGetPolicies()
                 uri == "/api/policies" && method == Method.POST -> handlePostPolicies(session)
+                // F8：事件驱动触发配置（总开关 + 白名单 + 规则；监听器活读，保存即时生效）
+                uri == "/api/trigger" && method == Method.GET -> handleGetTrigger()
+                uri == "/api/trigger" && method == Method.POST -> handlePostTrigger(session)
                 uri == "/debug.html" && method == Method.GET && BuildConfig.DEBUG -> serveDebugHtml()
                 uri == "/api/debug/tools" && method == Method.GET && BuildConfig.DEBUG -> handleGetTools()
                 uri == "/api/debug/execute" && method == Method.POST && BuildConfig.DEBUG -> handleExecuteTool(session)
@@ -875,6 +882,71 @@ class ConfigServer(
             policies.add(AppPolicy(pkg, mode))
         }
         val error = AppPolicyStore.replaceAll(policies)
+        if (error != null) return badRequest(error)
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
+    }
+
+    // ==================== F8 事件驱动触发 ====================
+
+    private fun handleGetTrigger(): Response {
+        val config = TriggerRuleStore.get()
+        val rules = config.rules.map {
+            JsonObject().apply {
+                addProperty("name", it.name)
+                addProperty("appPackage", it.appPackage)
+                addProperty("keywordRegex", it.keywordRegex)
+                addProperty("taskTemplate", it.taskTemplate)
+            }
+        }
+        val data = JsonObject().apply {
+            addProperty("enabled", config.enabled)
+            addProperty("listenerBound", TriggerNotificationListener.isListenerBound(context))
+            add("whitelist", gson.toJsonTree(config.whitelist))
+            add("rules", gson.toJsonTree(rules))
+        }
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    /**
+     * 保存触发配置。enabled / whitelist / rules 均可选，缺失保留原值；
+     * whitelist+rules 整体校验后原子替换。监听器每次通知活读，无需重启任何组件。
+     */
+    private fun handlePostTrigger(session: IHTTPSession): Response {
+        val json = readPostJson(session) ?: return badRequest("invalid json")
+        val current = TriggerRuleStore.get()
+        val enabled = json.get("enabled")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: current.enabled
+        val whitelist = mutableListOf<String>()
+        if (json.has("whitelist")) {
+            val arr = json.get("whitelist")?.takeIf { it.isJsonArray } ?: return badRequest("whitelist must be an array")
+            arr.asJsonArray.forEach { el ->
+                whitelist.add(el.takeIf { it.isJsonPrimitive }?.asString ?: return badRequest("invalid whitelist entry"))
+            }
+        } else {
+            whitelist.addAll(current.whitelist)
+        }
+        val rules = mutableListOf<TriggerRule>()
+        if (json.has("rules")) {
+            val arr = json.get("rules")?.takeIf { it.isJsonArray } ?: return badRequest("rules must be an array")
+            arr.asJsonArray.forEach { el ->
+                val obj = el.takeIf { it.isJsonObject }?.asJsonObject ?: return badRequest("invalid rule entry")
+                rules.add(
+                    TriggerRule(
+                        name = obj.optString("name")?.trim() ?: return badRequest("rule name required"),
+                        appPackage = obj.optString("appPackage")?.trim() ?: "",
+                        keywordRegex = obj.optString("keywordRegex")?.trim() ?: return badRequest("keywordRegex required"),
+                        taskTemplate = obj.optString("taskTemplate")?.trim() ?: return badRequest("taskTemplate required")
+                    )
+                )
+            }
+        } else {
+            rules.addAll(current.rules)
+        }
+        val error = TriggerRuleStore.replaceAll(TriggerConfig(enabled, whitelist, rules))
         if (error != null) return badRequest(error)
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, """{"code":0,"message":"ok"}"""))
     }

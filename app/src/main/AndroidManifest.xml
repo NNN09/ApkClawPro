@@ -149,6 +149,17 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- F8 事件驱动触发：通知监听。默认不派发（总开关关、白名单/规则空）；
+             需用户在系统设置授予"通知使用权"，开关/白名单/规则在 LAN 配置页管理 -->
+        <service
+            android:name=".service.TriggerNotificationListener"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- 开机自启动 -->
         <receiver
             android:name=".service.BootReceiver"
