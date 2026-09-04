@@ -6,295 +6,236 @@
 <title>ApkClaw</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --brand: #5856D6;
+  --brand-weak: #F7F7FF;
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --text: #1D1D1F;
+  --text2: #86868B;
+  --text3: #AEAEB2;
+  --line: #EFEFF2;
+  --field: #F4F4F8;
+  --ok: #2BA471;
+  --warn: #E37318;
+  --err: #F6685D;
+}
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
-  padding: 24px 16px;
+  padding: 20px 16px 110px;
 }
 .container { max-width: 520px; margin: 0 auto; }
-h1 {
-  text-align: center;
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #5856D6;
-}
-.subtitle {
-  text-align: center;
-  font-size: 14px;
-  color: #86868b;
-  margin-bottom: 32px;
-}
+
+/* ===== 头部 ===== */
+.hero { text-align: center; margin-bottom: 12px; }
+.hero h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+.hero .subtitle { font-size: 13px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+
+/* ===== 分组标题 ===== */
+.sec { font-size: 13px; font-weight: 600; color: var(--text2); margin: 22px 4px 8px; letter-spacing: .02em; }
+
+/* ===== 卡片 ===== */
 .card {
-  background: #fff;
+  background: var(--card);
   border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-.card-title {
-  font-size: 17px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.card-head .tile {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--bg); color: var(--brand);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.card-title .dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  display: inline-block;
+.card-head .tile svg { width: 18px; height: 18px; }
+.card-title { font-size: 16px; font-weight: 600; }
+
+/* ===== 字段 ===== */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+label {
+  display: block;
+  font-size: 13px; font-weight: 500;
+  color: var(--text2); margin-bottom: 6px; line-height: 1.5;
 }
+input[type="text"], input[type="password"], input[type="number"], input[type="time"], textarea, select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font: inherit; font-size: 15px;
+  outline: none;
+  background: var(--field); color: var(--text);
+  transition: border-color .2s, background .2s;
+}
+select {
+  width: auto; min-width: 96px;
+  padding: 8px 28px 8px 12px; font-size: 13px;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2386868B' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--brand); background: #fff; }
+textarea { resize: vertical; min-height: 74px; }
+.input-wrap { position: relative; }
+.input-wrap input { padding-right: 42px; }
+.toggle-eye {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; cursor: pointer;
+  opacity: .35; transition: opacity .2s;
+  border: none; background: none; padding: 0; color: var(--text);
+}
+.toggle-eye:hover { opacity: .7; }
+.toggle-eye svg { width: 100%; height: 100%; }
+.file-input { width: 100%; font-size: 12px; color: var(--text2); }
+
+/* ===== 开关（iOS 风格） ===== */
+input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  width: 44px; height: 26px; border-radius: 13px;
+  background: #E5E5EA; position: relative;
+  cursor: pointer; outline: none; flex-shrink: 0; margin: 0;
+  transition: background .2s;
+}
+input[type="checkbox"]::before {
+  content: ""; position: absolute; left: 2px; top: 2px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  transition: left .2s;
+}
+input[type="checkbox"]:checked { background: var(--brand); }
+input[type="checkbox"]:checked::before { left: 20px; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; }
+.switch-row label { flex: 1; margin: 0; font-size: 13.5px; font-weight: 400; color: var(--text); line-height: 1.5; }
+
+/* ===== 按钮 ===== */
+button { font: inherit; cursor: pointer; }
+.btn {
+  width: 100%; padding: 12px;
+  border: none; border-radius: 11px;
+  background: var(--brand); color: #fff;
+  font-size: 15px; font-weight: 600;
+  transition: opacity .2s, transform .1s;
+}
+.btn:hover { opacity: .9; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn + .btn { margin-top: 8px; }
+.btn-secondary { background: var(--field); color: var(--text); }
+.btn-sm {
+  padding: 8px 14px;
+  border: none; border-radius: 9px;
+  background: var(--brand-weak); color: var(--brand);
+  font-size: 13px; font-weight: 600; flex-shrink: 0;
+}
+.btn-sm:hover { background: #ECECFF; }
+.btn-sm:active { transform: scale(.96); }
+.row-flex { display: flex; gap: 8px; align-items: center; }
+.row-flex input { flex: 1; min-width: 0; }
+.row-sep { color: var(--text2); flex-shrink: 0; }
+.row-col { display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== 通道子区块 ===== */
+.chan { margin-bottom: 16px; }
+.chan:last-child { margin-bottom: 0; }
+.chan-head { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.chan-head .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dingtalk .dot { background: #3370FF; }
 .feishu .dot { background: #00D6B9; }
 .qq .dot { background: #12B7F5; }
 .discord .dot { background: #5865F2; }
 .telegram .dot { background: #26A5E4; }
-.llm .dot { background: #34C759; }
-.persona .dot { background: #FF9500; }
-.skills .dot { background: #AF52DE; }
-.schedules .dot { background: #FF3B30; }
-.compliance .dot { background: #5856D6; }
-.stats .dot { background: #007AFF; }
-.trigger .dot { background: #FF2D55; }
-.sched-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-.sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; }
+.divider { border-top: 1px solid var(--line); margin: 16px 0; }
+
+/* ===== 提示与通知 ===== */
+.notice { padding: 10px 12px; background: #FFF8E8; border-radius: 10px; margin-bottom: 14px; }
+.notice span { display: block; font-size: 12px; line-height: 1.7; color: #8A6100; white-space: pre-line; }
+.hint { font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 8px; }
+
+/* ===== JS 渲染的数据行 ===== */
+.list { font-size: 13px; color: var(--text2); }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.list-row:last-child { border-bottom: none; }
+.list-row.multi { align-items: flex-start; }
+.list-row .row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-row.multi .row-label { white-space: pre-line; line-height: 1.6; word-break: break-all; }
+.row-link { color: #0071E3; text-decoration: none; font-size: 13px; flex-shrink: 0; }
+.row-link:hover { text-decoration: underline; }
+.row-del { color: var(--err); text-decoration: none; font-size: 14px; flex-shrink: 0; padding: 0 2px; }
+
+/* ===== 纯文本数据块 ===== */
+.data-block { font-size: 12.5px; color: var(--text2); white-space: pre-line; line-height: 1.7; word-break: break-all; }
+#taskList { max-height: 320px; overflow: auto; }
+#schedList { max-height: 320px; overflow: auto; margin-top: 14px; }
+#statsSummary { font-size: 13px; color: var(--text); background: var(--field); border-radius: 10px; padding: 10px 12px; line-height: 1.6; margin-bottom: 14px; }
+#statsChart { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+#statsChartLabels { display: flex; gap: 3px; margin-top: 4px; }
+.chart-label { flex: 1; font-size: 9px; color: var(--text3); text-align: center; overflow: hidden; white-space: nowrap; }
+
+/* ===== 定时任务行 ===== */
+.sched-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.sched-item:last-child { border-bottom: none; }
+.sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; font-size: 12.5px; line-height: 1.6; }
 .sched-item button {
-  width: auto;
-  padding: 4px 10px;
-  background: #86868b;
-  font-size: 12px;
-  font-weight: 500;
-  flex-shrink: 0;
+  width: auto; padding: 5px 10px;
+  border: none; border-radius: 8px;
+  background: var(--field); color: var(--text2);
+  font-size: 12px; font-weight: 500; flex-shrink: 0;
 }
-.field { margin-bottom: 16px; }
-.field:last-child { margin-bottom: 0; }
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: #86868b;
-  margin-bottom: 6px;
-}
-input[type="text"], input[type="password"] {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1.5px solid #e5e5ea;
-  border-radius: 10px;
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s;
-  background: #fafafa;
-}
-.input-wrap input {
-  padding-right: 42px;
-}
-input:focus {
-  border-color: #5856D6;
-  background: #fff;
-}
-textarea {
-  width: 100%;
-  border: 1.5px solid #e5e5ea;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font: inherit;
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s;
-  background: #fafafa;
-  resize: vertical;
-  box-sizing: border-box;
-}
-textarea:focus {
-  border-color: #5856D6;
-  background: #fff;
-}
-.card button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: #5856D6;
-  color: #fff;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.card button:hover { opacity: 0.9; }
-.card button:active { transform: scale(0.98); }
-.input-wrap {
-  position: relative;
-}
-.toggle-eye {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  opacity: 0.4;
-  transition: opacity 0.2s;
-  border: none;
-  background: none;
-  padding: 0;
-}
-.toggle-eye:hover { opacity: 0.7; }
-.toggle-eye svg { width: 100%; height: 100%; }
-.btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-  color: #fff;
-  background: #5856D6;
-}
-.btn:hover { opacity: 0.9; }
-.btn:active { transform: scale(0.98); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== 状态文字 ===== */
+#triggerListenerStatus { font-size: 13px; font-weight: 600; }
+#breakerStreak { font-size: 13px; font-weight: 600; color: var(--warn); }
+
+/* ===== Toast ===== */
 .toast {
-  position: fixed;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-80px);
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #fff;
-  z-index: 9999;
-  transition: transform 0.3s ease;
-  pointer-events: none;
+  position: fixed; top: 20px; left: 50%;
+  transform: translateX(-50%) translateY(-90px);
+  padding: 11px 22px; border-radius: 12px;
+  font-size: 14px; font-weight: 500; color: #fff;
+  z-index: 9999; transition: transform .3s ease;
+  pointer-events: none; max-width: 90%;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
-.toast.success { background: #34C759; }
-.toast.error { background: #FF3B30; }
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #86868b;
-  font-size: 15px;
+.toast.success { background: var(--ok); }
+.toast.error { background: var(--err); }
+.loading { text-align: center; padding: 60px 0; color: var(--text2); font-size: 14px; }
+
+/* ===== 底部常驻保存栏 ===== */
+.save-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(242,242,247,.88);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(0,0,0,.06);
 }
+.save-bar .btn { max-width: 488px; margin: 0 auto; display: block; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1 data-i18n="title"></h1>
-  <p class="subtitle" data-i18n="subtitle"></p>
+  <div class="hero">
+    <h1 data-i18n="title"></h1>
+    <p class="subtitle" data-i18n="subtitle"></p>
+  </div>
 
   <div id="loading" class="loading" data-i18n="loading"></div>
 
   <div id="content" style="display:none">
-    <div class="card persona">
-      <div class="card-title"><span class="dot"></span><span data-i18n="persona_title"></span></div>
-      <div class="field">
-        <label data-i18n="persona_label"></label>
-        <textarea id="persona" rows="6" data-i18n-placeholder="ph_persona"></textarea>
-      </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="persona_tip"></p>
-    </div>
+    <!-- ==================== 基础配置 ==================== -->
+    <div class="sec" data-i18n="sec_basic"></div>
 
-    <div class="card skills">
-      <div class="card-title"><span class="dot"></span><span data-i18n="skills_title"></span></div>
-      <div class="field">
-        <label data-i18n="skills_installed"></label>
-        <div id="skillList" style="font-size:13px;color:#86868b;">...</div>
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span>
+        <span class="card-title" data-i18n="llm_title"></span>
       </div>
-      <div class="field">
-        <label data-i18n="skills_import_file"></label>
-        <input type="file" id="skillFile" accept=".md,.zip,text/markdown,application/zip" style="font-size:12px;color:#86868b;">
-      </div>
-      <div class="field">
-        <label data-i18n="skills_import_url"></label>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="skillImportUrl" data-i18n-placeholder="ph_skill_import_url" autocomplete="off" style="flex:1;">
-          <button type="button" id="skillImportUrlBtn" style="width:auto;min-width:72px;" data-i18n="skills_import_btn"></button>
-        </div>
-      </div>
-      <div class="field">
-        <label data-i18n="skills_templates"></label>
-        <div id="templateList" style="font-size:13px;color:#86868b;">...</div>
-      </div>
-      <div class="field">
-        <label data-i18n="skills_name"></label>
-        <input type="text" id="skillName" data-i18n-placeholder="ph_skills_name" autocomplete="off">
-      </div>
-      <div class="field">
-        <label data-i18n="skills_desc"></label>
-        <input type="text" id="skillDesc" data-i18n-placeholder="ph_skills_desc" autocomplete="off">
-      </div>
-      <div class="field">
-        <label data-i18n="skills_body"></label>
-        <textarea id="skillBody" rows="6" data-i18n-placeholder="ph_skills_body"></textarea>
-      </div>
-      <button id="skillUploadBtn" type="button" data-i18n="skills_upload"></button>
-      <button id="skillExportAllBtn" type="button" style="margin-top:8px;" data-i18n="skills_export_all"></button>
-    </div>
-
-    <div class="card tasks">
-      <div class="card-title"><span class="dot"></span><span data-i18n="tasks_title"></span></div>
-      <div id="taskList" style="font-size:12px;color:#86868b;white-space:pre-line;max-height:320px;overflow:auto;">...</div>
-      <button id="taskRefreshBtn" type="button" data-i18n="tasks_refresh"></button>
-    </div>
-
-    <div class="card stats">
-      <div class="card-title"><span class="dot"></span><span data-i18n="stats_title"></span></div>
-      <div class="field">
-        <label data-i18n="stats_window"></label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <select id="statsDays" style="width:auto;border:1.5px solid #e5e5ea;border-radius:10px;padding:0 6px;background:#fafafa;font-size:13px;color:#333;">
-            <option value="7">7</option>
-            <option value="14" selected>14</option>
-            <option value="30">30</option>
-          </select>
-          <button type="button" id="statsRefreshBtn" style="width:auto;min-width:72px;" data-i18n="tasks_refresh"></button>
-        </div>
-      </div>
-      <div id="statsSummary" style="font-size:13px;color:#1d1d1f;line-height:1.6;margin-bottom:16px;">...</div>
-      <div class="field">
-        <label data-i18n="stats_daily_tokens"></label>
-        <div id="statsChart" style="display:flex;align-items:flex-end;gap:3px;height:90px;"></div>
-        <div id="statsChartLabels" style="display:flex;gap:3px;margin-top:4px;"></div>
-      </div>
-      <div class="field">
-        <label data-i18n="stats_by_channel"></label>
-        <div id="statsChannels" style="font-size:12px;color:#86868b;white-space:pre-line;">...</div>
-      </div>
-      <div class="field">
-        <label data-i18n="stats_top_tasks"></label>
-        <div id="statsTop" style="font-size:12px;color:#86868b;white-space:pre-line;">...</div>
-      </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="stats_tip"></p>
-    </div>
-
-    <div class="card schedules">
-      <div class="card-title"><span class="dot"></span><span data-i18n="sched_title"></span></div>
-      <div class="field">
-        <label data-i18n="sched_task"></label>
-        <input type="text" id="schedTask" data-i18n-placeholder="ph_sched_task" autocomplete="off">
-      </div>
-      <div class="field">
-        <label data-i18n="sched_time"></label>
-        <input type="text" id="schedTime" placeholder="08:30" autocomplete="off">
-      </div>
-      <div class="field">
-        <label data-i18n="sched_days"></label>
-        <input type="text" id="schedDays" data-i18n-placeholder="ph_sched_days" autocomplete="off">
-      </div>
-      <button id="schedAddBtn" type="button" data-i18n="sched_add"></button>
-      <div id="schedList" style="font-size:12px;color:#86868b;white-space:pre-line;margin-top:16px;max-height:320px;overflow:auto;">...</div>
-    </div>
-
-    <div class="card llm">
-      <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
       <div class="field">
         <label data-i18n="llm_api_key"></label>
         <div class="input-wrap">
@@ -314,39 +255,190 @@ textarea:focus {
         <label data-i18n="llm_context_window"></label>
         <input type="number" id="llmContextWindow" data-i18n-placeholder="ph_llm_context" autocomplete="off">
       </div>
-      <div class="field">
-        <label data-i18n="llm_confirm_ops" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="confirmDangerousOps" style="width:auto;vertical-align:middle;">
+      <div class="divider"></div>
+      <div class="switch-row">
+        <label data-i18n="llm_confirm_ops"></label>
+        <input type="checkbox" id="confirmDangerousOps">
       </div>
-      <div class="field">
-        <label data-i18n="llm_verify_results" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="verifyResults" style="width:auto;vertical-align:middle;">
+      <div class="switch-row">
+        <label data-i18n="llm_verify_results"></label>
+        <input type="checkbox" id="verifyResults">
       </div>
-      <div class="field">
-        <label data-i18n="llm_vision_enabled" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="visionEnabled" style="width:auto;vertical-align:middle;">
+      <div class="switch-row">
+        <label data-i18n="llm_vision_enabled"></label>
+        <input type="checkbox" id="visionEnabled">
       </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
+      <p class="hint" data-i18n="llm_tip"></p>
     </div>
 
-    <div class="card compliance">
-      <div class="card-title"><span class="dot"></span><span data-i18n="comp_title"></span></div>
-      <div class="field" style="padding:10px 12px;background:#fff7e6;border:1px solid #ffd977;border-radius:10px;">
-        <span style="font-size:12px;line-height:1.7;color:#8a6100;white-space:pre-line;" data-i18n="comp_risk_notice"></span>
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.52 0-2.96-.4-4.2-1.1L3 20l1.1-4.3A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+        <span class="card-title" data-i18n="chan_title"></span>
+      </div>
+
+      <div class="chan">
+        <div class="chan-head dingtalk"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
+        <div class="field">
+          <label>Client ID</label>
+          <input type="text" id="dingtalkAppKey" data-i18n-placeholder="ph_dingtalk_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Client Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="dingtalkAppSecret" data-i18n-placeholder="ph_dingtalk_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('dingtalkAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head feishu"><span class="dot"></span><span data-i18n="feishu"></span></div>
+        <div class="field">
+          <label>App ID</label>
+          <input type="text" id="feishuAppId" data-i18n-placeholder="ph_feishu_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>App Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="feishuAppSecret" data-i18n-placeholder="ph_feishu_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('feishuAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head qq"><span class="dot"></span>QQ</div>
+        <div class="field">
+          <label>App ID</label>
+          <input type="text" id="qqAppId" data-i18n-placeholder="ph_qq_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>App Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="qqAppSecret" data-i18n-placeholder="ph_qq_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('qqAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head discord"><span class="dot"></span>Discord</div>
+        <div class="field">
+          <label>Bot Token</label>
+          <div class="input-wrap">
+            <input type="password" id="discordBotToken" data-i18n-placeholder="ph_discord_token" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('discordBotToken', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="discord_tip"></p>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head telegram"><span class="dot"></span>Telegram</div>
+        <div class="field">
+          <label>Bot Token</label>
+          <div class="input-wrap">
+            <input type="password" id="telegramBotToken" data-i18n-placeholder="ph_telegram_token" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('telegramBotToken', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="telegram_tip"></p>
+      </div>
+    </div>
+
+    <!-- ==================== 自动化 ==================== -->
+    <div class="sec" data-i18n="sec_automation"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+        <span class="card-title" data-i18n="sched_title"></span>
       </div>
       <div class="field">
-        <label data-i18n="comp_third_party" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="thirdPartyAutomationEnabled" style="width:auto;vertical-align:middle;">
+        <label data-i18n="sched_task"></label>
+        <input type="text" id="schedTask" data-i18n-placeholder="ph_sched_task" autocomplete="off">
       </div>
       <div class="field">
-        <label data-i18n="comp_quiet_hours" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="quietHoursEnabled" style="width:auto;vertical-align:middle;">
+        <label data-i18n="sched_time"></label>
+        <input type="text" id="schedTime" placeholder="08:30" autocomplete="off">
       </div>
       <div class="field">
+        <label data-i18n="sched_days"></label>
+        <input type="text" id="schedDays" data-i18n-placeholder="ph_sched_days" autocomplete="off">
+      </div>
+      <button class="btn" id="schedAddBtn" type="button" data-i18n="sched_add"></button>
+      <div id="schedList" class="data-block">...</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+        <span class="card-title" data-i18n="trig_title"></span>
+      </div>
+      <div class="notice">
+        <span data-i18n="trig_notice"></span>
+      </div>
+      <div class="switch-row">
+        <label data-i18n="trig_enabled"></label>
+        <input type="checkbox" id="triggerEnabled">
+      </div>
+      <div class="switch-row">
+        <label data-i18n="trig_listener"></label>
+        <span id="triggerListenerStatus">–</span>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label data-i18n="trig_whitelist"></label>
+        <div id="triggerWhitelist" class="list">...</div>
+        <div class="row-flex" style="margin-top:8px;">
+          <input type="text" id="triggerWlPkg" data-i18n-placeholder="ph_trig_wl_pkg" autocomplete="off">
+          <button class="btn-sm" type="button" id="triggerWlAddBtn" data-i18n="trig_add"></button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label data-i18n="trig_rules"></label>
+        <p class="hint" style="margin:0 0 6px;" data-i18n="trig_rule_hint"></p>
+        <div id="triggerRuleList" class="list">...</div>
+        <div class="row-col" style="margin-top:8px;">
+          <input type="text" id="triggerRuleName" data-i18n-placeholder="ph_trig_name" autocomplete="off">
+          <input type="text" id="triggerRulePkg" data-i18n-placeholder="ph_trig_pkg" autocomplete="off">
+          <input type="text" id="triggerRuleRegex" data-i18n-placeholder="ph_trig_regex" autocomplete="off">
+          <textarea id="triggerRuleTpl" rows="2" data-i18n-placeholder="ph_trig_tpl"></textarea>
+          <div class="row-flex">
+            <button class="btn-sm" type="button" id="triggerPresetBtn" data-i18n="trig_preset"></button>
+            <button class="btn" type="button" id="triggerRuleAddBtn" style="flex:1;" data-i18n="trig_add"></button>
+          </div>
+        </div>
+      </div>
+      <p class="hint" data-i18n="trig_tip"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <span class="card-title" data-i18n="comp_title"></span>
+      </div>
+      <div class="notice">
+        <span data-i18n="comp_risk_notice"></span>
+      </div>
+      <div class="switch-row">
+        <label data-i18n="comp_third_party"></label>
+        <input type="checkbox" id="thirdPartyAutomationEnabled">
+      </div>
+      <div class="switch-row">
+        <label data-i18n="comp_quiet_hours"></label>
+        <input type="checkbox" id="quietHoursEnabled">
+      </div>
+      <div class="field" style="margin-top:10px;">
         <label data-i18n="comp_quiet_window"></label>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="row-flex">
           <input type="time" id="quietStart" autocomplete="off">
-          <span style="color:#86868b;">–</span>
+          <span class="row-sep">–</span>
           <input type="time" id="quietEnd" autocomplete="off">
         </div>
       </div>
@@ -367,139 +459,136 @@ textarea:focus {
         <input type="number" id="breakerThreshold" min="0" max="50" autocomplete="off">
       </div>
       <div class="field">
-        <label style="display:inline-block;margin-right:8px;" data-i18n="comp_breaker_streak"></label>
-        <span id="breakerStreak" style="font-size:14px;font-weight:600;color:#ff9500;">0 / -</span>
-        <button type="button" id="breakerResetBtn" style="width:auto;min-width:80px;margin-left:10px;" data-i18n="comp_breaker_reset"></button>
+        <label data-i18n="comp_breaker_streak"></label>
+        <div class="row-flex">
+          <span id="breakerStreak">0 / -</span>
+          <button class="btn-sm" type="button" id="breakerResetBtn" style="margin-left:auto;" data-i18n="comp_breaker_reset"></button>
+        </div>
       </div>
-      <hr style="border:none;border-top:1px solid #e5e5ea;margin:18px 0;">
+      <div class="divider"></div>
       <div class="field">
         <label data-i18n="comp_policies_title"></label>
-        <p style="font-size:12px;color:#86868b;margin:2px 0 6px;line-height:1.6;" data-i18n="comp_policy_hint"></p>
-        <div id="policyList" style="font-size:13px;color:#86868b;">...</div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <input type="text" id="policyPkg" data-i18n-placeholder="ph_policy_pkg" autocomplete="off" style="flex:1;min-width:0;">
-          <select id="policyMode" style="width:auto;border:1.5px solid #e5e5ea;border-radius:10px;padding:0 6px;background:#fafafa;font-size:13px;color:#333;">
+        <p class="hint" style="margin:0 0 6px;" data-i18n="comp_policy_hint"></p>
+        <div id="policyList" class="list">...</div>
+        <div class="row-flex" style="margin-top:8px;">
+          <input type="text" id="policyPkg" data-i18n-placeholder="ph_policy_pkg" autocomplete="off">
+          <select id="policyMode">
             <option value="AUTO" data-i18n="comp_mode_auto"></option>
             <option value="CONFIRM" data-i18n="comp_mode_confirm" selected></option>
             <option value="BLOCK" data-i18n="comp_mode_block"></option>
           </select>
-          <button type="button" id="policyAddBtn" style="width:auto;min-width:72px;" data-i18n="comp_policy_add"></button>
+          <button class="btn-sm" type="button" id="policyAddBtn" data-i18n="comp_policy_add"></button>
         </div>
       </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="comp_tip"></p>
+      <p class="hint" data-i18n="comp_tip"></p>
     </div>
 
-    <div class="card trigger">
-      <div class="card-title"><span class="dot"></span><span data-i18n="trig_title"></span></div>
-      <div class="field" style="padding:10px 12px;background:#fff7e6;border:1px solid #ffd977;border-radius:10px;">
-        <span style="font-size:12px;line-height:1.7;color:#8a6100;white-space:pre-line;" data-i18n="trig_notice"></span>
+    <!-- ==================== 助手 ==================== -->
+    <div class="sec" data-i18n="sec_assistant"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="card-title" data-i18n="persona_title"></span>
       </div>
       <div class="field">
-        <label data-i18n="trig_enabled" style="display:inline-block;margin-right:8px;"></label>
-        <input type="checkbox" id="triggerEnabled" style="width:auto;vertical-align:middle;">
+        <label data-i18n="persona_label"></label>
+        <textarea id="persona" rows="6" data-i18n-placeholder="ph_persona"></textarea>
       </div>
-      <div class="field">
-        <label data-i18n="trig_listener" style="display:inline-block;margin-right:8px;"></label>
-        <span id="triggerListenerStatus" style="font-size:13px;font-weight:600;">–</span>
-      </div>
-      <div class="field">
-        <label data-i18n="trig_whitelist"></label>
-        <div id="triggerWhitelist" style="font-size:13px;color:#86868b;">...</div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <input type="text" id="triggerWlPkg" data-i18n-placeholder="ph_trig_wl_pkg" autocomplete="off" style="flex:1;min-width:0;">
-          <button type="button" id="triggerWlAddBtn" style="width:auto;min-width:72px;" data-i18n="trig_add"></button>
-        </div>
-      </div>
-      <hr style="border:none;border-top:1px solid #e5e5ea;margin:18px 0;">
-      <div class="field">
-        <label data-i18n="trig_rules"></label>
-        <p style="font-size:12px;color:#86868b;margin:2px 0 6px;line-height:1.6;" data-i18n="trig_rule_hint"></p>
-        <div id="triggerRuleList" style="font-size:13px;color:#86868b;">...</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-          <input type="text" id="triggerRuleName" data-i18n-placeholder="ph_trig_name" autocomplete="off">
-          <input type="text" id="triggerRulePkg" data-i18n-placeholder="ph_trig_pkg" autocomplete="off">
-          <input type="text" id="triggerRuleRegex" data-i18n-placeholder="ph_trig_regex" autocomplete="off">
-          <textarea id="triggerRuleTpl" rows="2" data-i18n-placeholder="ph_trig_tpl"></textarea>
-          <div style="display:flex;gap:8px;">
-            <button type="button" id="triggerPresetBtn" style="width:auto;min-width:100px;flex:none;" data-i18n="trig_preset"></button>
-            <button type="button" id="triggerRuleAddBtn" style="flex:1;" data-i18n="trig_add"></button>
-          </div>
-        </div>
-      </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="trig_tip"></p>
+      <p class="hint" data-i18n="persona_tip"></p>
     </div>
 
-    <div class="card dingtalk">
-      <div class="card-title"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
-      <div class="field">
-        <label>Client ID</label>
-        <input type="text" id="dingtalkAppKey" data-i18n-placeholder="ph_dingtalk_id" autocomplete="off">
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+        <span class="card-title" data-i18n="skills_title"></span>
       </div>
       <div class="field">
-        <label>Client Secret</label>
-        <div class="input-wrap">
-          <input type="password" id="dingtalkAppSecret" data-i18n-placeholder="ph_dingtalk_secret" autocomplete="off">
-          <button class="toggle-eye" onclick="togglePassword('dingtalkAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+        <label data-i18n="skills_installed"></label>
+        <div id="skillList" class="list">...</div>
+      </div>
+      <div class="field">
+        <label data-i18n="skills_import_file"></label>
+        <input type="file" id="skillFile" class="file-input" accept=".md,.zip,text/markdown,application/zip">
+      </div>
+      <div class="field">
+        <label data-i18n="skills_import_url"></label>
+        <div class="row-flex">
+          <input type="text" id="skillImportUrl" data-i18n-placeholder="ph_skill_import_url" autocomplete="off">
+          <button class="btn-sm" type="button" id="skillImportUrlBtn" data-i18n="skills_import_btn"></button>
         </div>
       </div>
-    </div>
-
-    <div class="card feishu">
-      <div class="card-title"><span class="dot"></span><span data-i18n="feishu"></span></div>
+      <div class="divider"></div>
       <div class="field">
-        <label>App ID</label>
-        <input type="text" id="feishuAppId" data-i18n-placeholder="ph_feishu_id" autocomplete="off">
+        <label data-i18n="skills_templates"></label>
+        <div id="templateList" class="list">...</div>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label data-i18n="skills_name"></label>
+        <input type="text" id="skillName" data-i18n-placeholder="ph_skills_name" autocomplete="off">
       </div>
       <div class="field">
-        <label>App Secret</label>
-        <div class="input-wrap">
-          <input type="password" id="feishuAppSecret" data-i18n-placeholder="ph_feishu_secret" autocomplete="off">
-          <button class="toggle-eye" onclick="togglePassword('feishuAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+        <label data-i18n="skills_desc"></label>
+        <input type="text" id="skillDesc" data-i18n-placeholder="ph_skills_desc" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="skills_body"></label>
+        <textarea id="skillBody" rows="6" data-i18n-placeholder="ph_skills_body"></textarea>
+      </div>
+      <button class="btn" id="skillUploadBtn" type="button" data-i18n="skills_upload"></button>
+      <button class="btn btn-secondary" id="skillExportAllBtn" type="button" data-i18n="skills_export_all"></button>
+    </div>
+
+    <!-- ==================== 运行记录 ==================== -->
+    <div class="sec" data-i18n="sec_logs"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+        <span class="card-title" data-i18n="tasks_title"></span>
+      </div>
+      <div id="taskList" class="data-block">...</div>
+      <button class="btn btn-secondary" id="taskRefreshBtn" type="button" style="margin-top:12px;" data-i18n="tasks_refresh"></button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20v-4M12 20V10M18 20V4"/></svg></span>
+        <span class="card-title" data-i18n="stats_title"></span>
+      </div>
+      <div class="field">
+        <label data-i18n="stats_window"></label>
+        <div class="row-flex">
+          <select id="statsDays">
+            <option value="7">7</option>
+            <option value="14" selected>14</option>
+            <option value="30">30</option>
+          </select>
+          <button class="btn-sm" type="button" id="statsRefreshBtn" data-i18n="tasks_refresh"></button>
         </div>
       </div>
-    </div>
-
-    <div class="card qq">
-      <div class="card-title"><span class="dot"></span>QQ</div>
+      <div id="statsSummary">...</div>
       <div class="field">
-        <label>App ID</label>
-        <input type="text" id="qqAppId" data-i18n-placeholder="ph_qq_id" autocomplete="off">
+        <label data-i18n="stats_daily_tokens"></label>
+        <div id="statsChart"></div>
+        <div id="statsChartLabels"></div>
       </div>
       <div class="field">
-        <label>App Secret</label>
-        <div class="input-wrap">
-          <input type="password" id="qqAppSecret" data-i18n-placeholder="ph_qq_secret" autocomplete="off">
-          <button class="toggle-eye" onclick="togglePassword('qqAppSecret', this)" data-i18n-title="toggle_visibility"></button>
-        </div>
+        <label data-i18n="stats_by_channel"></label>
+        <div id="statsChannels" class="data-block">...</div>
       </div>
-    </div>
-
-    <div class="card discord">
-      <div class="card-title"><span class="dot"></span>Discord</div>
       <div class="field">
-        <label>Bot Token</label>
-        <div class="input-wrap">
-          <input type="password" id="discordBotToken" data-i18n-placeholder="ph_discord_token" autocomplete="off">
-          <button class="toggle-eye" onclick="togglePassword('discordBotToken', this)" data-i18n-title="toggle_visibility"></button>
-        </div>
+        <label data-i18n="stats_top_tasks"></label>
+        <div id="statsTop" class="data-block">...</div>
       </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="discord_tip"></p>
+      <p class="hint" data-i18n="stats_tip"></p>
     </div>
-
-    <div class="card telegram">
-      <div class="card-title"><span class="dot"></span>Telegram</div>
-      <div class="field">
-        <label>Bot Token</label>
-        <div class="input-wrap">
-          <input type="password" id="telegramBotToken" data-i18n-placeholder="ph_telegram_token" autocomplete="off">
-          <button class="toggle-eye" onclick="togglePassword('telegramBotToken', this)" data-i18n-title="toggle_visibility"></button>
-        </div>
-      </div>
-      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="telegram_tip"></p>
-    </div>
-
-    <button class="btn" id="saveBtn" onclick="save()" data-i18n="save_btn"></button>
   </div>
+</div>
+
+<div class="save-bar">
+  <button class="btn" id="saveBtn" onclick="save()" data-i18n="save_btn"></button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -510,6 +599,11 @@ const i18nMessages = {
   'zh': {
     title: 'ApkClaw 配置',
     subtitle: '在此页面配置 LLM 与钉钉、飞书、QQ、Discord、Telegram 的应用凭证',
+    sec_basic: '基础配置',
+    sec_automation: '自动化',
+    sec_assistant: '助手',
+    sec_logs: '运行记录',
+    chan_title: '消息通道',
     loading: '加载中...',
     llm_title: 'LLM 配置',
     llm_api_key: 'API Key',
@@ -659,6 +753,11 @@ const i18nMessages = {
   'en': {
     title: 'ApkClaw Config',
     subtitle: 'Configure LLM and credentials for DingTalk, Feishu, QQ, Discord, Telegram',
+    sec_basic: 'Basics',
+    sec_automation: 'Automation',
+    sec_assistant: 'Assistant',
+    sec_logs: 'Activity',
+    chan_title: 'Channels',
     loading: 'Loading...',
     llm_title: 'LLM Config',
     llm_api_key: 'API Key',
@@ -808,6 +907,11 @@ const i18nMessages = {
   'ja': {
     title: 'ApkClaw 設定',
     subtitle: 'LLM と DingTalk、Feishu、QQ、Discord、Telegram の資格情報を設定',
+    sec_basic: '基本設定',
+    sec_automation: '自動化',
+    sec_assistant: 'アシスタント',
+    sec_logs: '活動記録',
+    chan_title: 'メッセージチャネル',
     loading: '読み込み中...',
     llm_title: 'LLM 設定',
     llm_api_key: 'API Key',
@@ -1126,25 +1230,25 @@ async function refreshSkills() {
     el.innerHTML = '';
     list.forEach(s => {
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      row.className = 'list-row';
       const label = document.createElement('span');
-      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.className = 'row-label';
       label.textContent = s.name + ' — ' + s.description;
       label.title = s.description;
       const exportBtn = document.createElement('a');
       exportBtn.href = '/api/skills/export?name=' + encodeURIComponent(s.name);
+      exportBtn.className = 'row-link';
       exportBtn.textContent = t('skills_export');
-      exportBtn.style.color = '#0071e3';
       const qrBtn = document.createElement('a');
       qrBtn.href = '/api/skills/qr?name=' + encodeURIComponent(s.name);
       qrBtn.target = '_blank';
+      qrBtn.className = 'row-link';
       qrBtn.textContent = t('skills_qr');
-      qrBtn.style.color = '#0071e3';
       const delBtn = document.createElement('a');
       delBtn.href = 'javascript:void(0)';
+      delBtn.className = 'row-del';
       delBtn.textContent = '✕';
       delBtn.title = t('skills_delete');
-      delBtn.style.color = '#ff3b30';
       delBtn.onclick = () => deleteSkill(s.name);
       row.appendChild(label);
       row.appendChild(exportBtn);
@@ -1181,15 +1285,15 @@ async function refreshTemplates() {
     el.innerHTML = '';
     list.forEach(tp => {
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      row.className = 'list-row';
       const label = document.createElement('span');
-      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.className = 'row-label';
       label.textContent = tp.name + ' — ' + tp.description;
       label.title = tp.description;
       const installBtn = document.createElement('a');
       installBtn.href = 'javascript:void(0)';
+      installBtn.className = 'row-link';
       installBtn.textContent = t('skills_template_install');
-      installBtn.style.color = '#0071e3';
       installBtn.onclick = () => installTemplate(tp.file);
       row.appendChild(label);
       row.appendChild(installBtn);
@@ -1311,16 +1415,16 @@ async function refreshPolicies() {
     el.innerHTML = '';
     policies.forEach(p => {
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+      row.className = 'list-row';
       const label = document.createElement('span');
-      label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.className = 'row-label';
       label.textContent = p.packageName + ' — ' + modeLabel(p.mode);
       label.title = p.packageName;
       const delBtn = document.createElement('a');
       delBtn.href = 'javascript:void(0)';
+      delBtn.className = 'row-del';
       delBtn.textContent = '✕';
       delBtn.title = t('comp_policy_delete_confirm');
-      delBtn.style.color = '#ff3b30';
       delBtn.onclick = () => deletePolicy(p.packageName);
       row.appendChild(label);
       row.appendChild(delBtn);
@@ -1387,7 +1491,7 @@ const TRIG_OTP_REGEX = '(?:验证码|認証ｺｰﾄﾞ|code|Code|OTP)[^0-9]{0,1
 function renderTriggerListener(ok) {
   const el = document.getElementById('triggerListenerStatus');
   el.textContent = ok ? t('trig_listener_ok') : t('trig_listener_missing');
-  el.style.color = ok ? '#34c759' : '#ff9500';
+  el.style.color = ok ? '#2ba471' : '#e37318';
 }
 
 async function refreshTrigger() {
@@ -1430,14 +1534,14 @@ function renderTriggerWhitelist() {
   el.innerHTML = '';
   triggerCfg.whitelist.forEach(pkg => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;';
+    row.className = 'list-row';
     const label = document.createElement('span');
-    label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    label.className = 'row-label';
     label.textContent = pkg;
     const del = document.createElement('a');
     del.href = 'javascript:void(0)';
+    del.className = 'row-del';
     del.textContent = '✕';
-    del.style.color = '#ff3b30';
     del.onclick = async () => {
       const next = triggerCfg.whitelist.filter(x => x !== pkg);
       if (await saveTrigger({ whitelist: next })) { triggerCfg.whitelist = next; renderTriggerWhitelist(); }
@@ -1454,15 +1558,15 @@ function renderTriggerRules() {
   el.innerHTML = '';
   triggerCfg.rules.forEach(rule => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;';
+    row.className = 'list-row multi';
     const text = document.createElement('div');
-    text.style.cssText = 'flex:1;min-width:0;font-size:12px;line-height:1.5;word-break:break-all;white-space:pre-line;';
+    text.className = 'row-label';
     text.textContent = rule.name + (rule.appPackage ? ' @' + rule.appPackage : '')
       + '\n/' + rule.keywordRegex + '/\n→ ' + rule.taskTemplate;
     const del = document.createElement('a');
     del.href = 'javascript:void(0)';
+    del.className = 'row-del';
     del.textContent = '✕';
-    del.style.color = '#ff3b30';
     del.onclick = async () => {
       if (!confirm(t('trig_rule_delete') + '\n' + rule.name)) return;
       const next = triggerCfg.rules.filter(x => x.name !== rule.name);
@@ -1569,12 +1673,12 @@ async function refreshStats() {
     chart.innerHTML = ''; labels.innerHTML = '';
     daily.forEach(x => {
       const bar = document.createElement('div');
-      bar.style.cssText = 'flex:1;background:#007aff;border-radius:3px 3px 0 0;height:'
+      bar.style.cssText = 'flex:1;background:#5856d6;border-radius:3px 3px 0 0;height:'
         + Math.max(2, Math.round((x.tokens || 0) / maxTok * 84)) + 'px;';
       bar.title = x.date + ' · ' + (x.tasks || 0) + ' · ' + (x.tokens || 0) + ' tok';
       chart.appendChild(bar);
       const lab = document.createElement('div');
-      lab.style.cssText = 'flex:1;font-size:9px;color:#86868b;text-align:center;overflow:hidden;white-space:nowrap;';
+      lab.className = 'chart-label';
       lab.textContent = String(x.date || '').slice(5);
       labels.appendChild(lab);
     });
