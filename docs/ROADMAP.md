@@ -121,6 +121,7 @@
 ### F8 事件驱动触发（P2）
 
 > 已落地（2026-09-04）：`trigger/` 纯 JVM 包（TriggerRule/TriggerConfig 校验 + TriggerRuleEngine 正则匹配 + TriggerRuleStore 落盘）+ `TriggerNotificationListener`（通知监听）+ `GET/POST /api/trigger` + LAN 页"事件驱动触发"卡片。默认关闭（总开关关、白名单/规则空）；触发任务走 `automated=true` 进入 C3 频控/静默/熔断与 F3 留痕；系统侧还需授予"通知使用权"（LAN 页展示授权状态）。
+> 真机端到端验收已通过（同日）：adb 授予通知使用权 → shell 测试通知 → 规则命中提取验证码 → automated 派发过 C3 准入 → F3 历史留痕（`trig-*`）。验收当日设备上的 LLM key 出现"身份验证失败"（积分 key 余额/有效期问题，与 F8 链路无关）。
 
 **方案要点**：`NotificationListenerService` 监听白名单 App 的通知（如短信验证码），规则匹配后触发对应技能（如自动填入验证码）。默认关闭 + 显式白名单 + 每次触发留痕（进 F3）。
 
