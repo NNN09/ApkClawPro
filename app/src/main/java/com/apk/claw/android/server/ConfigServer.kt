@@ -3,6 +3,7 @@ package com.apk.claw.android.server
 import android.content.Context
 import android.graphics.Bitmap
 import com.apk.claw.android.BuildConfig
+import com.apk.claw.android.stats.UsageStatsAggregator
 import com.apk.claw.android.agent.store.PersonaStore
 import com.apk.claw.android.agent.store.SkillImportScanner
 import com.apk.claw.android.agent.store.SkillPackager
@@ -26,6 +27,7 @@ import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.time.ZoneId
 
 /**
  * 局域网 HTTP 配置服务器
@@ -87,6 +89,8 @@ class ConfigServer(
                 uri == "/api/persona/export" && method == Method.GET -> handleExportPersona()
                 uri == "/api/persona/import" && method == Method.POST -> handleImportPersona(session)
                 uri == "/api/tasks" && method == Method.GET -> handleGetTasks()
+                // F13：用量与成本看板（只读聚合，数据源同 /api/tasks）
+                uri == "/api/stats" && method == Method.GET -> handleGetStats(session)
                 uri == "/api/schedules" && method == Method.GET -> handleGetSchedules()
                 uri == "/api/schedules" && method == Method.POST -> handlePostSchedule(session)
                 uri == "/api/schedules/delete" && method == Method.POST -> handlePostScheduleDelete(session)
@@ -681,6 +685,24 @@ class ConfigServer(
         val result = JsonObject().apply {
             addProperty("code", 0)
             add("data", data)
+            addProperty("message", "ok")
+        }
+        return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
+    }
+
+    // ==================== 用量与成本看板（F13） ====================
+
+    /** GET /api/stats?days=N：聚合 F3 任务历史的 token 与成功率（只读；发送者掩码在聚合器内完成） */
+    private fun handleGetStats(session: IHTTPSession): Response {
+        val days = (session.parameters["days"]?.firstOrNull()?.toIntOrNull() ?: UsageStatsAggregator.DEFAULT_DAYS)
+            .coerceIn(1, UsageStatsAggregator.MAX_DAYS)
+        val records = com.apk.claw.android.agent.store.TaskHistoryStore.list(
+            com.apk.claw.android.agent.store.TaskHistoryStore.MAX_RECORDS
+        )
+        val stats = UsageStatsAggregator.aggregate(records, days, System.currentTimeMillis(), ZoneId.systemDefault())
+        val result = JsonObject().apply {
+            addProperty("code", 0)
+            add("data", gson.toJsonTree(stats))
             addProperty("message", "ok")
         }
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))

@@ -57,6 +57,7 @@ h1 {
 .skills .dot { background: #AF52DE; }
 .schedules .dot { background: #FF3B30; }
 .compliance .dot { background: #5856D6; }
+.stats .dot { background: #007AFF; }
 .sched-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .sched-item .sched-text { flex: 1; white-space: pre-line; word-break: break-all; }
 .sched-item button {
@@ -241,6 +242,36 @@ textarea:focus {
       <div class="card-title"><span class="dot"></span><span data-i18n="tasks_title"></span></div>
       <div id="taskList" style="font-size:12px;color:#86868b;white-space:pre-line;max-height:320px;overflow:auto;">...</div>
       <button id="taskRefreshBtn" type="button" data-i18n="tasks_refresh"></button>
+    </div>
+
+    <div class="card stats">
+      <div class="card-title"><span class="dot"></span><span data-i18n="stats_title"></span></div>
+      <div class="field">
+        <label data-i18n="stats_window"></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="statsDays" style="width:auto;border:1.5px solid #e5e5ea;border-radius:10px;padding:0 6px;background:#fafafa;font-size:13px;color:#333;">
+            <option value="7">7</option>
+            <option value="14" selected>14</option>
+            <option value="30">30</option>
+          </select>
+          <button type="button" id="statsRefreshBtn" style="width:auto;min-width:72px;" data-i18n="tasks_refresh"></button>
+        </div>
+      </div>
+      <div id="statsSummary" style="font-size:13px;color:#1d1d1f;line-height:1.6;margin-bottom:16px;">...</div>
+      <div class="field">
+        <label data-i18n="stats_daily_tokens"></label>
+        <div id="statsChart" style="display:flex;align-items:flex-end;gap:3px;height:90px;"></div>
+        <div id="statsChartLabels" style="display:flex;gap:3px;margin-top:4px;"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="stats_by_channel"></label>
+        <div id="statsChannels" style="font-size:12px;color:#86868b;white-space:pre-line;">...</div>
+      </div>
+      <div class="field">
+        <label data-i18n="stats_top_tasks"></label>
+        <div id="statsTop" style="font-size:12px;color:#86868b;white-space:pre-line;">...</div>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="stats_tip"></p>
     </div>
 
     <div class="card schedules">
@@ -490,6 +521,15 @@ const i18nMessages = {
     tasks_empty: '暂无任务记录',
     tasks_load_failed: '加载失败',
     tasks_refresh: '刷新',
+    stats_title: '用量看板',
+    stats_window: '统计周期（天）',
+    stats_empty: '统计周期内暂无任务',
+    stats_load_failed: '加载失败',
+    stats_daily_tokens: '每日 token 消耗',
+    stats_by_channel: '按渠道统计（任务数 ✓成功 ✗失败 · tokens）',
+    stats_top_tasks: '高频任务 Top 5（次数 · tokens）',
+    stats_tip: '数据来源为任务历史（最多保留 200 条）；发送者仅显示前 6 位。',
+    stats_summary: '近 {days} 天：{tasks} 个任务 · 成功率 {rate} · 共 {tokens} tokens · 平均 {avg}/任务',
     sched_title: '定时任务',
     sched_task: '任务指令（到点执行并回传结果）',
     sched_time: '触发时间（24 小时制 HH:mm）',
@@ -603,6 +643,15 @@ const i18nMessages = {
     tasks_empty: 'No task records yet',
     tasks_load_failed: 'Failed to load',
     tasks_refresh: 'Refresh',
+    stats_title: 'Usage Dashboard',
+    stats_window: 'Stats window (days)',
+    stats_empty: 'No tasks in this window',
+    stats_load_failed: 'Failed to load',
+    stats_daily_tokens: 'Daily token usage',
+    stats_by_channel: 'By channel (tasks ✓ok ✗failed · tokens)',
+    stats_top_tasks: 'Top 5 tasks (count · tokens)',
+    stats_tip: 'Source: task history (last 200 records kept); senders show first 6 chars only.',
+    stats_summary: 'Last {days} days: {tasks} tasks · success {rate} · {tokens} tokens · avg {avg}/task',
     sched_title: 'Scheduled Tasks',
     sched_task: 'Task instruction (executed at trigger time, result sent back)',
     sched_time: 'Trigger time (24h HH:mm)',
@@ -716,6 +765,15 @@ const i18nMessages = {
     tasks_empty: 'タスク記録はまだありません',
     tasks_load_failed: '読み込みに失敗しました',
     tasks_refresh: '更新',
+    stats_title: '使用量ダッシュボード',
+    stats_window: '集計期間（日）',
+    stats_empty: 'この期間内のタスクはありません',
+    stats_load_failed: '読み込みに失敗しました',
+    stats_daily_tokens: '日次トークン消費',
+    stats_by_channel: 'チャネル別（タスク数 ✓成功 ✗失敗 · tokens）',
+    stats_top_tasks: '高頻度タスク Top 5（回数 · tokens）',
+    stats_tip: 'データはタスク履歴由来（最大200件保持）；送信者は先頭6文字のみ表示。',
+    stats_summary: '直近{days}日間：{tasks}タスク · 成功率 {rate} · 計 {tokens} tokens · 平均 {avg}/タスク',
     sched_title: '定時タスク',
     sched_task: 'タスク指示（指定時刻に実行し結果を返送）',
     sched_time: 'トリガー時刻（24時間制 HH:mm）',
@@ -1219,6 +1277,58 @@ async function refreshTasks() {
 
 document.getElementById('taskRefreshBtn').addEventListener('click', refreshTasks);
 
+// ====== Usage dashboard (F13) ======
+async function refreshStats() {
+  const days = document.getElementById('statsDays').value;
+  const sum = document.getElementById('statsSummary');
+  const chart = document.getElementById('statsChart');
+  const labels = document.getElementById('statsChartLabels');
+  const chEl = document.getElementById('statsChannels');
+  const topEl = document.getElementById('statsTop');
+  try {
+    const r = await fetch('/api/stats?days=' + encodeURIComponent(days));
+    const j = await r.json();
+    if (j.code !== 0 || !j.data) { sum.textContent = t('stats_load_failed'); return; }
+    const d = j.data;
+    if (!d.totalTasks) {
+      sum.textContent = t('stats_empty');
+      chart.innerHTML = ''; labels.innerHTML = '';
+      chEl.textContent = t('stats_empty'); topEl.textContent = t('stats_empty');
+      return;
+    }
+    sum.textContent = t('stats_summary')
+      .replace('{days}', d.days)
+      .replace('{tasks}', d.totalTasks)
+      .replace('{rate}', Math.round((d.successRate || 0) * 100) + '%')
+      .replace('{tokens}', d.totalTokens)
+      .replace('{avg}', d.avgTokensPerTask);
+    // 日 token 曲线：纯 div 柱状图，悬停看明细
+    const daily = d.daily || [];
+    const maxTok = Math.max(...daily.map(x => x.tokens || 0), 1);
+    chart.innerHTML = ''; labels.innerHTML = '';
+    daily.forEach(x => {
+      const bar = document.createElement('div');
+      bar.style.cssText = 'flex:1;background:#007aff;border-radius:3px 3px 0 0;height:'
+        + Math.max(2, Math.round((x.tokens || 0) / maxTok * 84)) + 'px;';
+      bar.title = x.date + ' · ' + (x.tasks || 0) + ' · ' + (x.tokens || 0) + ' tok';
+      chart.appendChild(bar);
+      const lab = document.createElement('div');
+      lab.style.cssText = 'flex:1;font-size:9px;color:#86868b;text-align:center;overflow:hidden;white-space:nowrap;';
+      lab.textContent = String(x.date || '').slice(5);
+      labels.appendChild(lab);
+    });
+    chEl.textContent = (d.channels || []).map(c =>
+      `${c.channel}: ${c.tasks} ✓${c.completed} ✗${c.failed} · ${c.tokens} tok`).join('\n') || t('stats_empty');
+    topEl.textContent = (d.topTasks || []).map((x, i) =>
+      `${i + 1}. [×${x.count}] ${x.task} · ${x.tokens} tok`).join('\n') || t('stats_empty');
+  } catch (e) {
+    sum.textContent = t('stats_load_failed');
+  }
+}
+
+document.getElementById('statsDays').addEventListener('change', refreshStats);
+document.getElementById('statsRefreshBtn').addEventListener('click', refreshStats);
+
 // ====== Scheduled tasks (F7) ======
 async function refreshSchedules() {
   const el = document.getElementById('schedList');
@@ -1290,6 +1400,7 @@ refreshTemplates();
 refreshTasks();
 refreshSchedules();
 refreshPolicies();
+refreshStats();
 // F11：技能列表轮询 + 窗口聚焦刷新，深链/二维码在手机侧导入后 PC 页自动可见
 window.addEventListener('focus', refreshSkills);
 setInterval(() => { if (!document.hidden) refreshSkills(); }, 10000);
