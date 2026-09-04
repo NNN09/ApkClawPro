@@ -123,6 +123,13 @@
     <string name="llm_config_saved">LLM configuration saved</string>
     <string name="llm_config_api_key_required">Please enter API Key</string>
     <string name="menu_llm_config">LLM Config</string>
+    <string name="llm_config_behavior_title">Behavior</string>
+    <string name="llm_config_confirm_dangerous">Confirm dangerous ops</string>
+    <string name="llm_config_confirm_dangerous_desc">Ask for confirmation before send/pay/delete actions</string>
+    <string name="llm_config_verify_results">Verify results</string>
+    <string name="llm_config_verify_results_desc">Read back device state after key actions</string>
+    <string name="llm_config_vision">Vision input</string>
+    <string name="llm_config_vision_desc">Inject screenshots into model context (needs a vision model)</string>
 
     <!-- Settings Menu -->
     <string name="menu_dingtalk">DingTalk</string>
@@ -131,10 +138,32 @@
     <string name="menu_discord">Discord</string>
     <string name="menu_telegram">Telegram</string>
     <string name="menu_wechat">WeChat</string>
+    <string name="menu_compliance_config">Automation &amp; Compliance</string>
     <string name="menu_lan_config">LAN Config</string>
     <string name="lan_config_stopped">Off</string>
     <string name="lan_config_running">Running</string>
     <string name="lan_config_no_wifi">Please connect to WiFi first</string>
+
+    <!-- Automation & Compliance -->
+    <string name="compliance_config_title">Automation &amp; Compliance</string>
+    <string name="compliance_config_tip">Limits for automated tasks (schedules and event triggers). Manual messages are not affected. Enter 0 to disable a limit.</string>
+    <string name="compliance_third_party">Third-party app automation</string>
+    <string name="compliance_third_party_desc">Off: mutating actions in third-party apps are rejected</string>
+    <string name="compliance_quiet_hours">Quiet hours</string>
+    <string name="compliance_quiet_hours_desc">Skip automated tasks during this window</string>
+    <string name="compliance_quiet_start">Start</string>
+    <string name="compliance_quiet_end">End</string>
+    <string name="compliance_cooldown">Min task interval (seconds)</string>
+    <string name="compliance_cooldown_hint">0–600, 0 = off</string>
+    <string name="compliance_rate_global">Global tasks per minute</string>
+    <string name="compliance_rate_channel">Tasks per minute per channel</string>
+    <string name="compliance_rate_hint">0–600, 0 = off</string>
+    <string name="compliance_breaker">Failure breaker threshold</string>
+    <string name="compliance_breaker_hint">0–50, 0 = off</string>
+    <string name="compliance_invalid_time">Time must be in HH:mm format</string>
+    <string name="compliance_invalid_number">Please enter a valid number</string>
+    <string name="compliance_saved">Automation settings saved</string>
+    <string name="compliance_status_quiet">Quiet %1$s–%2$s</string>
 
     <!-- Protocol -->
     <string name="protocol_agree_title">Privacy Guidelines</string>

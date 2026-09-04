@@ -44,6 +44,7 @@ class SettingsViewModel : ViewModel() {
             MenuAction.DISCORD.name to channelStatus(KVUtils.getDiscordBotToken().isNotEmpty()),
             MenuAction.TELEGRAM.name to channelStatus(KVUtils.getTelegramBotToken().isNotEmpty()),
             MenuAction.WECHAT.name to channelStatus(KVUtils.getWechatBotToken().isNotEmpty()),
+            MenuAction.COMPLIANCE_CONFIG.name to complianceStatus(),
             MenuAction.LAN_CONFIG.name to lanStatus()
         )
         _settingItems.value = map
@@ -73,6 +74,18 @@ class SettingsViewModel : ViewModel() {
         } else {
             SettingValue.Status(ClawApplication.instance.getString(R.string.lan_config_stopped))
         }
+    }
+
+    /** 自动化与合规入口：仅在夜间静默开启时显示时段摘要 */
+    private fun complianceStatus(): SettingValue.Status {
+        if (!KVUtils.getQuietHoursEnabled()) return SettingValue.Status("")
+        val start = com.apk.claw.android.compliance.ComplianceConfig.formatHm(KVUtils.getQuietStartMin())
+        val end = com.apk.claw.android.compliance.ComplianceConfig.formatHm(KVUtils.getQuietEndMin())
+        return SettingValue.Status(
+            "",
+            subtitle = ClawApplication.instance.getString(R.string.compliance_status_quiet, start, end),
+            active = true
+        )
     }
 
     /**
@@ -304,6 +317,7 @@ class SettingsViewModel : ViewModel() {
     enum class MenuAction {
         DINGDING, FEISHU, QQ, DISCORD, TELEGRAM, WECHAT,
         LAN_CONFIG,
-        LLM_CONFIG
+        LLM_CONFIG,
+        COMPLIANCE_CONFIG
     }
 }

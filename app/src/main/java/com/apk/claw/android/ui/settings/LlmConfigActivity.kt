@@ -3,6 +3,7 @@ package com.apk.claw.android.ui.settings
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.widget.SwitchCompat
 import com.apk.claw.android.ClawApplication
 import com.apk.claw.android.R
 import com.apk.claw.android.base.BaseActivity
@@ -28,11 +29,17 @@ class LlmConfigActivity : BaseActivity() {
         val etBaseUrl = findViewById<EditText>(R.id.etBaseUrl)
         val etModelName = findViewById<EditText>(R.id.etModelName)
         val etContextWindow = findViewById<EditText>(R.id.etContextWindow)
+        val swConfirmDangerousOps = findViewById<SwitchCompat>(R.id.switchConfirmDangerousOps)
+        val swVerifyResults = findViewById<SwitchCompat>(R.id.switchVerifyResults)
+        val swVisionEnabled = findViewById<SwitchCompat>(R.id.switchVisionEnabled)
 
         etApiKey.setText(KVUtils.getLlmApiKey())
         etBaseUrl.setText(KVUtils.getLlmBaseUrl())
         etModelName.setText(KVUtils.getLlmModelName())
         KVUtils.getLlmContextWindow().takeIf { it > 0 }?.let { etContextWindow.setText(it.toString()) }
+        swConfirmDangerousOps.isChecked = KVUtils.getConfirmDangerousOps()
+        swVerifyResults.isChecked = KVUtils.getVerifyResults()
+        swVisionEnabled.isChecked = KVUtils.getVisionEnabled()
 
         findViewById<KButton>(R.id.btnSave).setOnClickListener {
             val apiKey = etApiKey.text.toString().trim()
@@ -53,6 +60,9 @@ class LlmConfigActivity : BaseActivity() {
             KVUtils.setLlmBaseUrl(baseUrl)
             KVUtils.setLlmModelName(modelName)
             KVUtils.setLlmContextWindow(contextWindowText.toIntOrNull() ?: 0)
+            KVUtils.setConfirmDangerousOps(swConfirmDangerousOps.isChecked)
+            KVUtils.setVerifyResults(swVerifyResults.isChecked)
+            KVUtils.setVisionEnabled(swVisionEnabled.isChecked)
 
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()

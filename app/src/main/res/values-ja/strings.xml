@@ -123,6 +123,13 @@
     <string name="llm_config_saved">LLM設定を保存しました</string>
     <string name="llm_config_api_key_required">API Keyを入力してください</string>
     <string name="menu_llm_config">LLM設定</string>
+    <string name="llm_config_behavior_title">動作スイッチ</string>
+    <string name="llm_config_confirm_dangerous">危険操作の確認</string>
+    <string name="llm_config_confirm_dangerous_desc">送信・支払い・削除の前に確認を要求</string>
+    <string name="llm_config_verify_results">結果検証</string>
+    <string name="llm_config_verify_results_desc">主要操作後に端末状態を読み戻して検証</string>
+    <string name="llm_config_vision">画像入力</string>
+    <string name="llm_config_vision_desc">スクリーンショットをモデルに注入（画像対応モデルが必要）</string>
 
     <!-- 設定メニュー -->
     <string name="menu_dingtalk">DingTalk</string>
@@ -131,10 +138,32 @@
     <string name="menu_discord">Discord</string>
     <string name="menu_telegram">Telegram</string>
     <string name="menu_wechat">WeChat</string>
+    <string name="menu_compliance_config">自動化とコンプライアンス</string>
     <string name="menu_lan_config">LAN設定</string>
     <string name="lan_config_stopped">オフ</string>
     <string name="lan_config_running">実行中</string>
     <string name="lan_config_no_wifi">WiFiに接続してください</string>
+
+    <!-- 自動化とコンプライアンス -->
+    <string name="compliance_config_title">自動化とコンプライアンス</string>
+    <string name="compliance_config_tip">自動タスク（スケジュール・イベントトリガー）の頻度と範囲を制限します。手動メッセージには影響しません。0で無効化。</string>
+    <string name="compliance_third_party">サードパーティアプリの自動化</string>
+    <string name="compliance_third_party_desc">オフにすると変更系操作を拒否します</string>
+    <string name="compliance_quiet_hours">夜間サイレント</string>
+    <string name="compliance_quiet_hours_desc">この時間帯は自動タスクをスキップ</string>
+    <string name="compliance_quiet_start">開始</string>
+    <string name="compliance_quiet_end">終了</string>
+    <string name="compliance_cooldown">自動タスクの最小間隔（秒）</string>
+    <string name="compliance_cooldown_hint">0–600、0 = 無効</string>
+    <string name="compliance_rate_global">全体の毎分タスク上限</string>
+    <string name="compliance_rate_channel">チャネルごとの毎分上限</string>
+    <string name="compliance_rate_hint">0–600、0 = 無効</string>
+    <string name="compliance_breaker">連続失敗ブレーカーしきい値</string>
+    <string name="compliance_breaker_hint">0–50、0 = 無効</string>
+    <string name="compliance_invalid_time">時刻はHH:mm形式で入力してください</string>
+    <string name="compliance_invalid_number">有効な数値を入力してください</string>
+    <string name="compliance_saved">自動化設定を保存しました</string>
+    <string name="compliance_status_quiet">サイレント %1$s–%2$s</string>
 
     <!-- プロトコル -->
     <string name="protocol_agree_title">個人情報保護について</string>

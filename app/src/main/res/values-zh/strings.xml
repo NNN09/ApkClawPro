@@ -123,6 +123,13 @@
     <string name="llm_config_saved">LLM 配置已保存</string>
     <string name="llm_config_api_key_required">请填写 API Key</string>
     <string name="menu_llm_config">LLM 配置</string>
+    <string name="llm_config_behavior_title">行为开关</string>
+    <string name="llm_config_confirm_dangerous">危险操作确认</string>
+    <string name="llm_config_confirm_dangerous_desc">发送/支付/删除类操作前需经渠道确认</string>
+    <string name="llm_config_verify_results">结果验证</string>
+    <string name="llm_config_verify_results_desc">核心操作后回读设备状态断言</string>
+    <string name="llm_config_vision">视觉输入</string>
+    <string name="llm_config_vision_desc">截图注入模型上下文（需模型支持视觉）</string>
 
     <!-- 设置菜单项 -->
     <string name="menu_dingtalk">钉钉</string>
@@ -131,10 +138,32 @@
     <string name="menu_discord">Discord</string>
     <string name="menu_telegram">Telegram</string>
     <string name="menu_wechat">微信</string>
+    <string name="menu_compliance_config">自动化与合规</string>
     <string name="menu_lan_config">局域网配置</string>
     <string name="lan_config_stopped">已关闭</string>
     <string name="lan_config_running">运行中</string>
     <string name="lan_config_no_wifi">请先连接 WiFi</string>
+
+    <!-- 自动化与合规 -->
+    <string name="compliance_config_title">自动化与合规</string>
+    <string name="compliance_config_tip">限制自动任务（定时/事件触发）的执行频率与范围，手动消息不受影响；填 0 表示关闭对应限制。</string>
+    <string name="compliance_third_party">第三方 App 自动化</string>
+    <string name="compliance_third_party_desc">关闭后第三方 App 的改动类操作将被拒绝</string>
+    <string name="compliance_quiet_hours">夜间静默</string>
+    <string name="compliance_quiet_hours_desc">静默时段内跳过自动任务</string>
+    <string name="compliance_quiet_start">开始</string>
+    <string name="compliance_quiet_end">结束</string>
+    <string name="compliance_cooldown">自动任务最小间隔（秒）</string>
+    <string name="compliance_cooldown_hint">0–600，0 = 关闭</string>
+    <string name="compliance_rate_global">全局任务频率上限（次/分）</string>
+    <string name="compliance_rate_channel">单渠道任务频率上限（次/分）</string>
+    <string name="compliance_rate_hint">0–600，0 = 关闭</string>
+    <string name="compliance_breaker">连续失败熔断阈值</string>
+    <string name="compliance_breaker_hint">0–50，0 = 关闭</string>
+    <string name="compliance_invalid_time">时间格式须为 HH:mm</string>
+    <string name="compliance_invalid_number">请输入有效数字</string>
+    <string name="compliance_saved">自动化设置已保存</string>
+    <string name="compliance_status_quiet">静默 %1$s–%2$s</string>
 
     <!-- 协议弹窗 -->
     <string name="protocol_agree_title">个人信息保护指引</string>

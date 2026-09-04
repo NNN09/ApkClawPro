@@ -35,6 +35,11 @@ class SettingsActivity : BaseActivity() {
         viewModel.refresh()
     }
 
+    // 注册自动化与合规配置页返回后刷新
+    private val complianceConfigLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+        viewModel.refresh()
+    }
+
     // 注册通道配置结果回调
     private val channelConfigLauncher = ChannelConfigActivity.registerLauncher(this) { result ->
         result?.let {
@@ -125,6 +130,14 @@ class SettingsActivity : BaseActivity() {
         // 通用
         val generalGroup = findViewById<MenuGroup>(R.id.generalGroup)
         generalGroup.setTitle(getString(R.string.settings_group_general))
+
+        menuItems[SettingsViewModel.MenuAction.COMPLIANCE_CONFIG.name] = generalGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_compliance,
+            title = getString(R.string.menu_compliance_config),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.COMPLIANCE_CONFIG) },
+            showDivider = true
+        )
+        menuItems[SettingsViewModel.MenuAction.COMPLIANCE_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
 
         menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name] = generalGroup.addMenuItem(
             leadingIcon = R.drawable.ic_lan_config,
@@ -242,6 +255,9 @@ class SettingsActivity : BaseActivity() {
                             }
                             SettingsViewModel.MenuAction.LLM_CONFIG -> {
                                 llmConfigLauncher.launch(Intent(this@SettingsActivity, LlmConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.COMPLIANCE_CONFIG -> {
+                                complianceConfigLauncher.launch(Intent(this@SettingsActivity, ComplianceConfigActivity::class.java))
                             }
                             null -> {}
                             else -> {}
