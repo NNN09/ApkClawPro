@@ -71,6 +71,13 @@ class ChannelSetup(
      * @param automated 是否自动任务（定时/事件等无人值守来源；由调用方标注）
      */
     fun dispatch(channel: Channel, message: String, messageID: String, senderId: String, automated: Boolean = false) {
+        // F1/F2 确认/取消回复必须先于兜底去重：同一任务多次危险操作时，用户会在 30s
+        // 去重窗口内重复回复同一关键词，被 isDuplicate 吞掉会导致门控等满超时、任务失败。
+        // 无等待中的门控时 interceptReply 返回 false，重复投递仍由下方去重兜底。
+        if (taskOrchestrator.interceptReply(channel, senderId, message)) {
+            return
+        }
+
         if (inboundDeduper.isDuplicate(channel, senderId, message)) {
             XLog.w(TAG, "重复 dispatch 已拦截: channel=${channel.displayName}, message=${message.take(40)}")
             return
@@ -88,11 +95,6 @@ class ChannelSetup(
             SessionStore.reset(channel, senderId)
             ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_session_reset), messageID)
             ChannelManager.flushMessages(channel)
-            return
-        }
-
-        // F1/F2：有任务在等待用户决策时，确认/取消关键字直接放行门控
-        if (taskOrchestrator.interceptReply(channel, senderId, message)) {
             return
         }
 

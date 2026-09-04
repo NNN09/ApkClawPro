@@ -73,6 +73,8 @@ class SkillImportActivity : BaseActivity() {
     }
 
     private fun confirmImport(parsed: SkillPackager.ParsedSkill, findings: List<SkillImportScanner.Finding>, url: String) {
+        // 下载在后台线程进行，完成时 Activity 可能已被用户返回键销毁，直接 show 会 BadTokenException
+        if (isFinishing || isDestroyed) return
         val blocked = SkillImportScanner.hasBlocking(findings)
         val scanReport = SkillImportScanner.report(findings)
         val message = buildString {

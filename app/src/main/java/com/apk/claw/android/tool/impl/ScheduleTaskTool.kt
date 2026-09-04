@@ -86,11 +86,14 @@ class ScheduleTaskTool : BaseTool() {
     companion object {
         private val FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
-        /** 解析 "1,2,3" 形式的 ISO 星期集合；非法返回 null；空串返回空集（每天） */
+        /** 解析 "1,2,3" 形式的 ISO 星期集合；任一 token 非法/越界返回 null；空串返回空集（每天） */
         fun parseDaysOfWeek(raw: String): Set<Int>? {
             val text = raw.trim()
             if (text.isEmpty()) return emptySet()
-            val days = text.split(",", "，").mapNotNull { it.trim().toIntOrNull() }.toSet()
+            val tokens = text.split(",", "，")
+            val days = tokens.map { token ->
+                token.trim().toIntOrNull() ?: return null
+            }.toSet()
             if (days.any { it !in 1..7 }) return null
             return days
         }

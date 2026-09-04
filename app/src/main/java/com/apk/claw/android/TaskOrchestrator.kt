@@ -6,6 +6,7 @@ import com.apk.claw.android.agent.AgentService
 import com.apk.claw.android.agent.AgentServiceFactory
 import com.apk.claw.android.agent.TaskRequest
 import com.apk.claw.android.agent.UserDecisionGate
+import com.apk.claw.android.agent.ReplyKeywords
 import com.apk.claw.android.agent.store.SessionStore
 import com.apk.claw.android.agent.store.TaskHistoryStore
 import com.apk.claw.android.channel.Channel
@@ -35,9 +36,6 @@ class TaskOrchestrator(
         private val PROGRESS_SILENT_TOOLS = setOf(
             "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps", "wait"
         )
-
-        private val CONFIRM_WORDS = setOf("继续", "确认", "继续执行", "是", "ok", "yes", "continue", "resume")
-        private val CANCEL_WORDS = setOf("取消", "跳过", "否", "不要", "cancel", "no", "skip", "stop")
     }
 
     private lateinit var agentService: AgentService
@@ -78,8 +76,8 @@ class TaskOrchestrator(
         } ?: return false
         val cmd = message.trim().lowercase()
         return when {
-            cmd in CONFIRM_WORDS -> { gate.resolve(true); true }
-            cmd in CANCEL_WORDS -> { gate.resolve(false); true }
+            cmd in ReplyKeywords.CONFIRM -> { gate.resolve(true); true }
+            cmd in ReplyKeywords.CANCEL -> { gate.resolve(false); true }
             else -> false
         }
     }
@@ -117,6 +115,15 @@ class TaskOrchestrator(
     // ==================== Agent 生命周期 ====================
 
     fun initAgent() {
+        // 先关旧实例：DefaultAgentService 持有单线程 executor，直接替换会泄漏线程
+        // （LAN 页保存 LLM 配置即走此路径）。与 updateConfig 同语义：有任务在跑则中断。
+        if (::agentService.isInitialized) {
+            try {
+                agentService.shutdown()
+            } catch (e: Exception) {
+                XLog.e(TAG, "Failed to shutdown previous AgentService", e)
+            }
+        }
         agentService = AgentServiceFactory.create()
         try {
             agentService.initialize(agentConfigProvider())

@@ -223,7 +223,7 @@
     <string name="agent_verify_failed">結果の検証に失敗しました（1回再試行済み）：%s</string>
 
     <!-- コンプライアンス（C3/C5/C6） -->
-    <string name="compliance_app_policy_confirm">⚠️ アプリ安全ポリシー\n操作：%1$s\n対象：%2$s はすべての操作で確認が必要に設定されています。\n「continue」で実行、「cancel」でスキップ（2分間無応答で自動キャンセル）。</string>
+    <string name="compliance_app_policy_confirm">⚠️ アプリ安全ポリシー\n操作：%1$s\n対象：%2$s はすべての操作で確認が必要に設定されています。\n「続行」で実行、「キャンセル」でスキップ（2分間無応答で自動キャンセル）。</string>
     <string name="compliance_app_blocked">アプリポリシーにより操作がブロックされました：%1$s（対象 %2$s）は自動操作禁止に設定されています。設定ページの「コンプライアンス」カードでポリシーを変更してください。</string>
     <string name="compliance_third_party_disabled">セキュリティポリシーにより操作がブロックされました：%1$s（対象 %2$s）——サードパーティアプリの自動化が無効です。設定ページの「コンプライアンス」カードで有効にしてください。</string>
     <string name="compliance_rate_limited">短時間にタスクが多すぎるため、このメッセージはスキップされました。しばらく待って再試行してください。</string>

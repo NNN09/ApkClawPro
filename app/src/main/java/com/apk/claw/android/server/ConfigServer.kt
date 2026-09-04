@@ -1126,10 +1126,11 @@ class ConfigServer(
         return value.contains("*")
     }
 
-    private fun corsResponse(response: Response): Response {
-        response.addHeader("Access-Control-Allow-Origin", "*")
-        response.addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        response.addHeader("Access-Control-Allow-Headers", "Content-Type")
-        return response
-    }
+    /**
+     * 配置页与 API 同源（页面内全部是相对路径 fetch），本不需要 CORS。
+     * 刻意不再附加 Access-Control-Allow-* 头：配 `*` 时局域网内任意设备的浏览器
+     * 页面可跨源直接 fetch /api/llm、/api/channels 读走明文密钥——浏览器里的网页
+     * 不是"LAN 内可信方"。OPTIONS 预检仍返回 200 但不带 CORS 头，浏览器会拦下跨源请求。
+     */
+    private fun corsResponse(response: Response): Response = response
 }
