@@ -17,12 +17,22 @@ import com.apk.claw.android.service.TaskScheduler
 import com.apk.claw.android.ui.home.HomeActivity
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.utils.XLog
+import com.apk.claw.android.voice.SherpaSenseVoiceEngine
+import com.apk.claw.android.voice.VoiceEngine
+import com.apk.claw.android.voice.VoiceInputAction
+import com.apk.claw.android.voice.VoiceInputGate
+import com.apk.claw.android.voice.VoiceModelStore
 
 class AppViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "AppViewModel"
+
+        /** 离线聆听最长时长，防止忘记点击结束 */
+        private const val OFFLINE_VOICE_MAX_DURATION_MS = 30_000L
     }
+
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -131,11 +141,22 @@ class AppViewModel : ViewModel() {
             FloatingCircleManager.show(ClawApplication.instance)
             FloatingCircleManager.onFloatClick = {
                 XLog.d(TAG, "Floating circle clicked")
-                bringAppToForeground()
+                if (offlineSessionActive) stopOfflineListening() else bringAppToForeground()
             }
+            // 静止长按触发：按住期间录音
             FloatingCircleManager.onFloatLongClick = {
-                XLog.d(TAG, "Floating circle long clicked")
+                XLog.d(TAG, "Floating circle long pressed, listening")
                 startVoiceInput()
+            }
+            // 松手：结束录音并识别（会话已因放弃/超时结束时为空操作）
+            FloatingCircleManager.onFloatVoiceRelease = {
+                XLog.d(TAG, "Floating circle released")
+                if (offlineSessionActive) stopOfflineListening()
+            }
+            // 长按中转为拖动等：丢弃本次录音，不识别不提示
+            FloatingCircleManager.onFloatVoiceCancel = {
+                XLog.d(TAG, "Floating circle voice hold cancelled")
+                if (offlineSessionActive) cancelOfflineListening()
             }
         } catch (e: Exception) {
             XLog.e(TAG, "Failed to show floating circle: ${e.message}")
@@ -143,73 +164,115 @@ class AppViewModel : ViewModel() {
     }
 
     /**
-     * F6：悬浮球长按语音输入。识别文本走与聊天页相同的 InApp 入口；
-     * 不需要 RECORD_AUDIO 权限（录音由系统语音服务完成）。
+     * F6：悬浮球长按语音输入。识别文本走与聊天页相同的 InApp 入口。
+     * 前置校验见 VoiceInputGate：未安装离线模型时引导去下载页；
+     * 已安装但缺 RECORD_AUDIO 时走权限 trampoline。失败只 toast 提示。
      */
-    private fun startVoiceInput() {
+    fun startVoiceInput() {
         val app = ClawApplication.instance
-        android.os.Handler(android.os.Looper.getMainLooper()).post {
-            if (!android.speech.SpeechRecognizer.isRecognitionAvailable(app)) {
-                toast(app.getString(R.string.voice_unavailable))
-                openChatForVoiceFallback()
-                return@post
-            }
-            val recognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(app)
-            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(
-                    android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+        mainHandler.post {
+            when (
+                VoiceInputGate.decide(
+                    hasRecordAudio = androidx.core.content.ContextCompat.checkSelfPermission(
+                        app, android.Manifest.permission.RECORD_AUDIO
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED,
+                    offlineModelAvailable = VoiceModelStore.isInstalled(app),
                 )
+            ) {
+                VoiceInputAction.GO_MODEL_DOWNLOAD -> {
+                    toast(app.getString(R.string.voice_model_need_download))
+                    openVoiceModelPage(app)
+                }
+                VoiceInputAction.REQUEST_PERMISSION ->
+                    com.apk.claw.android.ui.voice.VoicePermissionActivity.start(app)
+                VoiceInputAction.START_OFFLINE -> beginOfflineListening(app)
             }
-            recognizer.setRecognitionListener(object : android.speech.RecognitionListener {
-                override fun onResults(results: android.os.Bundle?) {
-                    val text = results
-                        ?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()
-                        ?.trim()
-                        .orEmpty()
-                    recognizer.destroy()
-                    if (text.isEmpty() || !KVUtils.hasLlmConfig()) {
-                        toast(app.getString(R.string.voice_failed))
-                        openChatForVoiceFallback()
-                        return
-                    }
-                    InAppChatStore.append(InAppChatStore.Role.USER, "🎙 $text")
-                    ChannelManager.dispatchMessage(
-                        Channel.IN_APP, text, "voice-${System.currentTimeMillis()}",
-                        com.apk.claw.android.channel.inapp.InAppChannelHandler.SENDER_ID
-                    )
-                }
-
-                override fun onError(error: Int) {
-                    XLog.w(TAG, "Speech recognition error: $error")
-                    recognizer.destroy()
-                    toast(app.getString(R.string.voice_failed))
-                    openChatForVoiceFallback()
-                }
-
-                override fun onReadyForSpeech(params: android.os.Bundle?) {
-                    toast(app.getString(R.string.voice_listening))
-                }
-
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
-                override fun onPartialResults(partialResults: android.os.Bundle?) {}
-                override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
-            })
-            recognizer.startListening(intent)
         }
     }
 
-    /** 语音不可用/失败时的文字输入兜底：打开聊天页 */
-    private fun openChatForVoiceFallback() {
+    private fun openVoiceModelPage(context: android.content.Context) {
         try {
-            com.apk.claw.android.ui.chat.ChatActivity.start(ClawApplication.instance)
+            context.startActivity(
+                android.content.Intent(context, com.apk.claw.android.ui.settings.VoiceModelActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         } catch (e: Exception) {
-            XLog.e(TAG, "Failed to open chat as voice fallback", e)
+            XLog.e(TAG, "Failed to open voice model page: ${e.message}")
         }
+    }
+
+    // —— F6 离线语音会话状态（仅主线程访问） ——
+
+    private var offlineEngine: SherpaSenseVoiceEngine? = null
+    private var offlineSessionActive = false
+    private var offlineTimeout: Runnable? = null
+
+    /** 长按按住期间开始离线聆听；松手结束识别（onFloatVoiceRelease）；按住中拖动放弃（onFloatVoiceCancel）；30 秒超时自动结束 */
+    private fun beginOfflineListening(app: android.content.Context) {
+        if (offlineSessionActive) return // 聆听中忽略重复长按
+        val engine = SherpaSenseVoiceEngine(app)
+        offlineEngine = engine
+        offlineSessionActive = true
+        FloatingCircleManager.setListeningState()
+        engine.start(object : VoiceEngine.Listener {
+            override fun onPartial(text: String) {
+                // SenseVoice 为整段解码，无流式中间结果；接口保留给未来流式引擎
+                mainHandler.post { FloatingCircleManager.updateListeningPartial(text) }
+            }
+
+            override fun onFinal(text: String) {
+                mainHandler.post { finishOfflineListening(text) }
+            }
+
+            override fun onError(message: String) {
+                mainHandler.post { abortOfflineListening(message) }
+            }
+        })
+        offlineTimeout = Runnable { engine.stop() }.also {
+            mainHandler.postDelayed(it, OFFLINE_VOICE_MAX_DURATION_MS)
+        }
+    }
+
+    private fun stopOfflineListening() {
+        offlineTimeout?.let(mainHandler::removeCallbacks)
+        offlineTimeout = null
+        offlineEngine?.stop()
+        // 松手结束：录音停止，SenseVoice 进入整段解码（1-3 秒），给出处理中提示
+        toast(ClawApplication.instance.getString(R.string.voice_processing))
+    }
+
+    /** 按住中转为拖动等取消场景：丢弃录音、不识别、不提示（引擎 cancel 后不再有任何回调） */
+    private fun cancelOfflineListening() {
+        offlineEngine?.cancel()
+        cleanupOfflineSession()
+    }
+
+    private fun finishOfflineListening(text: String) {
+        val app = ClawApplication.instance
+        cleanupOfflineSession()
+        if (text.isEmpty() || !KVUtils.hasLlmConfig()) {
+            toast(app.getString(R.string.voice_failed))
+            return
+        }
+        InAppChatStore.append(InAppChatStore.Role.USER, "🎙 $text")
+        ChannelManager.dispatchMessage(
+            Channel.IN_APP, text, "voice-${System.currentTimeMillis()}",
+            com.apk.claw.android.channel.inapp.InAppChannelHandler.SENDER_ID
+        )
+    }
+
+    private fun abortOfflineListening(message: String) {
+        XLog.w(TAG, "Offline voice error: $message")
+        cleanupOfflineSession()
+        toast(ClawApplication.instance.getString(R.string.voice_failed))
+    }
+
+    private fun cleanupOfflineSession() {
+        offlineTimeout?.let(mainHandler::removeCallbacks)
+        offlineTimeout = null
+        offlineEngine = null
+        offlineSessionActive = false
+        FloatingCircleManager.setIdleState()
     }
 
     private fun toast(text: String) {

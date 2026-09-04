@@ -1,7 +1,6 @@
 package com.apk.claw.android.ui.chat
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -122,12 +121,6 @@ class ChatActivity : BaseActivity() {
         companion object {
             private const val TYPE_USER = 0
             private const val TYPE_AGENT = 1
-        }
-    }
-
-    companion object {
-        fun start(context: Context) {
-            context.startActivity(Intent(context, ChatActivity::class.java))
         }
     }
 }

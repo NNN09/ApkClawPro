@@ -11,6 +11,7 @@ import com.apk.claw.android.server.ConfigServerManager
 import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.widget.QRCodeDialog
 import com.apk.claw.android.utils.XLog
+import com.apk.claw.android.voice.VoiceModelStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ class SettingsViewModel : ViewModel() {
             MenuAction.LLM_CONFIG.name to llmStatus(),
             MenuAction.SKILLS.name to skillsStatus(),
             MenuAction.PERSONA.name to personaStatus(),
+            MenuAction.VOICE_MODEL.name to voiceModelStatus(),
             MenuAction.SCHEDULES.name to schedulesStatus(),
             MenuAction.TRIGGERS.name to triggerStatus(),
             MenuAction.POLICIES.name to policiesStatus(),
@@ -58,6 +60,17 @@ class SettingsViewModel : ViewModel() {
     private fun channelStatus(bound: Boolean): SettingValue.Status {
         val text = ClawApplication.instance.getString(if (bound) R.string.common_bound else R.string.common_unbound)
         return SettingValue.Status(text, active = bound)
+    }
+
+    /** 离线语音模型入口：已安装（尾部成功色）或未安装 */
+    private fun voiceModelStatus(): SettingValue.Status {
+        val ctx = ClawApplication.instance
+        val installed = VoiceModelStore.isInstalled(ctx)
+        return SettingValue.Status(
+            text = ctx.getString(if (installed) R.string.voice_model_installed else R.string.voice_model_missing),
+            subtitle = ctx.getString(R.string.voice_model_size),
+            active = installed
+        )
     }
 
     private fun llmStatus(): SettingValue.Status {
@@ -368,6 +381,7 @@ class SettingsViewModel : ViewModel() {
         LAN_CONFIG,
         LLM_CONFIG,
         COMPLIANCE_CONFIG,
-        SKILLS, PERSONA, SCHEDULES, TRIGGERS, POLICIES
+        SKILLS, PERSONA, SCHEDULES, TRIGGERS, POLICIES,
+        VOICE_MODEL
     }
 }

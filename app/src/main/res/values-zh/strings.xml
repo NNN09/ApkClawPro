@@ -376,6 +376,24 @@
     <string name="voice_unavailable">本设备不支持语音识别，请在对话页输入任务。</string>
     <string name="voice_failed">语音识别失败，请在对话页输入任务。</string>
     <string name="voice_permission_denied">麦克风权限被拒绝，请在对话页输入任务。</string>
+    <string name="voice_listening_hint">聆听中…松开结束</string>
+    <string name="voice_processing">识别中…</string>
+    <string name="menu_voice_model">离线语音模型</string>
+    <string name="voice_model_default_name">SenseVoice（中/英/日/韩/粤）</string>
+    <string name="voice_model_default_meta">多语言离线识别 · int8 量化</string>
+    <string name="voice_model_size">约 228 MB</string>
+    <string name="voice_model_installed">已安装</string>
+    <string name="voice_model_missing">未安装</string>
+    <string name="voice_model_page_tip">长按悬浮球可语音输入任务。语音模型需先下载到本机（约 228 MB），识别完全在设备本地完成，音频不会上传。</string>
+    <string name="voice_model_status_installed">已安装，可直接长按悬浮球使用</string>
+    <string name="voice_model_status_missing">未安装</string>
+    <string name="voice_model_download">下载模型</string>
+    <string name="voice_model_cancel">取消</string>
+    <string name="voice_model_delete">删除模型</string>
+    <string name="voice_model_downloading_file">%2$d%% · %1$s</string>
+    <string name="voice_model_download_finished">模型下载完成</string>
+    <string name="voice_model_download_failed">下载失败，请检查网络后重试</string>
+    <string name="voice_model_need_download">请先下载离线语音模型</string>
 
     <!-- 定时任务工具（F7） -->
     <string name="tool_name_schedule_task">创建定时任务</string>

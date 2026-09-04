@@ -127,6 +127,12 @@
             android:excludeFromRecents="true"
             android:theme="@style/Theme.Transparent" />
 
+        <!-- F6：离线语音模型下载管理页（设置页"模型"组入口；长按无模型时跳转） -->
+        <activity
+            android:name=".ui.settings.VoiceModelActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <!-- F11：技能深链导入（二维码扫码进入） -->
         <activity
             android:name=".ui.share.SkillImportActivity"

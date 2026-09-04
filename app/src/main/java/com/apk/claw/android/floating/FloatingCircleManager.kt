@@ -4,8 +4,10 @@ import android.app.Application
 import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
@@ -14,6 +16,7 @@ import com.blankj.utilcode.util.ThreadUtils
 import com.apk.claw.android.R
 import com.apk.claw.android.channel.Channel
 import com.apk.claw.android.utils.KVUtils
+import com.apk.claw.android.utils.XLog
 import com.blankj.utilcode.util.BarUtils
 import com.lzf.easyfloat.EasyFloat
 import com.lzf.easyfloat.enums.ShowPattern
@@ -28,6 +31,7 @@ import com.lzf.easyfloat.utils.DisplayUtils
  */
 object FloatingCircleManager {
 
+    private const val TAG = "FloatingCircle"
     private const val FLOAT_TAG = "circle_float"
     private const val KEY_FLOAT_X = "floating_circle_x"
     private const val KEY_FLOAT_Y = "floating_circle_y"
@@ -39,6 +43,7 @@ object FloatingCircleManager {
     enum class State {
         IDLE,           // 等待任务（默认）
         TASK_NOTIFY,    // 收到任务通知（胶囊展开）
+        LISTENING,      // 语音按住聆听中（胶囊展开；按住期间录音，松手结束识别）
         RUNNING,        // 任务执行中
         SUCCESS,        // 任务完成
         ERROR           // 任务失败
@@ -89,7 +94,9 @@ object FloatingCircleManager {
             .setShowPattern(ShowPattern.ALL_TIME)
             .setSidePattern(SidePattern.DEFAULT)
             .setGravity(android.view.Gravity.START or android.view.Gravity.TOP, savedX, savedY)
-            .setDragEnable(true)
+            // 关闭 EasyFloat 自带拖拽：它只在位移 ≥9px 时拦截，静止长按（400ms）会先于拦截触发
+            // 系统 long-click，导致"想拖动、手先停了一下"就误唤起语音。手势统一走 handleFloatTouch
+            .setDragEnable(false)
             .hasEditText(false)
             .setTag(FLOAT_TAG)
             .registerCallbacks(object : OnFloatCallbacks {
@@ -105,15 +112,8 @@ object FloatingCircleManager {
                             circleWidthPx = root.layoutParams?.width ?: -1
                         }
                     }
-                    // 点击事件
-                    view?.setOnClickListener {
-                        onFloatClick()
-                    }
-                    // F6：长按唤起语音输入（与拖动手势并存：静止长按触发，拖动不触发）
-                    view?.setOnLongClickListener {
-                        onFloatLongClick()
-                        true
-                    }
+                    // 点按 / 长按语音 / 拖动全部手动判定（见 handleFloatTouch）
+                    view?.setOnTouchListener { v, event -> handleFloatTouch(v, event) }
                     // 初始化状态
                     updateStateView(view, currentState)
                     // 布局完成后检测位置，防止圆球卡在屏幕外
@@ -200,6 +200,188 @@ object FloatingCircleManager {
     }
 
     /**
+     * 切换到语音按住聆听中状态（胶囊展开；按住期间持续录音，松手结束识别）
+     */
+    fun setListeningState() {
+        ThreadUtils.runOnUiThread {
+            setState(State.LISTENING)
+        }
+    }
+
+    /**
+     * 更新聆听中的流式部分结果文本（仅 LISTENING 状态生效）
+     */
+    fun updateListeningPartial(text: String) {
+        ThreadUtils.runOnUiThread {
+            if (currentState != State.LISTENING) return@runOnUiThread
+            val view = EasyFloat.getFloatView(FLOAT_TAG)
+            view?.findViewById<TextView>(R.id.tvListeningPartial)?.text = text
+        }
+    }
+
+    // —— 手势状态（仅主线程访问）：点按 / 拖动 / 静止长按录音、松手识别 ——
+
+    /** 位移超过触摸阈值视为拖动意图（按下后移动则取消待触发的长按） */
+    private val dragSlopPx: Int by lazy {
+        appRef?.let { ViewConfiguration.get(it).scaledTouchSlop } ?: 24
+    }
+
+    /** 长按（语音）已触发后位移超过该阈值视为放弃语音转拖动；2 倍 slop 容忍按住说话时的手部抖动 */
+    private val voiceAbortSlopPx: Int get() = dragSlopPx * 2
+
+    private var gestureActive = false
+    private var gesturePointerId = -1
+    private var gestureDownRawX = 0f
+    private var gestureDownRawY = 0f
+    private var gestureWinX = 0 // 按下时悬浮窗窗口坐标（WindowManager.LayoutParams 坐标系）
+    private var gestureWinY = 0
+    private var gestureDragged = false
+    private var gestureVoiceFired = false // 静止长按已触发（语音已唤起）
+    private var gestureVoiceAborted = false // 长按后位移过大：语音已放弃并转为拖动
+    private var gestureLongPress: Runnable? = null
+    private val locationTmp = IntArray(2)
+
+    /** 悬浮窗窗口的 WindowManager.LayoutParams（rootView 即窗口根布局） */
+    private fun floatWindowLp(view: View): android.view.WindowManager.LayoutParams? =
+        view.rootView?.layoutParams as? android.view.WindowManager.LayoutParams
+
+    /**
+     * 悬浮球统一手势入口（消费全部事件，框架点按/长按不再生效）。
+     * 按下静止满长按时长 → 唤起语音，按住期间录音，松手结束识别；
+     * 按下后位移超阈值 → 视为拖动：未触发长按则直接拖动，已触发长按则先放弃语音再拖动；
+     * 无位移且未长按的点按 → [onFloatClick]。
+     */
+    private fun handleFloatTouch(view: View, event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> onFloatTouchDown(view, event)
+            MotionEvent.ACTION_MOVE -> {
+                if (gestureActive) onFloatTouchMove(view, event)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                // 第二根手指落下：放弃当前手势（不点按、不拖动、不识别）
+                if (gestureActive) cancelHoldingVoice()
+                resetGesture()
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                if (gestureActive && event.getPointerId(event.actionIndex) == gesturePointerId) {
+                    finishFloatGesture(view)
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                // 事件流被系统中断（如下拉通知栏）：正在录的语音直接放弃，不识别
+                if (gestureActive) {
+                    cancelHoldingVoice()
+                    resetGesture()
+                }
+            }
+        }
+        return true
+    }
+
+    private fun onFloatTouchDown(view: View, event: MotionEvent) {
+        resetGesture() // 兜底：权限弹窗等场景可能丢失 UP，新按下先清理残留手势
+        gestureActive = true
+        gesturePointerId = event.getPointerId(0)
+        gestureDownRawX = event.getRawX(0)
+        gestureDownRawY = event.getRawY(0)
+        // 拖动锚点取窗口 LayoutParams 坐标系（y 不含状态栏偏移），与 EasyFloat.updateFloat 保持一致
+        val lp = floatWindowLp(view)
+        if (lp != null) {
+            gestureWinX = lp.x
+            gestureWinY = lp.y
+        } else {
+            view.getLocationOnScreen(locationTmp)
+            gestureWinX = locationTmp[0]
+            gestureWinY = locationTmp[1]
+        }
+        // 静止长按 → 唤起语音（按住期间持续录音，松手识别）
+        gestureLongPress = Runnable {
+            gestureVoiceFired = true
+            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            XLog.d(TAG, "Long press fired, hold to speak")
+            onFloatLongClick()
+        }.also {
+            mainHandler.postDelayed(it, ViewConfiguration.getLongPressTimeout().toLong())
+        }
+    }
+
+    private fun onFloatTouchMove(view: View, event: MotionEvent) {
+        val idx = event.findPointerIndex(gesturePointerId)
+        if (idx < 0) return
+        val dx = event.getRawX(idx) - gestureDownRawX
+        val dy = event.getRawY(idx) - gestureDownRawY
+        // 未开始拖动前需越过阈值才判定为拖动；开始后窗口始终跟随手指
+        val threshold = if (gestureVoiceFired) voiceAbortSlopPx else dragSlopPx
+        if (!gestureDragged && dx * dx + dy * dy < threshold * threshold) return
+        if (!gestureDragged) {
+            gestureDragged = true
+            if (gestureVoiceFired) {
+                // 长按已唤起语音但位移过大：放弃本次录音，转为拖动
+                cancelHoldingVoice()
+                XLog.d(TAG, "Drag started (voice dropped)")
+            } else {
+                // 拖动意图：取消未触发的长按，绝不唤起语音
+                cancelGestureLongPress()
+                XLog.d(TAG, "Drag started")
+            }
+        }
+        dragFloatTo(view, (gestureWinX + dx).toInt(), (gestureWinY + dy).toInt())
+    }
+
+    /** 拖动窗口到指定坐标（窗口 LayoutParams 坐标系，限制在屏幕可用区域内） */
+    private fun dragFloatTo(view: View, x: Int, y: Int) {
+        val dm = Resources.getSystem().displayMetrics
+        val maxX = (dm.widthPixels - view.width).coerceAtLeast(0)
+        val maxY = (dm.heightPixels - view.height - getNavigationBarHeight() - 50).coerceAtLeast(0)
+        EasyFloat.updateFloat(FLOAT_TAG, x.coerceIn(0, maxX), y.coerceIn(0, maxY))
+    }
+
+    /** 主手指抬起（松手）：长按语音 → 结束并识别；拖动 → 修正并保存位置；否则视为点按 */
+    private fun finishFloatGesture(view: View) {
+        cancelGestureLongPress()
+        val fired = gestureVoiceFired
+        val aborted = gestureVoiceAborted
+        val dragged = gestureDragged
+        resetGesture()
+        when {
+            fired && !aborted -> {
+                XLog.d(TAG, "Long press released, recognize")
+                onFloatVoiceRelease()
+            }
+            dragged -> ensureFloatInBounds(view)
+            else -> {
+                XLog.d(TAG, "Float tapped")
+                onFloatClick()
+            }
+        }
+    }
+
+    /** 按住中放弃语音（转拖动 / 第二指 / 系统中断），由上层丢弃录音，不识别不提示 */
+    private fun cancelHoldingVoice() {
+        if (gestureVoiceFired && !gestureVoiceAborted) {
+            gestureVoiceAborted = true
+            XLog.d(TAG, "Voice hold cancelled")
+            onFloatVoiceCancel()
+        }
+    }
+
+    private fun cancelGestureLongPress() {
+        gestureLongPress?.let {
+            mainHandler.removeCallbacks(it)
+            gestureLongPress = null
+        }
+    }
+
+    private fun resetGesture() {
+        cancelGestureLongPress()
+        gestureActive = false
+        gesturePointerId = -1
+        gestureVoiceFired = false
+        gestureVoiceAborted = false
+        gestureDragged = false
+    }
+
+    /**
      * 切换到任务执行中状态
      * @param round 当前轮数
      * @param channel 消息来源渠道
@@ -254,6 +436,7 @@ object FloatingCircleManager {
 
         val cardIdle = view.findViewById<View>(R.id.cardIdle)
         val cardTaskNotify = view.findViewById<View>(R.id.cardTaskNotify)
+        val cardListening = view.findViewById<View>(R.id.cardListening)
         val cardRunning = view.findViewById<View>(R.id.cardRunning)
         val cardSuccess = view.findViewById<View>(R.id.cardSuccess)
         val cardError = view.findViewById<View>(R.id.cardError)
@@ -261,6 +444,7 @@ object FloatingCircleManager {
         // 隐藏所有状态
         cardIdle?.visibility = View.GONE
         cardTaskNotify?.visibility = View.GONE
+        cardListening?.visibility = View.GONE
         cardRunning?.visibility = View.GONE
         cardSuccess?.visibility = View.GONE
         cardError?.visibility = View.GONE
@@ -287,6 +471,12 @@ object FloatingCircleManager {
                 val ivLogo = view.findViewById<ImageView>(R.id.ivNotifyChannelLogo)
                 ivLogo?.setImageResource(getChannelIcon(currentChannel))
                 // 展开为 wrap_content
+                setFloatRootWidth(view, WindowManager.LayoutParams.WRAP_CONTENT)
+            }
+            State.LISTENING -> {
+                cardListening?.visibility = View.VISIBLE
+                val tvPartial = view.findViewById<TextView>(R.id.tvListeningPartial)
+                tvPartial?.text = appRef?.getString(R.string.voice_listening_hint) ?: ""
                 setFloatRootWidth(view, WindowManager.LayoutParams.WRAP_CONTENT)
             }
             State.RUNNING -> {
@@ -447,12 +637,22 @@ object FloatingCircleManager {
     }
 
     /**
-     * 点击回调，可以在外部设置
+     * 点按回调，可以在外部设置
      */
     var onFloatClick: () -> Unit = {}
 
     /**
-     * F6：长按回调，唤起语音输入
+     * 长按（静止按住满长按时长）触发语音输入回调；按住期间持续录音，松手时 onFloatVoiceRelease
      */
     var onFloatLongClick: () -> Unit = {}
+
+    /**
+     * 长按后松手回调：结束录音并识别
+     */
+    var onFloatVoiceRelease: () -> Unit = {}
+
+    /**
+     * 长按中放弃回调（按住时转为拖动 / 第二指落下 / 事件流被系统中断）：丢弃本次录音，不识别
+     */
+    var onFloatVoiceCancel: () -> Unit = {}
 }

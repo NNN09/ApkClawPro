@@ -369,6 +369,24 @@
     <string name="voice_unavailable">この端末では音声認識を利用できません。チャットで入力してください。</string>
     <string name="voice_failed">音声認識に失敗しました。チャットで入力してください。</string>
     <string name="voice_permission_denied">マイクの権限が拒否されました。チャットで入力してください。</string>
+    <string name="voice_listening_hint">音声認識中…指を離して終了</string>
+    <string name="voice_processing">認識中…</string>
+    <string name="menu_voice_model">オフライン音声モデル</string>
+    <string name="voice_model_default_name">SenseVoice（中/英/日/韓/広東語）</string>
+    <string name="voice_model_default_meta">多言語オフライン認識 · int8量子化</string>
+    <string name="voice_model_size">約 228 MB</string>
+    <string name="voice_model_installed">インストール済み</string>
+    <string name="voice_model_missing">未インストール</string>
+    <string name="voice_model_page_tip">バブルを長押しすると音声でタスクを入力できます。音声モデル（約228MB）のダウンロードが必要です。認識はすべて端末内で行われ、音声はアップロードされません。</string>
+    <string name="voice_model_status_installed">インストール済み。長押しで利用できます</string>
+    <string name="voice_model_status_missing">未インストール</string>
+    <string name="voice_model_download">モデルをダウンロード</string>
+    <string name="voice_model_cancel">キャンセル</string>
+    <string name="voice_model_delete">モデルを削除</string>
+    <string name="voice_model_downloading_file">%2$d%% · %1$s</string>
+    <string name="voice_model_download_finished">モデルのダウンロードが完了しました</string>
+    <string name="voice_model_download_failed">ダウンロードに失敗しました。ネットワークを確認して再試行してください</string>
+    <string name="voice_model_need_download">オフライン音声モデルを先にダウンロードしてください</string>
 
     <!-- 定時タスクツール（F7） -->
     <string name="tool_name_schedule_task">定時タスクを作成</string>

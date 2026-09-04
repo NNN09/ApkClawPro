@@ -47,6 +47,46 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- 语音聆听中状态（胶囊展开；按住期间录音，松手结束识别） -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardListening"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorBrandPrimary"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16pt"
+            android:paddingEnd="18pt">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎙"
+                android:textSize="16pt" />
+
+            <TextView
+                android:id="@+id/tvListeningPartial"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8pt"
+                android:text="@string/voice_listening_hint"
+                android:textColor="@color/colorBrandOnPrimary"
+                android:textSize="12pt"
+                android:maxWidth="220pt"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- 等待任务状态（默认） -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardIdle"

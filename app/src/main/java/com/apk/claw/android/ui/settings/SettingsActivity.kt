@@ -103,9 +103,18 @@ class SettingsActivity : BaseActivity() {
             leadingIcon = R.drawable.ic_persona,
             title = getString(R.string.menu_persona),
             onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.PERSONA) },
-            showDivider = false
+            showDivider = true
         )
         menuItems[SettingsViewModel.MenuAction.PERSONA.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        // 离线语音模型（F6 悬浮球语音输入用；不随 APK 分发，需在此下载）
+        menuItems[SettingsViewModel.MenuAction.VOICE_MODEL.name] = modelGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_voice_model,
+            title = getString(R.string.menu_voice_model),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.VOICE_MODEL) },
+            showDivider = false
+        )
+        menuItems[SettingsViewModel.MenuAction.VOICE_MODEL.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
 
         // 自动化
         val automationGroup = findViewById<MenuGroup>(R.id.automationGroup)
@@ -313,6 +322,9 @@ class SettingsActivity : BaseActivity() {
                             }
                             SettingsViewModel.MenuAction.PERSONA -> {
                                 featureConfigLauncher.launch(Intent(this@SettingsActivity, PersonaConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.VOICE_MODEL -> {
+                                startActivity(Intent(this@SettingsActivity, VoiceModelActivity::class.java))
                             }
                             SettingsViewModel.MenuAction.SCHEDULES -> {
                                 featureConfigLauncher.launch(Intent(this@SettingsActivity, ScheduleConfigActivity::class.java))

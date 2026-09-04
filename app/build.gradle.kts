@@ -40,6 +40,10 @@ android {
         versionName = "0.0.2"
         buildConfigField("String", "VERSION_INFO", getVersionGit())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // F6 离线语音：sherpa-onnx 只带 arm64 运行时（真机均为 arm64，减小 APK 体积）
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
 
@@ -120,6 +124,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.utilcode)
+    // F6 离线语音：sherpa-onnx 运行时（本地 AAR，含 arm64 JNI；模型不打包，运行时探测外部目录）
+    implementation(files("libs/sherpa-onnx-1.13.7.aar"))
     implementation(libs.ok2curl)
     implementation(libs.lifecycle.runtime)
     implementation(libs.lifecycle.viewmodel)
