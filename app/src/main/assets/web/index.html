@@ -1712,22 +1712,31 @@ async function refreshSchedules() {
       const text = document.createElement('div');
       text.className = 'sched-text';
       text.textContent = `[${x.enabled ? '●' : '○'}] ${time} (${days}) ${x.name}\n  ${x.task}`;
+      // 点击后无论请求成败都重拉列表：手机侧 ConfigServer 可能随网络切换重启，
+      // 陈旧 keep-alive 连接上的 POST 会丢响应甚至 reject，若只在 await 成功后刷新，
+      // 操作已在服务端生效而页面仍停留在旧状态
+      const postAndRefresh = (path, body) => {
+        let settled = false;
+        fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(async r => {
+            const j = await r.json().catch(() => null);
+            if (!j || j.code !== 0) showToast((j && j.message) || t('save_failed'), 'error');
+          })
+          .catch(() => showToast(t('save_failed'), 'error'))
+          .finally(() => { settled = true; refreshSchedules(); });
+        // 响应挂起（连接陈旧/服务重启中）时超时兜底，仍按服务器真实状态刷新
+        setTimeout(() => { if (!settled) refreshSchedules(); }, 5000);
+      };
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.textContent = '✕';
       delBtn.title = t('sched_del');
-      delBtn.addEventListener('click', async () => {
-        await fetch('/api/schedules/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id }) });
-        refreshSchedules();
-      });
+      delBtn.addEventListener('click', () => postAndRefresh('/api/schedules/delete', { id: x.id }));
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
       toggleBtn.textContent = x.enabled ? '❚❚' : '▶';
       toggleBtn.title = t('sched_toggle');
-      toggleBtn.addEventListener('click', async () => {
-        await fetch('/api/schedules/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id, enabled: !x.enabled }) });
-        refreshSchedules();
-      });
+      toggleBtn.addEventListener('click', () => postAndRefresh('/api/schedules/toggle', { id: x.id, enabled: !x.enabled }));
       row.appendChild(text);
       row.appendChild(toggleBtn);
       row.appendChild(delBtn);
