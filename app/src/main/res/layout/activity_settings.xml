@@ -30,17 +30,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8pt" />
 
-            <!-- 通道分组 -->
-            <com.apk.claw.android.widget.MenuGroup
-                android:id="@+id/channelGroup"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
             <!-- 通用分组 -->
             <com.apk.claw.android.widget.MenuGroup
                 android:id="@+id/generalGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <!-- 通道分组（置底） -->
+            <com.apk.claw.android.widget.MenuGroup
+                android:id="@+id/channelGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24pt" />
 
         </LinearLayout>
 

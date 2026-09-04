@@ -271,86 +271,6 @@ button { font: inherit; cursor: pointer; }
       <p class="hint" data-i18n="llm_tip"></p>
     </div>
 
-    <div class="card">
-      <div class="card-head">
-        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.52 0-2.96-.4-4.2-1.1L3 20l1.1-4.3A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
-        <span class="card-title" data-i18n="chan_title"></span>
-      </div>
-
-      <div class="chan">
-        <div class="chan-head dingtalk"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
-        <div class="field">
-          <label>Client ID</label>
-          <input type="text" id="dingtalkAppKey" data-i18n-placeholder="ph_dingtalk_id" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Client Secret</label>
-          <div class="input-wrap">
-            <input type="password" id="dingtalkAppSecret" data-i18n-placeholder="ph_dingtalk_secret" autocomplete="off">
-            <button class="toggle-eye" onclick="togglePassword('dingtalkAppSecret', this)" data-i18n-title="toggle_visibility"></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="chan">
-        <div class="chan-head feishu"><span class="dot"></span><span data-i18n="feishu"></span></div>
-        <div class="field">
-          <label>App ID</label>
-          <input type="text" id="feishuAppId" data-i18n-placeholder="ph_feishu_id" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>App Secret</label>
-          <div class="input-wrap">
-            <input type="password" id="feishuAppSecret" data-i18n-placeholder="ph_feishu_secret" autocomplete="off">
-            <button class="toggle-eye" onclick="togglePassword('feishuAppSecret', this)" data-i18n-title="toggle_visibility"></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="chan">
-        <div class="chan-head qq"><span class="dot"></span>QQ</div>
-        <div class="field">
-          <label>App ID</label>
-          <input type="text" id="qqAppId" data-i18n-placeholder="ph_qq_id" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>App Secret</label>
-          <div class="input-wrap">
-            <input type="password" id="qqAppSecret" data-i18n-placeholder="ph_qq_secret" autocomplete="off">
-            <button class="toggle-eye" onclick="togglePassword('qqAppSecret', this)" data-i18n-title="toggle_visibility"></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="chan">
-        <div class="chan-head discord"><span class="dot"></span>Discord</div>
-        <div class="field">
-          <label>Bot Token</label>
-          <div class="input-wrap">
-            <input type="password" id="discordBotToken" data-i18n-placeholder="ph_discord_token" autocomplete="off">
-            <button class="toggle-eye" onclick="togglePassword('discordBotToken', this)" data-i18n-title="toggle_visibility"></button>
-          </div>
-        </div>
-        <p class="hint" data-i18n="discord_tip"></p>
-      </div>
-
-      <div class="divider"></div>
-      <div class="chan">
-        <div class="chan-head telegram"><span class="dot"></span>Telegram</div>
-        <div class="field">
-          <label>Bot Token</label>
-          <div class="input-wrap">
-            <input type="password" id="telegramBotToken" data-i18n-placeholder="ph_telegram_token" autocomplete="off">
-            <button class="toggle-eye" onclick="togglePassword('telegramBotToken', this)" data-i18n-title="toggle_visibility"></button>
-          </div>
-        </div>
-        <p class="hint" data-i18n="telegram_tip"></p>
-      </div>
-    </div>
-
     <!-- ==================== 自动化 ==================== -->
     <div class="sec" data-i18n="sec_automation"></div>
 
@@ -584,6 +504,87 @@ button { font: inherit; cursor: pointer; }
       </div>
       <p class="hint" data-i18n="stats_tip"></p>
     </div>
+
+    <!-- ==================== 消息通道（置底） ==================== -->
+    <div class="card" style="margin-top:22px;">
+      <div class="card-head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.52 0-2.96-.4-4.2-1.1L3 20l1.1-4.3A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+        <span class="card-title" data-i18n="chan_title"></span>
+      </div>
+
+      <div class="chan">
+        <div class="chan-head dingtalk"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
+        <div class="field">
+          <label>Client ID</label>
+          <input type="text" id="dingtalkAppKey" data-i18n-placeholder="ph_dingtalk_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Client Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="dingtalkAppSecret" data-i18n-placeholder="ph_dingtalk_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('dingtalkAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head feishu"><span class="dot"></span><span data-i18n="feishu"></span></div>
+        <div class="field">
+          <label>App ID</label>
+          <input type="text" id="feishuAppId" data-i18n-placeholder="ph_feishu_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>App Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="feishuAppSecret" data-i18n-placeholder="ph_feishu_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('feishuAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head qq"><span class="dot"></span>QQ</div>
+        <div class="field">
+          <label>App ID</label>
+          <input type="text" id="qqAppId" data-i18n-placeholder="ph_qq_id" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>App Secret</label>
+          <div class="input-wrap">
+            <input type="password" id="qqAppSecret" data-i18n-placeholder="ph_qq_secret" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('qqAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head discord"><span class="dot"></span>Discord</div>
+        <div class="field">
+          <label>Bot Token</label>
+          <div class="input-wrap">
+            <input type="password" id="discordBotToken" data-i18n-placeholder="ph_discord_token" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('discordBotToken', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="discord_tip"></p>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chan">
+        <div class="chan-head telegram"><span class="dot"></span>Telegram</div>
+        <div class="field">
+          <label>Bot Token</label>
+          <div class="input-wrap">
+            <input type="password" id="telegramBotToken" data-i18n-placeholder="ph_telegram_token" autocomplete="off">
+            <button class="toggle-eye" onclick="togglePassword('telegramBotToken', this)" data-i18n-title="toggle_visibility"></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="telegram_tip"></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -599,7 +600,7 @@ const i18nMessages = {
   'zh': {
     title: 'ApkClaw 配置',
     subtitle: '在此页面配置 LLM 与钉钉、飞书、QQ、Discord、Telegram 的应用凭证',
-    sec_basic: '基础配置',
+    sec_basic: '模型',
     sec_automation: '自动化',
     sec_assistant: '助手',
     sec_logs: '运行记录',
@@ -753,7 +754,7 @@ const i18nMessages = {
   'en': {
     title: 'ApkClaw Config',
     subtitle: 'Configure LLM and credentials for DingTalk, Feishu, QQ, Discord, Telegram',
-    sec_basic: 'Basics',
+    sec_basic: 'Model',
     sec_automation: 'Automation',
     sec_assistant: 'Assistant',
     sec_logs: 'Activity',
@@ -907,7 +908,7 @@ const i18nMessages = {
   'ja': {
     title: 'ApkClaw 設定',
     subtitle: 'LLM と DingTalk、Feishu、QQ、Discord、Telegram の資格情報を設定',
-    sec_basic: '基本設定',
+    sec_basic: 'モデル',
     sec_automation: '自動化',
     sec_assistant: 'アシスタント',
     sec_logs: '活動記録',
