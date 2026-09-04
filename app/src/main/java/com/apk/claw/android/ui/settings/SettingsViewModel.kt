@@ -38,6 +38,11 @@ class SettingsViewModel : ViewModel() {
     fun refresh() {
         val map = mapOf(
             MenuAction.LLM_CONFIG.name to llmStatus(),
+            MenuAction.SKILLS.name to skillsStatus(),
+            MenuAction.PERSONA.name to personaStatus(),
+            MenuAction.SCHEDULES.name to schedulesStatus(),
+            MenuAction.TRIGGERS.name to triggerStatus(),
+            MenuAction.POLICIES.name to policiesStatus(),
             MenuAction.DINGDING.name to channelStatus(KVUtils.getDingtalkAppKey().isNotEmpty() && KVUtils.getDingtalkAppSecret().isNotEmpty()),
             MenuAction.FEISHU.name to channelStatus(KVUtils.getFeishuAppId().isNotEmpty() && KVUtils.getFeishuAppSecret().isNotEmpty()),
             MenuAction.QQ.name to channelStatus(KVUtils.getQqAppId().isNotEmpty() && KVUtils.getQqAppSecret().isNotEmpty()),
@@ -86,6 +91,50 @@ class SettingsViewModel : ViewModel() {
             subtitle = ClawApplication.instance.getString(R.string.compliance_status_quiet, start, end),
             active = true
         )
+    }
+
+    /** 技能入口：已安装技能数 */
+    private fun skillsStatus(): SettingValue.Status {
+        val count = com.apk.claw.android.agent.store.SkillStore.list().size
+        if (count == 0) return SettingValue.Status("")
+        return SettingValue.Status("", subtitle = ClawApplication.instance.getString(R.string.skills_status_count, count))
+    }
+
+    /** 人设入口：已设置时显示状态 */
+    private fun personaStatus(): SettingValue.Status {
+        if (com.apk.claw.android.agent.store.PersonaStore.get().isBlank()) return SettingValue.Status("")
+        return SettingValue.Status("", subtitle = ClawApplication.instance.getString(R.string.persona_status_set))
+    }
+
+    /** 定时任务入口：任务数与启用数 */
+    private fun schedulesStatus(): SettingValue.Status {
+        val tasks = com.apk.claw.android.agent.store.ScheduledTaskStore.list()
+        if (tasks.isEmpty()) return SettingValue.Status("")
+        return SettingValue.Status(
+            "",
+            subtitle = ClawApplication.instance.getString(R.string.schedules_status_count, tasks.size, tasks.count { it.enabled })
+        )
+    }
+
+    /** 事件触发入口：总开关状态 + 规则数 */
+    private fun triggerStatus(): SettingValue.Status {
+        val config = com.apk.claw.android.trigger.TriggerRuleStore.get()
+        val subtitle = if (config.rules.isEmpty()) null
+        else ClawApplication.instance.getString(R.string.triggers_status_rules, config.rules.size)
+        return SettingValue.Status(
+            ClawApplication.instance.getString(
+                if (config.enabled) R.string.triggers_status_on else R.string.triggers_status_off
+            ),
+            subtitle = subtitle,
+            active = config.enabled
+        )
+    }
+
+    /** 单应用策略入口：策略条数 */
+    private fun policiesStatus(): SettingValue.Status {
+        val count = com.apk.claw.android.compliance.AppPolicyStore.list().size
+        if (count == 0) return SettingValue.Status("")
+        return SettingValue.Status("", subtitle = ClawApplication.instance.getString(R.string.policies_status_count, count))
     }
 
     /**
@@ -318,6 +367,7 @@ class SettingsViewModel : ViewModel() {
         DINGDING, FEISHU, QQ, DISCORD, TELEGRAM, WECHAT,
         LAN_CONFIG,
         LLM_CONFIG,
-        COMPLIANCE_CONFIG
+        COMPLIANCE_CONFIG,
+        SKILLS, PERSONA, SCHEDULES, TRIGGERS, POLICIES
     }
 }

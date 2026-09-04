@@ -40,6 +40,11 @@ class SettingsActivity : BaseActivity() {
         viewModel.refresh()
     }
 
+    // 功能面板（技能/人设/定时/触发/策略）返回后刷新计数与状态
+    private val featureConfigLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+        viewModel.refresh()
+    }
+
     // 注册通道配置结果回调
     private val channelConfigLauncher = ChannelConfigActivity.registerLauncher(this) { result ->
         result?.let {
@@ -82,9 +87,53 @@ class SettingsActivity : BaseActivity() {
             leadingIcon = R.drawable.icon_current_model,
             title = getString(R.string.menu_llm_config),
             onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.LLM_CONFIG) },
-            showDivider = false
+            showDivider = true
         )
         menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        menuItems[SettingsViewModel.MenuAction.SKILLS.name] = modelGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_skills,
+            title = getString(R.string.menu_skills),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.SKILLS) },
+            showDivider = true
+        )
+        menuItems[SettingsViewModel.MenuAction.SKILLS.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        menuItems[SettingsViewModel.MenuAction.PERSONA.name] = modelGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_persona,
+            title = getString(R.string.menu_persona),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.PERSONA) },
+            showDivider = false
+        )
+        menuItems[SettingsViewModel.MenuAction.PERSONA.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        // 自动化
+        val automationGroup = findViewById<MenuGroup>(R.id.automationGroup)
+        automationGroup.setTitle(getString(R.string.settings_group_automation))
+
+        menuItems[SettingsViewModel.MenuAction.SCHEDULES.name] = automationGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_schedule,
+            title = getString(R.string.menu_schedules),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.SCHEDULES) },
+            showDivider = true
+        )
+        menuItems[SettingsViewModel.MenuAction.SCHEDULES.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        menuItems[SettingsViewModel.MenuAction.TRIGGERS.name] = automationGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_trigger,
+            title = getString(R.string.menu_triggers),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.TRIGGERS) },
+            showDivider = true
+        )
+        menuItems[SettingsViewModel.MenuAction.TRIGGERS.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
+
+        menuItems[SettingsViewModel.MenuAction.POLICIES.name] = automationGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_policy,
+            title = getString(R.string.menu_app_policies),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.POLICIES) },
+            showDivider = false
+        )
+        menuItems[SettingsViewModel.MenuAction.POLICIES.name]?.setLeadingIconColor(getColor(R.color.colorBrandPrimary))
 
         // 通道
         val channelGroup = findViewById<MenuGroup>(R.id.channelGroup)
@@ -258,6 +307,21 @@ class SettingsActivity : BaseActivity() {
                             }
                             SettingsViewModel.MenuAction.COMPLIANCE_CONFIG -> {
                                 complianceConfigLauncher.launch(Intent(this@SettingsActivity, ComplianceConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.SKILLS -> {
+                                featureConfigLauncher.launch(Intent(this@SettingsActivity, SkillsConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.PERSONA -> {
+                                featureConfigLauncher.launch(Intent(this@SettingsActivity, PersonaConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.SCHEDULES -> {
+                                featureConfigLauncher.launch(Intent(this@SettingsActivity, ScheduleConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.TRIGGERS -> {
+                                featureConfigLauncher.launch(Intent(this@SettingsActivity, TriggerConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.POLICIES -> {
+                                featureConfigLauncher.launch(Intent(this@SettingsActivity, PolicyConfigActivity::class.java))
                             }
                             null -> {}
                             else -> {}

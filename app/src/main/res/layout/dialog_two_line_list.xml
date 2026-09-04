@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog"
+    android:orientation="vertical"
+    android:paddingHorizontal="16pt"
+    android:paddingTop="24pt"
+    android:paddingBottom="40pt">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="44pt">
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="44pt"
+            android:layout_height="44pt"
+            android:layout_gravity="start|center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/common_close"
+            android:padding="10pt"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="17pt"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <android.widget.Space
+        android:layout_width="0dp"
+        android:layout_height="12pt" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="420pt">
+
+        <LinearLayout
+            android:id="@+id/llItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingVertical="32pt"
+        android:textColor="@color/colorTextTertiary"
+        android:textSize="14pt"
+        android:visibility="gone" />
+
+</LinearLayout>

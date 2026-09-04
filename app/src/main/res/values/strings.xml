@@ -165,6 +165,131 @@
     <string name="compliance_saved">Automation settings saved</string>
     <string name="compliance_status_quiet">Quiet %1$s–%2$s</string>
 
+    <string name="common_delete">Delete</string>
+
+    <!-- Feature panels synced from LAN config page -->
+    <string name="settings_group_automation">Automation</string>
+    <string name="menu_schedules">Scheduled tasks</string>
+    <string name="menu_triggers">Notification triggers</string>
+    <string name="menu_skills">Skills</string>
+    <string name="menu_persona">Persona</string>
+    <string name="menu_app_policies">Per-app policies</string>
+    <string name="schedules_status_count">%1$d tasks, %2$d on</string>
+    <string name="triggers_status_on">On</string>
+    <string name="triggers_status_off">Off</string>
+    <string name="triggers_status_rules">%1$d rules</string>
+    <string name="skills_status_count">%1$d installed</string>
+    <string name="persona_status_set">Set</string>
+    <string name="policies_status_count">%1$d policies</string>
+
+    <!-- Scheduled tasks -->
+    <string name="schedule_config_title">Scheduled tasks</string>
+    <string name="schedule_config_tip">Tasks fire at the given time and dispatch the instruction as an automated task via the selected channel. Max 20 tasks; editing rebuilds the plan.</string>
+    <string name="schedule_add">New task</string>
+    <string name="schedule_edit_title">Edit task</string>
+    <string name="schedule_empty">No scheduled tasks yet</string>
+    <string name="schedule_row_subtitle">%1$s · %2$s · %3$s</string>
+    <string name="schedule_days_daily">Daily</string>
+    <string name="schedule_field_name">Name</string>
+    <string name="schedule_name_hint">Optional, defaults to task text</string>
+    <string name="schedule_field_task">Task instruction</string>
+    <string name="schedule_task_hint">e.g. Check tomorrow\'s weather and send a summary</string>
+    <string name="schedule_field_time">Time (HH:mm)</string>
+    <string name="schedule_field_days">Days (1–7)</string>
+    <string name="schedule_days_hint">1,3,5 empty = daily</string>
+    <string name="schedule_field_channel">Result channel</string>
+    <string name="schedule_task_required">Task instruction is required</string>
+    <string name="schedule_invalid_days">Days must be comma-separated 1–7 (Mon=1…Sun=7)</string>
+    <string name="schedule_saved">Scheduled task saved</string>
+    <string name="schedule_save_failed">Failed to save scheduled task</string>
+    <string name="schedule_deleted">Scheduled task deleted</string>
+    <string name="schedule_delete_title">Delete this scheduled task?</string>
+    <string name="schedule_delete_message">“%1$s” will be removed.</string>
+
+    <!-- Skills -->
+    <string name="skills_config_title">Skills</string>
+    <string name="skills_config_tip">Skills are reusable step libraries the Agent loads on demand. All writes pass the prompt-injection security scan.</string>
+    <string name="skills_add">New skill</string>
+    <string name="skills_edit_title">Edit skill</string>
+    <string name="skills_empty">No skills installed</string>
+    <string name="skills_field_name">Name</string>
+    <string name="skills_name_hint">lowercase letters, digits and - only</string>
+    <string name="skills_field_desc">Description</string>
+    <string name="skills_desc_hint">What it does and when to use it</string>
+    <string name="skills_field_content">Content (Markdown)</string>
+    <string name="skills_content_hint">Detailed steps the Agent follows when this skill is loaded</string>
+    <string name="skills_content_required">Content is required</string>
+    <string name="skills_invalid_name">Name allows a-z, 0-9 and - only (max 40)</string>
+    <string name="skills_scan_blocked_title">Blocked by security scan</string>
+    <string name="skills_saved">Skill saved</string>
+    <string name="skills_deleted">Skill deleted</string>
+    <string name="skills_delete_title">Delete this skill?</string>
+    <string name="skills_delete_message">“%1$s” will be removed.</string>
+    <string name="skills_install_template">Templates</string>
+    <string name="skills_templates_title">Install from templates</string>
+    <string name="skills_templates_empty">No templates available</string>
+
+    <!-- Notification triggers -->
+    <string name="trigger_config_title">Notification triggers</string>
+    <string name="trigger_config_tip">When a notification from a whitelisted app matches a rule, the template is rendered into a task instruction and dispatched automatically. Takes effect on save.</string>
+    <string name="trigger_master">Enable triggers</string>
+    <string name="trigger_master_desc">Master switch for all rules</string>
+    <string name="trigger_listener_unbound">Notification access is not granted. Triggers cannot receive notifications.</string>
+    <string name="trigger_listener_grant">Grant notification access</string>
+    <string name="trigger_whitelist">Notification source whitelist</string>
+    <string name="trigger_whitelist_empty">No whitelisted apps</string>
+    <string name="trigger_add_package">+ Add package</string>
+    <string name="trigger_rules">Rules</string>
+    <string name="trigger_rules_empty">No rules</string>
+    <string name="trigger_add_rule">+ New rule</string>
+    <string name="trigger_edit_title">Edit rule</string>
+    <string name="trigger_rule_subtitle">%1$s · %2$s</string>
+    <string name="trigger_any_package">Any whitelisted app</string>
+    <string name="trigger_field_name">Rule name</string>
+    <string name="trigger_name_hint">e.g. Verification code relay</string>
+    <string name="trigger_field_package">App package (optional)</string>
+    <string name="trigger_package_hint">com.example.app</string>
+    <string name="trigger_field_regex">Keyword regex</string>
+    <string name="trigger_regex_hint">e.g. \\d{6}</string>
+    <string name="trigger_field_template">Task template</string>
+    <string name="trigger_template_hint">Placeholders: {app} {title} {text} {match}</string>
+    <string name="trigger_name_required">Rule name is required</string>
+    <string name="trigger_invalid_regex">Invalid regular expression</string>
+    <string name="trigger_template_required">Task template is required</string>
+    <string name="trigger_duplicate_name">A rule with this name already exists</string>
+    <string name="trigger_saved">Trigger config saved</string>
+    <string name="trigger_save_failed">Save failed: %1$s</string>
+    <string name="trigger_delete_title">Delete this rule?</string>
+    <string name="trigger_delete_message">“%1$s” will be removed.</string>
+
+    <!-- Persona -->
+    <string name="persona_config_title">Persona</string>
+    <string name="persona_config_tip">Persona is injected into the system prompt to shape tone and behavior. Leave empty to disable.</string>
+    <string name="persona_hint">Describe personality, tone and boundaries…</string>
+    <string name="persona_saved">Persona saved</string>
+
+    <!-- Per-app policies -->
+    <string name="policy_config_title">Per-app policies</string>
+    <string name="policy_config_tip">Apps without a policy default to full automation; dangerous operations are still gated by the global confirm setting.</string>
+    <string name="policy_add">New policy</string>
+    <string name="policy_edit_title">Edit policy</string>
+    <string name="policy_empty">No per-app policies. All apps use full automation.</string>
+    <string name="policy_field_package">App package</string>
+    <string name="policy_package_hint">com.example.app</string>
+    <string name="policy_field_mode">Automation mode</string>
+    <string name="policy_mode_auto">Auto</string>
+    <string name="policy_mode_auto_desc">Full automation, same as no policy</string>
+    <string name="policy_mode_confirm">Confirm each action</string>
+    <string name="policy_mode_confirm_desc">Confirm every modifying action in this app</string>
+    <string name="policy_mode_block">Block</string>
+    <string name="policy_mode_block_desc">Automation of this app is rejected (observe and system tools unaffected)</string>
+    <string name="policy_invalid_package">Invalid package name</string>
+    <string name="policy_saved">Policy saved</string>
+    <string name="policy_save_failed">Failed to save policy</string>
+    <string name="policy_deleted">Policy deleted</string>
+    <string name="policy_delete_title">Delete this policy?</string>
+    <string name="policy_delete_message">“%1$s” will be removed.</string>
+
     <!-- Protocol -->
     <string name="protocol_agree_title">Privacy Guidelines</string>
     <string name="protocol_alert_title">Terms and Privacy</string>
@@ -250,6 +375,7 @@
     <string name="voice_listening">Listening…</string>
     <string name="voice_unavailable">Speech recognition is not available on this device. Type your task in the chat instead.</string>
     <string name="voice_failed">Voice recognition failed. Type your task in the chat instead.</string>
+    <string name="voice_permission_denied">Microphone permission denied. Type your task in the chat instead.</string>
 
     <!-- Scheduled task tools (F7) -->
     <string name="tool_name_schedule_task">Schedule Task</string>

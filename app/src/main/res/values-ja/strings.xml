@@ -165,6 +165,131 @@
     <string name="compliance_saved">自動化設定を保存しました</string>
     <string name="compliance_status_quiet">サイレント %1$s–%2$s</string>
 
+    <string name="common_delete">削除</string>
+
+    <!-- 機能パネル（LAN 設定ページと同期） -->
+    <string name="settings_group_automation">自動化</string>
+    <string name="menu_schedules">定時タスク</string>
+    <string name="menu_triggers">通知トリガー</string>
+    <string name="menu_skills">スキル</string>
+    <string name="menu_persona">ペルソナ</string>
+    <string name="menu_app_policies">アプリ別ポリシー</string>
+    <string name="schedules_status_count">%1$d 件・%2$d 件有効</string>
+    <string name="triggers_status_on">オン</string>
+    <string name="triggers_status_off">オフ</string>
+    <string name="triggers_status_rules">%1$d 件のルール</string>
+    <string name="skills_status_count">%1$d 件インストール済み</string>
+    <string name="persona_status_set">設定済み</string>
+    <string name="policies_status_count">%1$d 件</string>
+
+    <!-- 定時タスク -->
+    <string name="schedule_config_title">定時タスク</string>
+    <string name="schedule_config_tip">指定時刻に選択したチャネル経由で指示を自動タスクとして Agent へ派遣し、結果は同じ会話に返します。最大 20 件。編集は計画の再作成です。</string>
+    <string name="schedule_add">新規タスク</string>
+    <string name="schedule_edit_title">タスクを編集</string>
+    <string name="schedule_empty">定時タスクはありません</string>
+    <string name="schedule_row_subtitle">%1$s ・ %2$s ・ %3$s</string>
+    <string name="schedule_days_daily">毎日</string>
+    <string name="schedule_field_name">名前</string>
+    <string name="schedule_name_hint">任意。未入力なら指示文の先頭 20 字</string>
+    <string name="schedule_field_task">タスク指示</string>
+    <string name="schedule_task_hint">例：明日の天気を調べて要約を送信</string>
+    <string name="schedule_field_time">時刻（HH:mm）</string>
+    <string name="schedule_field_days">曜日（1–7）</string>
+    <string name="schedule_days_hint">1,3,5 空欄で毎日</string>
+    <string name="schedule_field_channel">結果チャネル</string>
+    <string name="schedule_task_required">タスク指示を入力してください</string>
+    <string name="schedule_invalid_days">曜日は 1-7（月=1…日=7）をカンマ区切りで</string>
+    <string name="schedule_saved">保存しました</string>
+    <string name="schedule_save_failed">保存に失敗しました</string>
+    <string name="schedule_deleted">削除しました</string>
+    <string name="schedule_delete_title">この定時タスクを削除しますか？</string>
+    <string name="schedule_delete_message">「%1$s」を削除します。</string>
+
+    <!-- スキル -->
+    <string name="skills_config_title">スキル</string>
+    <string name="skills_config_tip">スキルは Agent がオンデマンドで読み込む手順ライブラリです。書き込みはすべてプロンプトインジェクション安全スキャンを通ります。</string>
+    <string name="skills_add">新規スキル</string>
+    <string name="skills_edit_title">スキルを編集</string>
+    <string name="skills_empty">スキルは未インストールです</string>
+    <string name="skills_field_name">名前</string>
+    <string name="skills_name_hint">小文字・数字・- のみ</string>
+    <string name="skills_field_desc">説明</string>
+    <string name="skills_desc_hint">何をするか・いつ使うか</string>
+    <string name="skills_field_content">本文（Markdown）</string>
+    <string name="skills_content_hint">スキル読込後に Agent が従う詳細手順</string>
+    <string name="skills_content_required">本文を入力してください</string>
+    <string name="skills_invalid_name">名前は a-z・0-9・- のみ（最大 40）</string>
+    <string name="skills_scan_blocked_title">セキュリティスキャンでブロックされました</string>
+    <string name="skills_saved">保存しました</string>
+    <string name="skills_deleted">削除しました</string>
+    <string name="skills_delete_title">このスキルを削除しますか？</string>
+    <string name="skills_delete_message">「%1$s」を削除します。</string>
+    <string name="skills_install_template">テンプレート</string>
+    <string name="skills_templates_title">テンプレートからインストール</string>
+    <string name="skills_templates_empty">利用可能なテンプレートはありません</string>
+
+    <!-- 通知トリガー -->
+    <string name="trigger_config_title">通知トリガー</string>
+    <string name="trigger_config_tip">ホワイトリスト内アプリの通知がルールに一致すると、テンプレートを指示に展開して自動派遣します。保存後すぐ有効です。</string>
+    <string name="trigger_master">トリガーを有効化</string>
+    <string name="trigger_master_desc">全ルールのマスタースイッチ</string>
+    <string name="trigger_listener_unbound">通知の利用が許可されていません。通知を受け取れません。</string>
+    <string name="trigger_listener_grant">通知アクセスを許可する</string>
+    <string name="trigger_whitelist">通知元ホワイトリスト</string>
+    <string name="trigger_whitelist_empty">ホワイトリストは空です</string>
+    <string name="trigger_add_package">＋ パッケージ追加</string>
+    <string name="trigger_rules">ルール</string>
+    <string name="trigger_rules_empty">ルールはありません</string>
+    <string name="trigger_add_rule">＋ 新規ルール</string>
+    <string name="trigger_edit_title">ルールを編集</string>
+    <string name="trigger_rule_subtitle">%1$s ・ %2$s</string>
+    <string name="trigger_any_package">ホワイトリスト内の全アプリ</string>
+    <string name="trigger_field_name">ルール名</string>
+    <string name="trigger_name_hint">例：認証コード転送</string>
+    <string name="trigger_field_package">アプリパッケージ（任意）</string>
+    <string name="trigger_package_hint">com.example.app</string>
+    <string name="trigger_field_regex">キーワード正規表現</string>
+    <string name="trigger_regex_hint">例 \\d{6}</string>
+    <string name="trigger_field_template">タスクテンプレート</string>
+    <string name="trigger_template_hint">プレースホルダー：{app} {title} {text} {match}</string>
+    <string name="trigger_name_required">ルール名を入力してください</string>
+    <string name="trigger_invalid_regex">正規表現が不正です</string>
+    <string name="trigger_template_required">タスクテンプレートを入力してください</string>
+    <string name="trigger_duplicate_name">同名のルールが存在します</string>
+    <string name="trigger_saved">保存しました</string>
+    <string name="trigger_save_failed">保存に失敗しました：%1$s</string>
+    <string name="trigger_delete_title">このルールを削除しますか？</string>
+    <string name="trigger_delete_message">「%1$s」を削除します。</string>
+
+    <!-- ペルソナ -->
+    <string name="persona_config_title">ペルソナ</string>
+    <string name="persona_config_tip">ペルソナはシステムプロンプトに注入され、口調や行動の境界を形づくります。空欄で無効です。</string>
+    <string name="persona_hint">性格・口調・行動の境界を記述…</string>
+    <string name="persona_saved">保存しました</string>
+
+    <!-- アプリ別ポリシー -->
+    <string name="policy_config_title">アプリ別ポリシー</string>
+    <string name="policy_config_tip">未設定のアプリはすべてフル自動です。危険操作はグローバルな確認設定で必ず守られます。</string>
+    <string name="policy_add">新規ポリシー</string>
+    <string name="policy_edit_title">ポリシーを編集</string>
+    <string name="policy_empty">ポリシーはありません。全アプリがフル自動です</string>
+    <string name="policy_field_package">アプリパッケージ</string>
+    <string name="policy_package_hint">com.example.app</string>
+    <string name="policy_field_mode">自動化モード</string>
+    <string name="policy_mode_auto">フル自動</string>
+    <string name="policy_mode_auto_desc">ポリシー未設定と同じ</string>
+    <string name="policy_mode_confirm">毎回確認</string>
+    <string name="policy_mode_confirm_desc">このアプリの変更操作を毎回確認</string>
+    <string name="policy_mode_block">自動化を禁止</string>
+    <string name="policy_mode_block_desc">変更操作を拒否（観察とシステムツールは対象外）</string>
+    <string name="policy_invalid_package">パッケージ名が不正です</string>
+    <string name="policy_saved">保存しました</string>
+    <string name="policy_save_failed">保存に失敗しました</string>
+    <string name="policy_deleted">削除しました</string>
+    <string name="policy_delete_title">このポリシーを削除しますか？</string>
+    <string name="policy_delete_message">「%1$s」を削除します。</string>
+
     <!-- プロトコル -->
     <string name="protocol_agree_title">個人情報保護について</string>
     <string name="protocol_alert_title">利用規約とプライバシー</string>
@@ -243,6 +368,7 @@
     <string name="voice_listening">音声認識中…お話しください</string>
     <string name="voice_unavailable">この端末では音声認識を利用できません。チャットで入力してください。</string>
     <string name="voice_failed">音声認識に失敗しました。チャットで入力してください。</string>
+    <string name="voice_permission_denied">マイクの権限が拒否されました。チャットで入力してください。</string>
 
     <!-- 定時タスクツール（F7） -->
     <string name="tool_name_schedule_task">定時タスクを作成</string>

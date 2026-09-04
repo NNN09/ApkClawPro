@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- F6 语音输入：部分 OEM 识别服务（如三星 Bixby trampoline）要求调用方持有 RECORD_AUDIO，
+         缺失时报 ERROR_INSUFFICIENT_PERMISSIONS(9)，运行时在 VoicePermissionActivity 申请 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -83,6 +86,26 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".ui.settings.SkillsConfigActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.settings.PersonaConfigActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.settings.ScheduleConfigActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.settings.TriggerConfigActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.settings.PolicyConfigActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".ui.web.WebActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
@@ -93,6 +116,13 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".tool.impl.ClipboardReaderActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Transparent" />
+
+        <!-- F6：语音输入前的 RECORD_AUDIO 运行时权限申请 trampoline -->
+        <activity
+            android:name=".ui.voice.VoicePermissionActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:theme="@style/Theme.Transparent" />

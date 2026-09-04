@@ -165,6 +165,131 @@
     <string name="compliance_saved">自动化设置已保存</string>
     <string name="compliance_status_quiet">静默 %1$s–%2$s</string>
 
+    <string name="common_delete">删除</string>
+
+    <!-- 功能面板（与 LAN 配置页同步） -->
+    <string name="settings_group_automation">自动化</string>
+    <string name="menu_schedules">定时任务</string>
+    <string name="menu_triggers">事件触发</string>
+    <string name="menu_skills">技能</string>
+    <string name="menu_persona">人设</string>
+    <string name="menu_app_policies">单应用策略</string>
+    <string name="schedules_status_count">%1$d 个任务 · %2$d 个启用</string>
+    <string name="triggers_status_on">已开启</string>
+    <string name="triggers_status_off">已关闭</string>
+    <string name="triggers_status_rules">%1$d 条规则</string>
+    <string name="skills_status_count">已安装 %1$d 个</string>
+    <string name="persona_status_set">已设置</string>
+    <string name="policies_status_count">%1$d 条策略</string>
+
+    <!-- 定时任务 -->
+    <string name="schedule_config_title">定时任务</string>
+    <string name="schedule_config_tip">到点后按所选渠道把指令作为自动任务派发给 Agent，结果沿该会话回传；最多 20 个，编辑即重建计划。</string>
+    <string name="schedule_add">新增任务</string>
+    <string name="schedule_edit_title">编辑任务</string>
+    <string name="schedule_empty">暂无定时任务</string>
+    <string name="schedule_row_subtitle">%1$s · %2$s · %3$s</string>
+    <string name="schedule_days_daily">每天</string>
+    <string name="schedule_field_name">名称</string>
+    <string name="schedule_name_hint">选填，默认取任务内容前 20 字</string>
+    <string name="schedule_field_task">任务指令</string>
+    <string name="schedule_task_hint">例如：查一下明天的天气并发摘要</string>
+    <string name="schedule_field_time">时间（HH:mm）</string>
+    <string name="schedule_field_days">星期（1–7）</string>
+    <string name="schedule_days_hint">1,3,5 留空=每天</string>
+    <string name="schedule_field_channel">结果渠道</string>
+    <string name="schedule_task_required">请填写任务指令</string>
+    <string name="schedule_invalid_days">星期须为 1-7（周一=1…周日=7）逗号分隔</string>
+    <string name="schedule_saved">定时任务已保存</string>
+    <string name="schedule_save_failed">定时任务保存失败</string>
+    <string name="schedule_deleted">定时任务已删除</string>
+    <string name="schedule_delete_title">删除该定时任务？</string>
+    <string name="schedule_delete_message">将删除「%1$s」。</string>
+
+    <!-- 技能 -->
+    <string name="skills_config_title">技能</string>
+    <string name="skills_config_tip">技能是 Agent 按需加载的分步操作库；所有写入都会经过提示注入安全扫描。</string>
+    <string name="skills_add">新增技能</string>
+    <string name="skills_edit_title">编辑技能</string>
+    <string name="skills_empty">暂未安装技能</string>
+    <string name="skills_field_name">名称</string>
+    <string name="skills_name_hint">仅小写字母、数字和 -</string>
+    <string name="skills_field_desc">描述</string>
+    <string name="skills_desc_hint">做什么 + 何时用</string>
+    <string name="skills_field_content">正文（Markdown）</string>
+    <string name="skills_content_hint">技能加载后 Agent 按此执行的详细步骤</string>
+    <string name="skills_content_required">请填写正文内容</string>
+    <string name="skills_invalid_name">名称仅允许 a-z、0-9 和 -（最长 40）</string>
+    <string name="skills_scan_blocked_title">安全扫描未通过</string>
+    <string name="skills_saved">技能已保存</string>
+    <string name="skills_deleted">技能已删除</string>
+    <string name="skills_delete_title">删除该技能？</string>
+    <string name="skills_delete_message">将删除「%1$s」。</string>
+    <string name="skills_install_template">模板安装</string>
+    <string name="skills_templates_title">从模板安装</string>
+    <string name="skills_templates_empty">暂无可用模板</string>
+
+    <!-- 事件触发 -->
+    <string name="trigger_config_title">事件触发</string>
+    <string name="trigger_config_tip">白名单应用的通知命中规则后，模板渲染为任务指令自动派发；保存后立即生效（活读配置）。</string>
+    <string name="trigger_master">启用事件触发</string>
+    <string name="trigger_master_desc">所有规则的总开关</string>
+    <string name="trigger_listener_unbound">未授予通知使用权，触发器收不到通知。</string>
+    <string name="trigger_listener_grant">去授予通知使用权</string>
+    <string name="trigger_whitelist">通知来源白名单</string>
+    <string name="trigger_whitelist_empty">暂无白名单应用</string>
+    <string name="trigger_add_package">＋ 添加包名</string>
+    <string name="trigger_rules">规则</string>
+    <string name="trigger_rules_empty">暂无规则</string>
+    <string name="trigger_add_rule">＋ 新增规则</string>
+    <string name="trigger_edit_title">编辑规则</string>
+    <string name="trigger_rule_subtitle">%1$s · %2$s</string>
+    <string name="trigger_any_package">任意白名单应用</string>
+    <string name="trigger_field_name">规则名</string>
+    <string name="trigger_name_hint">例如：验证码转达</string>
+    <string name="trigger_field_package">应用包名（选填）</string>
+    <string name="trigger_package_hint">com.example.app</string>
+    <string name="trigger_field_regex">关键词正则</string>
+    <string name="trigger_regex_hint">例如 \\d{6}</string>
+    <string name="trigger_field_template">任务模板</string>
+    <string name="trigger_template_hint">占位符：{app} {title} {text} {match}</string>
+    <string name="trigger_name_required">请填写规则名</string>
+    <string name="trigger_invalid_regex">正则表达式非法</string>
+    <string name="trigger_template_required">请填写任务模板</string>
+    <string name="trigger_duplicate_name">规则名已存在</string>
+    <string name="trigger_saved">触发配置已保存</string>
+    <string name="trigger_save_failed">保存失败：%1$s</string>
+    <string name="trigger_delete_title">删除该规则？</string>
+    <string name="trigger_delete_message">将删除「%1$s」。</string>
+
+    <!-- 人设 -->
+    <string name="persona_config_title">人设</string>
+    <string name="persona_config_tip">人设会注入系统提示词，影响语气与行为边界；留空即关闭。</string>
+    <string name="persona_hint">描述性格、语气与行为边界…</string>
+    <string name="persona_saved">人设已保存</string>
+
+    <!-- 单应用策略 -->
+    <string name="policy_config_title">单应用策略</string>
+    <string name="policy_config_tip">未配置的应用默认全自动；危险操作仍受全局“执行前确认”约束（硬底线）。</string>
+    <string name="policy_add">新增策略</string>
+    <string name="policy_edit_title">编辑策略</string>
+    <string name="policy_empty">暂无单应用策略，所有应用均为全自动</string>
+    <string name="policy_field_package">应用包名</string>
+    <string name="policy_package_hint">com.example.app</string>
+    <string name="policy_field_mode">自动化模式</string>
+    <string name="policy_mode_auto">全自动</string>
+    <string name="policy_mode_auto_desc">与无策略一致，正常执行</string>
+    <string name="policy_mode_confirm">每次确认</string>
+    <string name="policy_mode_confirm_desc">该应用内改动类操作逐条人工确认</string>
+    <string name="policy_mode_block">禁止自动化</string>
+    <string name="policy_mode_block_desc">拒绝改动类操作（观察与系统工具不受影响）</string>
+    <string name="policy_invalid_package">包名格式非法</string>
+    <string name="policy_saved">策略已保存</string>
+    <string name="policy_save_failed">策略保存失败</string>
+    <string name="policy_deleted">策略已删除</string>
+    <string name="policy_delete_title">删除该策略？</string>
+    <string name="policy_delete_message">将删除「%1$s」。</string>
+
     <!-- 协议弹窗 -->
     <string name="protocol_agree_title">个人信息保护指引</string>
     <string name="protocol_alert_title">服务协议和隐私保护</string>
@@ -250,6 +375,7 @@
     <string name="voice_listening">正在聆听，请说话…</string>
     <string name="voice_unavailable">本设备不支持语音识别，请在对话页输入任务。</string>
     <string name="voice_failed">语音识别失败，请在对话页输入任务。</string>
+    <string name="voice_permission_denied">麦克风权限被拒绝，请在对话页输入任务。</string>
 
     <!-- 定时任务工具（F7） -->
     <string name="tool_name_schedule_task">创建定时任务</string>
