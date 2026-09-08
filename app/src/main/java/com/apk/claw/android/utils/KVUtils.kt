@@ -196,6 +196,8 @@ object KVUtils {
     private const val KEY_CONFIRM_DANGEROUS_OPS = "KEY_CONFIRM_DANGEROUS_OPS"
     private const val KEY_VERIFY_RESULTS = "KEY_VERIFY_RESULTS"
     private const val KEY_VISION_ENABLED = "KEY_VISION_ENABLED"
+    private const val KEY_VISION_MODEL_ENABLED = "KEY_VISION_MODEL_ENABLED"
+    private const val KEY_LLM_VISION_MODEL = "KEY_LLM_VISION_MODEL"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -219,6 +221,14 @@ object KVUtils {
     /** F10：截图作为图像注入 LLM 上下文（需模型支持视觉），默认开启，报错可关闭 */
     fun getVisionEnabled(): Boolean = getBoolean(KEY_VISION_ENABLED, true)
     fun setVisionEnabled(value: Boolean) = putBoolean(KEY_VISION_ENABLED, value)
+
+    /** 独立视觉模型开关：打开后带图请求可路由到单独的模型，默认关闭（用主模型） */
+    fun getVisionModelEnabled(): Boolean = getBoolean(KEY_VISION_MODEL_ENABLED, false)
+    fun setVisionModelEnabled(value: Boolean) = putBoolean(KEY_VISION_MODEL_ENABLED, value)
+
+    /** 独立视觉模型名；空 = 仍用主模型（开关打开默认主模型，单独设置才生效） */
+    fun getLlmVisionModel(): String = getString(KEY_LLM_VISION_MODEL, "")
+    fun setLlmVisionModel(value: String) = putString(KEY_LLM_VISION_MODEL, value)
 
     // ==================== C3/C5/C6 合规与自动化策略（ROADMAP §6） ====================
     private const val KEY_THIRD_PARTY_AUTOMATION_ENABLED = "KEY_THIRD_PARTY_AUTOMATION_ENABLED"

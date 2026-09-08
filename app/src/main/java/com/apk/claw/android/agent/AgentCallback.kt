@@ -21,6 +21,13 @@ interface AgentCallback {
     fun onVerifyFailed(description: String) {}
 
     /**
+     * 视觉降级：模型/网关拒绝了图像输入，已剥离全部截图改纯文本重试。
+     * 任务从此只能靠无障碍节点树感知屏幕（自绘 UI/WebView 将不可见）。
+     * 宿主必须告知用户，否则任务"静默失明"难以察觉。
+     */
+    fun onVisionDegraded(reason: String) {}
+
+    /**
      * 请求用户决策并阻塞等待（F1 系统弹窗挂起恢复 / F2 危险操作确认共用）。
      * 实现方负责经消息渠道发送 [prompt]、拦截用户回复；用户确认返回 true，
      * 取消或超过 [timeoutMs] 返回 false。不支持交互的实现直接返回 false（保持旧行为：立即终止）。

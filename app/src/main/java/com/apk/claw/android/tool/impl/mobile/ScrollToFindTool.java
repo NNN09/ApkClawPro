@@ -9,6 +9,7 @@ import com.apk.claw.android.ClawApplication;
 import com.apk.claw.android.R;
 import com.apk.claw.android.service.ClawAccessibilityService;
 import com.apk.claw.android.tool.BaseTool;
+import com.apk.claw.android.tool.ScreenCoords;
 import com.apk.claw.android.tool.ToolParameter;
 import com.apk.claw.android.tool.ToolResult;
 
@@ -36,14 +37,14 @@ public class ScrollToFindTool extends BaseTool {
     public String getDescriptionEN() {
         return "Scroll the screen to find an element containing the specified text. "
                 + "Automatically scrolls in the given direction and searches after each scroll. "
-                + "Returns the element's bounds and center coordinates if found. "
+                + "Returns the element's bounds and center coordinates in permille (0-1000, directly usable as tap/swipe parameters). "
                 + "Much more efficient than manually calling swipe + get_screen_info in a loop.";
     }
 
     @Override
     public String getDescriptionCN() {
         return "滚动屏幕查找包含指定文本的元素。自动在指定方向上滚动并在每次滚动后搜索。"
-                + "找到后返回元素的边界和中心坐标。比手动循环调用 swipe + get_screen_info 高效得多。";
+                + "找到后返回元素的边界和中心坐标（0-1000 千分比，可直接传给 tap/swipe）。比手动循环调用 swipe + get_screen_info 高效得多。";
     }
 
     @Override
@@ -143,12 +144,15 @@ public class ScrollToFindTool extends BaseTool {
                 if (node.isVisibleToUser()) {
                     Rect bounds = new Rect();
                     node.getBoundsInScreen(bounds);
-                    int centerX = bounds.centerX();
-                    int centerY = bounds.centerY();
+                    int w = getScreenSize()[0];
+                    int h = getScreenSize()[1];
+                    int centerX = ScreenCoords.toPermille(bounds.centerX(), w);
+                    int centerY = ScreenCoords.toPermille(bounds.centerY(), h);
                     StringBuilder sb = new StringBuilder();
                     sb.append("Found element with text \"").append(text).append("\"");
-                    sb.append("\n  bounds=").append(bounds.toShortString());
-                    sb.append("\n  center=(").append(centerX).append(", ").append(centerY).append(")");
+                    sb.append("\n  bounds=").append(permilleBounds(bounds, w, h)).append(" (permille 0-1000)");
+                    sb.append("\n  center=(").append(centerX).append(", ").append(centerY).append(")")
+                        .append(" — pass directly to tap");
                     sb.append("\n  clickable=").append(node.isClickable());
                     if (node.getClassName() != null) {
                         sb.append("\n  class=").append(node.getClassName());
@@ -161,6 +165,12 @@ public class ScrollToFindTool extends BaseTool {
         } finally {
             ClawAccessibilityService.recycleNodes(nodes);
         }
+    }
+
+    /** 千分比 bounds 序列化（与 get_screen_info 的格式一致，见 ScreenCoords） */
+    private static String permilleBounds(Rect bounds, int w, int h) {
+        return "[" + ScreenCoords.toPermille(bounds.left, w) + "," + ScreenCoords.toPermille(bounds.top, h) + "]"
+                + "[" + ScreenCoords.toPermille(bounds.right, w) + "," + ScreenCoords.toPermille(bounds.bottom, h) + "]";
     }
 
     /**

@@ -13,6 +13,9 @@ import android.view.Display;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.apk.claw.android.tool.ScreenCoords;
+import com.blankj.utilcode.util.ScreenUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -313,7 +316,7 @@ public class ClawAccessibilityService extends AccessibilityService {
 
             Rect bounds = new Rect();
             node.getBoundsInScreen(bounds);
-            sb.append(" bounds=").append(bounds.toShortString());
+            sb.append(" bounds=").append(permilleBounds(bounds));
 
             sb.append("\n");
         }
@@ -401,7 +404,7 @@ public class ClawAccessibilityService extends AccessibilityService {
             sb.append(" [loading]");
         }
 
-        // bounds
+        // bounds（完整树仅用于调试对比，保留物理像素）
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
         sb.append(" bounds=").append(bounds.toShortString());
@@ -455,8 +458,19 @@ public class ClawAccessibilityService extends AccessibilityService {
         sb.append(", visible=").append(node.isVisibleToUser());
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
-        sb.append(", bounds=").append(bounds.toShortString());
+        sb.append(", bounds=").append(permilleBounds(bounds));
         return sb.toString();
+    }
+
+    /**
+     * bounds 序列化为 0-1000 千分比（模型统一坐标空间，与 tap/swipe 参数同空间，
+     * 见 {@link ScreenCoords}）；完整调试树（buildNodeTreeFull）不受此影响，保留物理像素。
+     */
+    private static String permilleBounds(Rect bounds) {
+        int w = ScreenUtils.getScreenWidth();
+        int h = ScreenUtils.getScreenHeight();
+        return "[" + ScreenCoords.toPermille(bounds.left, w) + "," + ScreenCoords.toPermille(bounds.top, h) + "]"
+                + "[" + ScreenCoords.toPermille(bounds.right, w) + "," + ScreenCoords.toPermille(bounds.bottom, h) + "]";
     }
 
     // ======================== Slider Detection (for buildNodeTree) ========================

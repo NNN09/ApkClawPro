@@ -130,6 +130,10 @@
     <string name="llm_config_verify_results_desc">Read back device state after key actions</string>
     <string name="llm_config_vision">Vision input</string>
     <string name="llm_config_vision_desc">Inject screenshots into model context (needs a vision model)</string>
+    <string name="llm_config_vision_model_separate">Separate vision model</string>
+    <string name="llm_config_vision_model_separate_desc">Route requests containing screenshots to another model; empty = main model</string>
+    <string name="llm_config_vision_model_name">Vision model name</string>
+    <string name="llm_config_vision_model_name_hint">e.g. glm-5.3-flash; leave empty to use the main model</string>
 
     <!-- Settings Menu -->
     <string name="menu_dingtalk">DingTalk</string>
@@ -320,6 +324,7 @@
     <string name="channel_msg_no_accessibility">Accessibility permission missing, cannot execute task</string>
     <string name="channel_msg_task_in_progress">A task is already running, please wait</string>
     <string name="channel_msg_system_dialog_blocked">A system dialog may be blocking the screen. Please check and handle it manually, then try again.</string>
+    <string name="channel_msg_vision_degraded">The model rejected image input; this task continues in text-only mode (screen content is still read via accessibility).</string>
     <string name="channel_msg_session_reset">Started a new conversation.</string>
     <string name="channel_msg_queued">Task in progress; your message is queued (position %1$d).</string>
     <string name="channel_msg_queue_full">Task in progress and queue is full. Please try again later.</string>
@@ -352,6 +357,7 @@
     <string name="agent_task_cancel">Task cancelled</string>
     <string name="agent_api_call_failed">AI service call failed: %s</string>
     <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
+    <string name="agent_loop_force_finish">Task auto-terminated: %1 consecutive rounds of screen observation without any action</string>
     <string name="agent_verify_failed">Result verification failed after one retry: %s</string>
 
     <!-- Compliance C3/C5/C6 -->

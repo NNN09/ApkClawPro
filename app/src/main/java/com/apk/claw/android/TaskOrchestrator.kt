@@ -405,6 +405,13 @@ class TaskOrchestrator(
                 toolTrace.add("verify-failed($description)")
             }
 
+            override fun onVisionDegraded(reason: String) {
+                // 视觉降级必须让用户看见：任务从此靠节点树感知，自绘界面将不可见
+                XLog.w(TAG, "onVisionDegraded: $reason")
+                toolTrace.add("vision-degraded($reason)")
+                ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_vision_degraded), messageID)
+            }
+
             override fun onSettled() {
                 // Agent running 标志已清除、执行线程即将空闲：此刻释放任务锁并排空队列，
                 // 才不会出现"锁空闲但 Agent 仍占用"导致的假性拒绝

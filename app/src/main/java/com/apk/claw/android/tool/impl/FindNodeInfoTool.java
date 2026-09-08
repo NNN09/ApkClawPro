@@ -27,12 +27,12 @@ public class FindNodeInfoTool extends BaseTool {
 
     @Override
     public String getDescriptionEN() {
-        return "Find elements by visible text and return their detailed information (class, bounds, properties). Useful for inspecting specific elements before interacting.";
+        return "Find elements by visible text and return their detailed information (class, bounds, properties). Bounds are permille (0-1000 of screen width/height) - the same coordinate space as tap/swipe/long_press parameters. Useful for inspecting specific elements before interacting.";
     }
 
     @Override
     public String getDescriptionCN() {
-        return "通过可见文本查找元素，返回详细信息（类名、边界、属性）。适用于在交互前检查特定元素。";
+        return "通过可见文本查找元素，返回详细信息（类名、边界、属性；bounds 为 0-1000 千分比坐标，与 tap/swipe/long_press 参数同一坐标系）。适用于在交互前检查特定元素。";
     }
 
     @Override

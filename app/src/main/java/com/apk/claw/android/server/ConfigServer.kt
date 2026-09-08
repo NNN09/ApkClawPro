@@ -278,6 +278,8 @@ class ConfigServer(
             addProperty("confirmDangerousOps", KVUtils.getConfirmDangerousOps())
             addProperty("verifyResults", KVUtils.getVerifyResults())
             addProperty("visionEnabled", KVUtils.getVisionEnabled())
+            addProperty("visionModelEnabled", KVUtils.getVisionModelEnabled())
+            addProperty("llmVisionModel", KVUtils.getLlmVisionModel())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -333,6 +335,12 @@ class ConfigServer(
         }
         if (json.has("visionEnabled")) {
             KVUtils.setVisionEnabled(json.get("visionEnabled").asBoolean)
+        }
+        if (json.has("visionModelEnabled")) {
+            KVUtils.setVisionModelEnabled(json.get("visionModelEnabled").asBoolean)
+        }
+        if (json.has("llmVisionModel")) {
+            KVUtils.setLlmVisionModel(json.get("llmVisionModel").asString.trim())
         }
 
         ConfigServerManager.notifyConfigChanged()

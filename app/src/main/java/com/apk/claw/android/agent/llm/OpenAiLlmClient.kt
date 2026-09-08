@@ -2,6 +2,7 @@ package com.apk.claw.android.agent.llm
 
 import com.apk.claw.android.agent.AgentConfig
 import com.apk.claw.android.agent.langchain.http.OkHttpClientBuilderAdapter
+import com.apk.claw.android.agent.store.ContextBudget
 import dev.langchain4j.agent.tool.ToolSpecification
 import dev.langchain4j.data.message.ChatMessage
 import dev.langchain4j.model.chat.ChatModel
@@ -11,6 +12,7 @@ import dev.langchain4j.model.chat.response.ChatResponse
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler
 import dev.langchain4j.model.openai.OpenAiChatModel
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 
@@ -19,26 +21,43 @@ class OpenAiLlmClient(
     private val httpClientBuilder: OkHttpClientBuilderAdapter
 ) : LlmClient {
 
-    private val chatModel: ChatModel by lazy { buildChatModel() }
-    private val streamingChatModel: StreamingChatModel by lazy { buildStreamingChatModel() }
+    private val chatModel: ChatModel by lazy { buildChatModel(config.modelName) }
+    private val streamingChatModel: StreamingChatModel by lazy { buildStreamingChatModel(config.modelName) }
 
-    private fun buildChatModel(): ChatModel {
+    // 独立视觉模型：带图请求路由到单独的模型实例，按模型名缓存（未启用时永不触碰）
+    private val visionChatModels = ConcurrentHashMap<String, ChatModel>()
+    private val visionStreamingChatModels = ConcurrentHashMap<String, StreamingChatModel>()
+
+    private fun chatModelFor(messages: List<ChatMessage>): ChatModel =
+        config.effectiveVisionModel(ContextBudget.hasImages(messages))
+            ?.let { visionChatModels.computeIfAbsent(it) { name -> buildChatModel(name) } }
+            ?: chatModel
+
+    private fun streamingChatModelFor(messages: List<ChatMessage>): StreamingChatModel =
+        config.effectiveVisionModel(ContextBudget.hasImages(messages))
+            ?.let { visionStreamingChatModels.computeIfAbsent(it) { name -> buildStreamingChatModel(name) } }
+            ?: streamingChatModel
+
+    private fun buildChatModel(modelName: String): ChatModel {
         val builder = OpenAiChatModel.builder()
             .httpClientBuilder(httpClientBuilder)
             .apiKey(config.apiKey)
-            .modelName(config.modelName)
+            .modelName(modelName)
             .temperature(config.temperature)
+            // ③ 库内默认还会静默重试 3 次（对确定性 500 也照重），重试策略统一上收
+            // 到 DefaultAgentService.chatWithRetry 的错误分类，这里只发一次
+            .maxRetries(1)
         if (config.baseUrl.isNotEmpty()) {
             builder.baseUrl(config.baseUrl)
         }
         return builder.build()
     }
 
-    private fun buildStreamingChatModel(): StreamingChatModel {
+    private fun buildStreamingChatModel(modelName: String): StreamingChatModel {
         val builder = OpenAiStreamingChatModel.builder()
             .httpClientBuilder(httpClientBuilder)
             .apiKey(config.apiKey)
-            .modelName(config.modelName)
+            .modelName(modelName)
             .temperature(config.temperature)
         if (config.baseUrl.isNotEmpty()) {
             builder.baseUrl(config.baseUrl)
@@ -51,7 +70,7 @@ class OpenAiLlmClient(
             .messages(messages)
             .toolSpecifications(toolSpecs)
             .build()
-        val response = chatModel.chat(request)
+        val response = chatModelFor(messages).chat(request)
         return response.toLlmResponse()
     }
 
@@ -69,7 +88,7 @@ class OpenAiLlmClient(
         val resultRef = AtomicReference<LlmResponse>()
         val errorRef = AtomicReference<Throwable>()
 
-        streamingChatModel.chat(request, object : StreamingChatResponseHandler {
+        streamingChatModelFor(messages).chat(request, object : StreamingChatResponseHandler {
             override fun onPartialResponse(token: String) {
                 listener.onPartialText(token)
             }

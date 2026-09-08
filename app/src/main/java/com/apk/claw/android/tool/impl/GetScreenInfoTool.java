@@ -25,12 +25,12 @@ public class GetScreenInfoTool extends BaseTool {
 
     @Override
     public String getDescriptionEN() {
-        return "Get the current screen's UI hierarchy tree, including all visible elements with their properties (text, id, bounds, clickable, etc.). Use this to understand what is currently displayed on the screen.";
+        return "Get the current screen's UI hierarchy tree, including all visible elements with their properties (text, id, bounds, clickable, etc.). Bounds are permille (0-1000 of screen width/height) - the same coordinate space as tap/swipe/long_press parameters. Use this to understand what is currently displayed on the screen.";
     }
 
     @Override
     public String getDescriptionCN() {
-        return "获取当前屏幕的UI层级树，包括所有可见元素的属性（文本、ID、边界、可点击状态等）。用于了解当前屏幕显示的内容。";
+        return "获取当前屏幕的UI层级树，包括所有可见元素的属性（文本、ID、边界、可点击状态等）。bounds 为 0-1000 千分比坐标（与 tap/swipe/long_press 参数同一坐标系）。用于了解当前屏幕显示的内容。";
     }
 
     @Override
@@ -56,6 +56,11 @@ public class GetScreenInfoTool extends BaseTool {
         if (tree == null) {
             return ToolResult.error(SYSTEM_DIALOG_BLOCKED);
         }
-        return ToolResult.success(tree);
+        if (useFullTree) {
+            return ToolResult.success(tree);
+        }
+        // 精简树面向模型：开头声明坐标系，避免模型把千分比当像素
+        return ToolResult.success("[坐标系] bounds 为 0-1000 千分比（x 相对屏宽、y 相对屏高），"
+            + "与 tap/swipe/long_press 的坐标参数同一空间；中心 = ((左+右)/2, (上+下)/2)。\n" + tree);
     }
 }

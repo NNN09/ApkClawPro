@@ -34,6 +34,13 @@ object ContextBudget {
      */
     const val IMAGE_COST_CHARS = 3000
 
+    /**
+     * 单次请求允许携带的图像张数上限。中转站/服务商普遍有 per-request 图片数硬限
+     * （真机实证：one-api 默认 50，第 51 张直接 500），上限留出余量（同一轮可能注入
+     * 截图+兜底截图两张）。超限时从最旧开始折叠，而不是把请求撞死在服务商墙上。
+     */
+    const val MAX_IMAGES_PER_REQUEST = 40
+
     private val GSON = Gson()
 
     /** 由模型上下文窗口（tokens）推算字符预算；windowTokens ≤ 0 视为未设置 */
@@ -71,6 +78,29 @@ object ContextBudget {
     fun hasImages(messages: List<ChatMessage>): Boolean =
         messages.any { it is UserMessage && it.contents().any { c -> c is ImageContent } }
 
+    /** 消息列表中的图像消息数量 */
+    fun countImages(messages: List<ChatMessage>): Int =
+        messages.count { it is UserMessage && it.contents().any { c -> c is ImageContent } }
+
+    private val FOLDED_PLACEHOLDER = "[系统提示] 早期截图已省略"
+
+    /**
+     * 把图像消息折叠为文本占位，只保留最新 keepCount 张。
+     * @return 实际折叠的消息数（0 = 本就未超 keepCount）
+     */
+    fun foldOldestImagesTo(messages: MutableList<ChatMessage>, keepCount: Int): Int {
+        val imageIndices = messages.indices.filter { i ->
+            val m = messages[i]
+            m is UserMessage && m.contents().any { c -> c is ImageContent }
+        }
+        if (imageIndices.size <= keepCount) return 0
+        val foldUntil = imageIndices.size - keepCount   // 最旧的一批
+        for (i in 0 until foldUntil) {
+            messages[imageIndices[i]] = UserMessage.from(FOLDED_PLACEHOLDER)
+        }
+        return foldUntil
+    }
+
     /**
      * 激进压缩：对所有轮次（含保护区）的超长工具结果做一行摘要，
      * 但始终保留最新一条 get_screen_info 完整内容（Agent 依赖它感知当前屏幕）。
@@ -95,20 +125,30 @@ object ContextBudget {
      * 折叠历史截图：只保留最新一张图像消息，其余换成文本占位。
      * @return 是否发生了替换
      */
-    fun foldOldImages(messages: MutableList<ChatMessage>): Boolean {
-        val lastImageIdx = messages.indexOfLast {
-            it is UserMessage && it.contents().any { c -> c is ImageContent }
+    fun foldOldImages(messages: MutableList<ChatMessage>): Boolean =
+        foldOldestImagesTo(messages, keepCount = 1) > 0
+
+    /**
+     * 为注入一张新截图腾出空间（截图注入的唯一准入策略），两道闸：
+     * 1. 张数闸：已有张数达到 [MAX_IMAGES_PER_REQUEST] 时先折叠最旧的（服务商有
+     *    per-request 图片数硬限，超限是确定性 500，不能靠重试闯过去）；
+     * 2. 字符闸：超字符预算时从最旧开始逐张折叠，直到放得下。
+     * 逐张（而非一次折叠到只留一张）可最大限度保留历史视觉信息——
+     * 截图留存数量随预算自动伸缩。
+     * @return true=可以注入新图；false=折叠全部旧图后仍放不下（窗口过小或历史过长）
+     */
+    fun makeRoomForImage(messages: MutableList<ChatMessage>, charBudget: Int): Boolean {
+        foldOldestImagesTo(messages, keepCount = MAX_IMAGES_PER_REQUEST - 1)
+        if (estimateChars(messages) + IMAGE_COST_CHARS <= charBudget) return true
+        val imageIndices = messages.indices.filter { i ->
+            val m = messages[i]
+            m is UserMessage && m.contents().any { it is ImageContent }
         }
-        var changed = false
-        for (i in messages.indices) {
-            val msg = messages[i]
-            if (i == lastImageIdx) continue
-            if (msg is UserMessage && msg.contents().any { it is ImageContent }) {
-                messages[i] = UserMessage.from("[系统提示] 早期截图已省略")
-                changed = true
-            }
+        for (i in imageIndices) {   // 从最旧到最新逐张折叠；新图永远比已折叠的图新
+            messages[i] = UserMessage.from(FOLDED_PLACEHOLDER)
+            if (estimateChars(messages) + IMAGE_COST_CHARS <= charBudget) return true
         }
-        return changed
+        return false
     }
 
     /**
@@ -168,5 +208,37 @@ object ContextBudget {
         } catch (_: Exception) {
             if (resultJson.length > 80) resultJson.take(80) + "..." else resultJson
         }
+    }
+
+    /**
+     * 预算校准器：用实测输入 token 修正"1 token ≈ [CHARS_PER_TOKEN] 字符"的先验假设。
+     * 先验与真实计费的偏差（中文分词密度、中转站对视觉 token 的计费方式等）会让字符
+     * 预算失真——实测换算系数 = 发送前估算字符 ÷ 实际输入 token，直接替换系数，
+     * 使字符预算随当前模型/中转站的真实行为收敛，估算不再与实际账单脱节。
+     */
+    class BudgetCalibrator(
+        /** 换算系数上下限，防单次异常请求把预算拉爆或压死 */
+        private val minCharsPerToken: Double = 0.6,
+        private val maxCharsPerToken: Double = 4.0
+    ) {
+        var charsPerToken: Double = CHARS_PER_TOKEN
+            private set
+
+        /**
+         * 记录一轮实测。
+         * @return 是否收紧了预算（供日志/遥测）
+         */
+        fun onMeasured(estimateChars: Int, actualInputTokens: Int): Boolean {
+            if (actualInputTokens <= 0 || estimateChars <= 0) return false
+            val measured = (estimateChars.toDouble() / actualInputTokens)
+                .coerceIn(minCharsPerToken, maxCharsPerToken)
+            val tightened = measured < charsPerToken
+            charsPerToken = measured
+            return tightened
+        }
+
+        /** 校准后的字符预算；未实测时与 [charBudget] 完全一致（旧行为） */
+        fun effectiveCharBudget(windowTokens: Int): Int =
+            (charBudget(windowTokens) / CHARS_PER_TOKEN * charsPerToken).toInt()
     }
 }

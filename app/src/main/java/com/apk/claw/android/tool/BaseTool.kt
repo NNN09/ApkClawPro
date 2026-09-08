@@ -137,13 +137,21 @@ abstract class BaseTool {
     }
 
     /**
-     * 校验坐标是否在屏幕范围内，超出则返回错误信息，合法返回 null。
+     * 校验千分比坐标（0-1000，见 [ScreenCoords]）是否合法，非法返回错误信息，合法返回 null。
      */
     protected fun validateCoordinates(x: Int, y: Int): String? {
-        val size = getScreenSize()
-        if (x < 0 || x >= size[0] || y < 0 || y >= size[1]) {
-            return "Coordinates ($x, $y) out of screen bounds (${size[0]}x${size[1]}). Use get_screen_info to get valid coordinates."
+        fun inRange(v: Int) = v in 0..ScreenCoords.MAX
+        if (!inRange(x) || !inRange(y)) {
+            return "Coordinates ($x, $y) out of range 0-${ScreenCoords.MAX}. " +
+                "Coordinates are permille: x/1000 of screen width, y/1000 of screen height " +
+                "(same space as bounds/center returned by get_screen_info)."
         }
         return null
     }
+
+    /** 千分比 X → 屏幕像素 X */
+    protected fun pixelX(x: Int): Int = ScreenCoords.toPixel(x, ScreenUtils.getScreenWidth())
+
+    /** 千分比 Y → 屏幕像素 Y */
+    protected fun pixelY(y: Int): Int = ScreenCoords.toPixel(y, ScreenUtils.getScreenHeight())
 }

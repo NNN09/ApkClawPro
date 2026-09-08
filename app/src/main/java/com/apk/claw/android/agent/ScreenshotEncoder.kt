@@ -13,6 +13,9 @@ import java.io.File
  * F10：把 take_screenshot 的 PNG 截图转成 LLM 视觉消息。
  * 截图统一缩放到 maxDim 内并转 JPEG，控制 base64 体积与视觉 token 成本；
  * Android 位图部分与 langchain4j 消息构造分离，消息构造可 JVM 单测。
+ *
+ * detail 必须 HIGH：库内默认 LOW，服务商端会再压到极低分辨率，真机实证是坐标误读
+ * 与界面元素误判的直接根源（省下的视觉 token 抵不过重试轮次的浪费）。
  */
 object ScreenshotEncoder {
 
@@ -65,9 +68,6 @@ object ScreenshotEncoder {
         )
     }
 
-    /** 单任务最多注入几张截图，超出后工具只回路径文本（F10 验收：截图数量有上限） */
-    const val MAX_SCREENSHOTS_PER_TASK = 8
-
     /**
      * 节点查找连续失败时自动附加的截图消息（F10 视觉兜底）：
      * WebView/自绘界面的无障碍节点读不到内容，提示模型改用视觉而非继续重试。
@@ -77,29 +77,32 @@ object ScreenshotEncoder {
             TextContent(
                 "[截图 #$index·自动附加] 节点查找连续失败，当前界面很可能是 WebView 或自绘 UI（无障碍节点树读不到内容）。" +
                     "已附当前屏幕图像（${encoded.width}x${encoded.height}），请直接观察图像继续任务，不要继续用 find_node_info 重试。"
-            ),
-            ImageContent.from(encoded.base64, encoded.mimeType)
+                ),
+            ImageContent.from(encoded.base64, encoded.mimeType, ImageContent.DetailLevel.HIGH)
         )
 
     /**
      * 构造带图像的用户消息（纯 langchain4j，可 JVM 单测）。
      * 文本在前：OpenAI 兼容端点对 content part 顺序无要求，但对部分
      * OpenAI 兼容代理文本先行更稳。
+     * 坐标约定随图声明：截图上的相对位置按 0-1000 千分比读出即可直接点击，
+     * 与 get_screen_info 的 bounds 同一空间，无需像素换算（防坐标系混用回归）。
      */
     fun imageMessage(encoded: Encoded, index: Int, sourcePath: String): UserMessage =
         UserMessage.from(
             TextContent(
                 "[截图 #$index] 已附当前屏幕图像（${encoded.width}x${encoded.height}）。" +
-                    "请直接观察图像继续任务；原图: $sourcePath"
+                    "观察与点击同用 0-1000 千分比坐标：目标在图像中的相对位置（左上角为原点，宽高各按千分比）就是 tap 的坐标，" +
+                    "不要乘分辨率或使用截图像素值。原图: $sourcePath"
             ),
-            ImageContent.from(encoded.base64, encoded.mimeType)
+            ImageContent.from(encoded.base64, encoded.mimeType, ImageContent.DetailLevel.HIGH)
         )
 
-    /** 截图上限提示（达到上限后追加给模型的系统提示） */
-    fun capReachedMessage(): UserMessage =
+    /** 上下文预算不足、新截图无法注入时的提示 */
+    fun budgetOmittedMessage(): UserMessage =
         UserMessage.from(
-            "[系统提示] 本任务截图注入次数已达上限（$MAX_SCREENSHOTS_PER_TASK），" +
-                "后续 take_screenshot 只返回文件路径不再附带图像。请改用 get_screen_info 获取节点树信息。"
+            "[系统提示] 上下文预算已不足以再注入截图图像，本张仅保留文件路径。" +
+                "请基于已有截图与 get_screen_info 继续任务。"
         )
 
     /** 视觉被禁用/模型不支持时的降级占位 */

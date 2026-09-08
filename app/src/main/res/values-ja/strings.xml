@@ -130,6 +130,10 @@
     <string name="llm_config_verify_results_desc">主要操作後に端末状態を読み戻して検証</string>
     <string name="llm_config_vision">画像入力</string>
     <string name="llm_config_vision_desc">スクリーンショットをモデルに注入（画像対応モデルが必要）</string>
+    <string name="llm_config_vision_model_separate">個別の視覚モデル</string>
+    <string name="llm_config_vision_model_separate_desc">スクリーンショットを含むリクエストを別モデルへ送信（空欄はメインモデル）</string>
+    <string name="llm_config_vision_model_name">視覚モデル名</string>
+    <string name="llm_config_vision_model_name_hint">例: glm-5.3-flash（空欄でメインモデル）</string>
 
     <!-- 設定メニュー -->
     <string name="menu_dingtalk">DingTalk</string>
@@ -316,6 +320,7 @@
     <string name="channel_msg_no_accessibility">ユーザー補助権限がないため、タスクを実行できません</string>
     <string name="channel_msg_task_in_progress">タスク実行中です。お待ちください</string>
     <string name="channel_msg_system_dialog_blocked">システムダイアログが画面を遮っている可能性があります。確認のうえ手動で操作してから再試行してください</string>
+    <string name="channel_msg_vision_degraded">モデルが画像入力を拒否したため、このタスクはテキストのみのモードで続行します（画面内容は引き続きアクセシビリティで読み取ります）</string>
 
     <!-- アクセシビリティ -->
     <string name="cd_back_button">戻る</string>
@@ -345,6 +350,7 @@
     <string name="agent_task_cancel">タスクキャンセル</string>
     <string name="agent_api_call_failed">AIサービスの呼び出しに失敗: %s</string>
     <string name="agent_max_iterations">タスク未完了のまま最大反復回数 (%d) に達しました</string>
+    <string name="agent_loop_force_finish">連続 %1 ラウンド画面の観察のみで操作がなかったため、タスクを自動終了しました</string>
     <string name="agent_verify_failed">結果の検証に失敗しました（1回再試行済み）：%s</string>
 
     <!-- コンプライアンス（C3/C5/C6） -->

@@ -74,6 +74,8 @@ class AppViewModel : ViewModel() {
             .confirmDangerousOps(KVUtils.getConfirmDangerousOps())
             .verifyResults(KVUtils.getVerifyResults())
             .visionEnabled(KVUtils.getVisionEnabled())
+            .visionModelEnabled(KVUtils.getVisionModelEnabled())
+            .visionModel(KVUtils.getLlmVisionModel())
             .temperature(0.1)
             .maxIterations(60)
             .build()

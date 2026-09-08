@@ -4,8 +4,10 @@ import android.graphics.Bitmap;
 
 import com.apk.claw.android.ClawApplication;
 import com.apk.claw.android.R;
+import com.apk.claw.android.floating.FloatingCircleManager;
 import com.apk.claw.android.service.ClawAccessibilityService;
 import com.apk.claw.android.tool.BaseTool;
+import com.apk.claw.android.tool.ScreenshotCache;
 import com.apk.claw.android.tool.ToolParameter;
 import com.apk.claw.android.tool.ToolResult;
 
@@ -49,7 +51,21 @@ public class TakeScreenshotTool extends BaseTool {
             return ToolResult.error("Accessibility service is not running");
         }
 
-        Bitmap bitmap = service.takeScreenshot(5000);
+        // 自家悬浮球会被截进画面污染模型的视觉输入（真机实证：轮数徽标被当成游戏倒计时），
+        // 截图前隐藏、落盘后恢复；find_node_info 兜底的自动截图也经过本工具，一并覆盖。
+        // 隐藏后留一拍给 SurfaceFlinger 重新合成，否则系统截图可能拿到隐藏前的旧帧（真机实测）
+        FloatingCircleManager.INSTANCE.hideForCapture();
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        Bitmap bitmap;
+        try {
+            bitmap = service.takeScreenshot(5000);
+        } finally {
+            FloatingCircleManager.INSTANCE.showAfterCapture();
+        }
         if (bitmap == null) {
             return ToolResult.error("Failed to take screenshot. Requires Android 11+ (API 30).");
         }
@@ -71,6 +87,9 @@ public class TakeScreenshotTool extends BaseTool {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             }
             bitmap.recycle();
+
+            // 截图缓存只在此处产生：写入后按数量剪枝，防止长期使用占满存储
+            ScreenshotCache.pruneOldest(dir, ScreenshotCache.DEFAULT_KEEP);
 
             return ToolResult.success(file.getAbsolutePath());
         } catch (Exception e) {

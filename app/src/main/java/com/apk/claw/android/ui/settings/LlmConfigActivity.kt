@@ -32,6 +32,9 @@ class LlmConfigActivity : BaseActivity() {
         val swConfirmDangerousOps = findViewById<SwitchCompat>(R.id.switchConfirmDangerousOps)
         val swVerifyResults = findViewById<SwitchCompat>(R.id.switchVerifyResults)
         val swVisionEnabled = findViewById<SwitchCompat>(R.id.switchVisionEnabled)
+        val swVisionModelEnabled = findViewById<SwitchCompat>(R.id.switchVisionModelEnabled)
+        val layoutVisionModel = findViewById<android.view.View>(R.id.layoutVisionModel)
+        val etVisionModel = findViewById<EditText>(R.id.etVisionModel)
 
         etApiKey.setText(KVUtils.getLlmApiKey())
         etBaseUrl.setText(KVUtils.getLlmBaseUrl())
@@ -40,6 +43,12 @@ class LlmConfigActivity : BaseActivity() {
         swConfirmDangerousOps.isChecked = KVUtils.getConfirmDangerousOps()
         swVerifyResults.isChecked = KVUtils.getVerifyResults()
         swVisionEnabled.isChecked = KVUtils.getVisionEnabled()
+        swVisionModelEnabled.isChecked = KVUtils.getVisionModelEnabled()
+        etVisionModel.setText(KVUtils.getLlmVisionModel())
+        layoutVisionModel.visibility = if (swVisionModelEnabled.isChecked) android.view.View.VISIBLE else android.view.View.GONE
+        swVisionModelEnabled.setOnCheckedChangeListener { _, checked ->
+            layoutVisionModel.visibility = if (checked) android.view.View.VISIBLE else android.view.View.GONE
+        }
 
         findViewById<KButton>(R.id.btnSave).setOnClickListener {
             val apiKey = etApiKey.text.toString().trim()
@@ -63,6 +72,8 @@ class LlmConfigActivity : BaseActivity() {
             KVUtils.setConfirmDangerousOps(swConfirmDangerousOps.isChecked)
             KVUtils.setVerifyResults(swVerifyResults.isChecked)
             KVUtils.setVisionEnabled(swVisionEnabled.isChecked)
+            KVUtils.setVisionModelEnabled(swVisionModelEnabled.isChecked)
+            KVUtils.setLlmVisionModel(etVisionModel.text.toString().trim())
 
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()

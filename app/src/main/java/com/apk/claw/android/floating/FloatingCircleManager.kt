@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -163,6 +165,52 @@ object FloatingCircleManager {
      * 判断是否显示中
      */
     fun isShowing(): Boolean = isShowing
+
+    // —— 截图防自见：悬浮球会出现在 take_screenshot 的画面里，真机实证模型把状态数字
+    // 当成游戏倒计时、把球压住的卡格当成游戏内容；只改可见性，状态与轮数不丢 ——
+
+    private var captureHidden = false
+
+    /** 截图前隐藏悬浮球；主线程同步执行，返回即已生效（球未显示时为空操作） */
+    fun hideForCapture() {
+        runOnUiSync {
+            val view = EasyFloat.getFloatView(FLOAT_TAG)
+            captureHidden = view != null && view.visibility == View.VISIBLE
+            view?.visibility = View.INVISIBLE
+            XLog.i(TAG, "hideForCapture: found=${view != null}, wasVisible=$captureHidden")
+        }
+    }
+
+    /** 截图落盘后恢复悬浮球（仅恢复本次隐藏的，避免误显已关闭的球） */
+    fun showAfterCapture() {
+        runOnUiSync {
+            val wasHidden = captureHidden
+            if (wasHidden) {
+                EasyFloat.getFloatView(FLOAT_TAG)?.visibility = View.VISIBLE
+            }
+            captureHidden = false
+            XLog.i(TAG, "showAfterCapture: wasHidden=$wasHidden")
+        }
+    }
+
+    /** 主线程同步执行：已在主线程直接跑，否则 post 并限时等待（工具线程不能无限阻塞） */
+    private fun runOnUiSync(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+            return
+        }
+        val latch = CountDownLatch(1)
+        mainHandler.post {
+            try {
+                action()
+            } finally {
+                latch.countDown()
+            }
+        }
+        if (!latch.await(2, TimeUnit.SECONDS)) {
+            XLog.w(TAG, "runOnUiSync timed out waiting for main thread")
+        }
+    }
 
     /**
      * 切换到等待任务状态（默认）

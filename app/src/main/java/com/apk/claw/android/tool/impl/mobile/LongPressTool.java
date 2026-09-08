@@ -25,19 +25,19 @@ public class LongPressTool extends BaseTool {
 
     @Override
     public String getDescriptionEN() {
-        return "Perform a long press at the specified screen coordinates (x, y) for a given duration.";
+        return "Perform a long press at the specified screen coordinates (x, y) in permille (0-1000 of screen width/height, same space as bounds/center from get_screen_info) for a given duration.";
     }
 
     @Override
     public String getDescriptionCN() {
-        return "在指定的屏幕坐标 (x, y) 处执行长按操作，持续指定时长。";
+        return "在指定坐标 (x, y) 处执行长按操作，持续指定时长。坐标为 0-1000 千分比（与 get_screen_info 的 bounds/center 同一坐标系）。";
     }
 
     @Override
     public List<ToolParameter> getParameters() {
         return Arrays.asList(
-                new ToolParameter("x", "integer", "X coordinate on screen", true),
-                new ToolParameter("y", "integer", "Y coordinate on screen", true),
+                new ToolParameter("x", "integer", "X in permille of screen width (0-1000)", true),
+                new ToolParameter("y", "integer", "Y in permille of screen height (0-1000)", true),
                 new ToolParameter("duration_ms", "integer", "Duration of long press in milliseconds (default 1000)", false)
         );
     }
@@ -53,7 +53,7 @@ public class LongPressTool extends BaseTool {
         String boundsError = validateCoordinates(x, y);
         if (boundsError != null) return ToolResult.error(boundsError);
         long duration = optionalLong(params, "duration_ms", 1000);
-        boolean success = service.performLongPress(x, y, duration);
+        boolean success = service.performLongPress(pixelX(x), pixelY(y), duration);
         return success ? ToolResult.success("Long pressed at (" + x + ", " + y + ") for " + duration + "ms")
                 : ToolResult.error("Failed to long press at (" + x + ", " + y + ")");
     }

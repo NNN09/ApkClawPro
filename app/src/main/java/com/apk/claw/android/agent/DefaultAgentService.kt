@@ -171,14 +171,19 @@ class DefaultAgentService : AgentService {
 
     // ==================== LLM 调用（带重试） ====================
 
-    private fun chatWithRetry(messages: List<ChatMessage>, callback: AgentCallback, iteration: Int): LlmResponse {
+    private fun chatWithRetry(
+        messages: List<ChatMessage>,
+        specs: List<dev.langchain4j.agent.tool.ToolSpecification>,
+        callback: AgentCallback,
+        iteration: Int
+    ): LlmResponse {
         var lastException: Exception? = null
         for (attempt in 0 until MAX_API_RETRIES) {
             if (cancelled.get()) throw RuntimeException(ClawApplication.instance.getString(R.string.agent_task_cancelled))
             try {
                 return if (config.streaming) {
                     val textBuilder = StringBuilder()
-                    llmClient.chatStreaming(messages, toolSpecs, object : StreamingListener {
+                    llmClient.chatStreaming(messages, specs, object : StreamingListener {
                         override fun onPartialText(token: String) {
                             textBuilder.append(token)
                             callback.onContent(iteration, token)
@@ -187,17 +192,16 @@ class DefaultAgentService : AgentService {
                         override fun onError(error: Throwable) {}
                     })
                 } else {
-                    llmClient.chat(messages, toolSpecs)
+                    llmClient.chat(messages, specs)
                 }
             } catch (e: Exception) {
                 lastException = e
-                val msg = e.message ?: ""
-                // Token 耗尽或认证失败不重试
-                if (msg.contains("401") || msg.contains("403") || msg.contains("insufficient")) {
+                // ③ 确定性错误（参数/配额/认证/超限）重试必然同结果，立即上抛走分类兜底
+                if (LlmErrorKind.classify(e.message) == LlmErrorKind.NON_RETRYABLE) {
                     throw e
                 }
                 val delay = (Math.pow(2.0, attempt.toDouble()) * 1000).toLong()
-                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES), retrying in ${delay}ms: $msg")
+                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES), retrying in ${delay}ms: ${e.message}")
                 try {
                     Thread.sleep(delay)
                 } catch (ie: InterruptedException) {
@@ -207,6 +211,36 @@ class DefaultAgentService : AgentService {
             }
         }
         throw lastException!!
+    }
+
+    /**
+     * ② LLM 调用失败后的分级视觉兜底。按 [LlmErrorKind] 分流：
+     * - IMAGE_LIMIT（图片数超服务商上限）：折叠最旧一半截图、带图重试——视觉还在，绝不轻言放弃；
+     * - 仍失败 → 全剥降级为纯文本（旧行为，用户可见提示"模型不接受图像输入"）；
+     * - 无图像可剥（降级已发生过）→ 返回 null，由调用方终结任务。
+     * @return 成功的响应；null = 兜底也失败
+     */
+    private fun recoverFromLlmFailure(
+        messages: MutableList<ChatMessage>,
+        specs: List<dev.langchain4j.agent.tool.ToolSpecification>,
+        callback: AgentCallback,
+        iteration: Int,
+        firstError: Throwable
+    ): LlmResponse? {
+        if (!ContextBudget.hasImages(messages)) return null
+        var lastError: Throwable = firstError
+
+        if (LlmErrorKind.classify(firstError.message) == LlmErrorKind.IMAGE_LIMIT) {
+            val folded = ContextBudget.foldOldestImagesTo(messages, ContextBudget.MAX_IMAGES_PER_REQUEST / 2)
+            XLog.w(TAG, "Image count limit hit, folded $folded oldest screenshots, retrying with vision")
+            runCatching { chatWithRetry(messages, specs, callback, iteration) }.onSuccess { return it }
+                .onFailure { lastError = it }
+        }
+
+        ContextBudget.stripImages(messages)
+        XLog.w(TAG, "LLM call failed with images present, stripped image contents and retry once", lastError)
+        callback.onVisionDegraded(lastError.message ?: "vision input rejected")
+        return runCatching { chatWithRetry(messages, specs, callback, iteration) }.getOrNull()
     }
 
     // ==================== 死循环检测 ====================
@@ -365,39 +399,57 @@ class DefaultAgentService : AgentService {
         var iterations = 0
         var totalTokens = 0
         val maxIterations = config.maxIterations
-        val charBudget = ContextBudget.charBudget(config.contextWindowTokens)
+        val budgetCalibrator = ContextBudget.BudgetCalibrator()
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
-        var screenshotCount = 0   // F10：本任务已注入视觉上下文的截图数
+        var screenshotCount = 0   // F10：本任务已注入视觉上下文的截图数（仅作消息编号）
         var findMissStreak = 0    // F10：find_node_info 连续失败计数（视觉兜底触发器）
+        var observationStreak = 0 // ④⑤：连续"纯观察轮"计数（全部工具调用都是观察类）
+        var restrictedRound = false // ④：下一轮临时禁用观察工具（RESTRICT 阶梯生效中）
 
         loop@ while (iterations < maxIterations && !cancelled.get()) {
             iterations++
             callback.onLoopStart(iterations)
 
-            // 发送前分级压缩历史消息，节省 token
+            // ④ RESTRICT 生效轮：收走观察类工具，逼模型行动或 finish
+            val activeSpecs = if (restrictedRound) {
+                toolSpecs.filter { it.name() !in LoopGuard.OBSERVATION_TOOLS }
+            } else {
+                toolSpecs
+            }
+
+            // 发送前分级压缩历史消息，节省 token（预算经实测校准，先验=旧行为）
+            val charBudget = budgetCalibrator.effectiveCharBudget(config.contextWindowTokens)
             compressHistoryForSend(messages)
+            var estimateAtSend = ContextBudget.estimateChars(messages)
 
             // 超字符预算时升级压缩：先激进压缩全部工具结果，仍超则丢弃最早执行轮次
-            if (ContextBudget.estimateChars(messages) > charBudget) {
+            if (estimateAtSend > charBudget) {
                 ContextBudget.compressAllToolResults(messages)
                 if (ContextBudget.estimateChars(messages) > charBudget) {
                     ContextBudget.truncateOldestRounds(messages, taskUserIndex, TRUNCATE_KEEP_ROUNDS)
                 }
+                estimateAtSend = ContextBudget.estimateChars(messages)
             }
 
-            // LLM 调用（带重试）；模型不支持视觉输入时报错会降级为纯文本消息后重试一次
-            val llmResponse: LlmResponse = runCatching { chatWithRetry(messages, callback, iterations) }.getOrElse { e ->
-                if (!ContextBudget.stripImages(messages)) {
-                    XLog.e(TAG, "LLM API call failed after retries", e)
+            // LLM 调用（带重试）；失败时按错误分类分级兜底：
+            // 图片数超限 → 折叠最旧一半截图带图重试（保住视觉）；仍失败 → 全剥降级为纯文本
+            val llmResponse: LlmResponse = runCatching { chatWithRetry(messages, activeSpecs, callback, iterations) }.getOrElse { e ->
+                val recovered = recoverFromLlmFailure(messages, activeSpecs, callback, iterations, e)
+                if (recovered != null) {
+                    estimateAtSend = ContextBudget.estimateChars(messages)   // 折叠/剥图后按新体积校准
+                    recovered
+                } else {
+                    XLog.e(TAG, "LLM API call failed after vision fallback", e)
                     callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, e.message)), totalTokens)
                     return
                 }
-                XLog.w(TAG, "LLM call failed with images present, stripped image contents and retry once", e)
-                runCatching { chatWithRetry(messages, callback, iterations) }.getOrElse { retry ->
-                    XLog.e(TAG, "LLM API call failed after vision fallback", retry)
-                    callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, retry.message)), totalTokens)
-                    return
+            }
+
+            // 实测校准：发送前估算 vs 实际输入 token，修正下一轮的字符预算
+            llmResponse.tokenUsage?.inputTokenCount()?.let { inputTokens ->
+                if (budgetCalibrator.onMeasured(estimateAtSend, inputTokens)) {
+                    XLog.i(TAG, "输入 token 实测超出先验估算，预算换算系数收紧为 ${budgetCalibrator.charsPerToken}")
                 }
             }
 
@@ -439,6 +491,9 @@ class DefaultAgentService : AgentService {
                 val toolArgs = toolRequest.arguments() ?: "{}"
                 callback.onToolCall(iterations, toolName, displayName, toolArgs)
 
+                // ④ RESTRICT 生效轮：模型仍输出观察类调用 → 不执行，回错误结果把它逼向操作
+                val observationBlocked = restrictedRound && toolName in LoopGuard.OBSERVATION_TOOLS
+
                 // 解析参数
                 val mapType = object : TypeToken<Map<String, Any>>() {}.type
                 var params: Map<String, Any>? = try {
@@ -457,7 +512,9 @@ class DefaultAgentService : AgentService {
                     isSystemApp = { pkg -> DeviceProbe.isSystemPackage(pkg) },
                     modeOf = { pkg -> AppPolicyStore.find(pkg)?.mode }
                 )
-                var result = when (val verdict = AppPolicyEngine.evaluate(toolName, params, appPolicyCtx)) {
+                var result = if (observationBlocked) {
+                    ToolResult.error(LoopGuard.restrictedToolError())
+                } else when (val verdict = AppPolicyEngine.evaluate(toolName, params, appPolicyCtx)) {
                     is AppPolicyEngine.Verdict.Block ->
                         ToolResult.error(policyBlockMessage(verdict, displayName))
                     is AppPolicyEngine.Verdict.Confirm -> {
@@ -563,36 +620,32 @@ class DefaultAgentService : AgentService {
                 val resultJson = GSON.toJson(result)
                 messages.add(ToolExecutionResultMessage.from(toolRequest, resultJson))
 
-                // F10：截图作为图像消息进入 LLM 上下文，单任务有上限控制 token 成本
+                // F10：截图作为图像消息进入 LLM 上下文；注入数量由上下文预算动态约束
+                //（ContextBudget.makeRoomForImage：预算内全保留，超预算折叠最旧图），无固定张数上限
                 if (toolName == "take_screenshot" && result.isSuccess && result.data != null) {
-                    when {
-                        !config.visionEnabled -> messages.add(ScreenshotEncoder.disabledMessage())
-                        screenshotCount < ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK -> {
-                            val encoded = ScreenshotEncoder.encode(File(result.data))
-                            if (encoded != null) {
-                                screenshotCount++
-                                messages.add(ScreenshotEncoder.imageMessage(encoded, screenshotCount, result.data!!))
-                            }
-                            if (screenshotCount >= ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK) {
-                                messages.add(ScreenshotEncoder.capReachedMessage())
-                            }
+                    if (!config.visionEnabled) {
+                        messages.add(ScreenshotEncoder.disabledMessage())
+                    } else {
+                        val encoded = ScreenshotEncoder.encode(File(result.data))
+                        if (encoded != null && ContextBudget.makeRoomForImage(messages, charBudget)) {
+                            screenshotCount++
+                            messages.add(ScreenshotEncoder.imageMessage(encoded, screenshotCount, result.data!!))
+                        } else if (encoded != null) {
+                            messages.add(ScreenshotEncoder.budgetOmittedMessage())
                         }
-                        // 超上限后不加提示：工具结果里已有路径文本，避免重复注入相同系统提示
                     }
                 }
 
                 // F10 视觉兜底：find_node_info 连续失败（WebView/自绘界面读不到节点）时自动截图注入
-                if (toolName == "find_node_info") {
+                //（RESTRICT 生效轮不计数、不兜底——观察被禁是为了逼它行动）
+                if (toolName == "find_node_info" && !observationBlocked) {
                     findMissStreak = if (result.isSuccess) 0 else findMissStreak + 1
-                    if (config.visionEnabled &&
-                        findMissStreak >= AUTO_SCREENSHOT_AFTER_FIND_MISSES &&
-                        screenshotCount < ScreenshotEncoder.MAX_SCREENSHOTS_PER_TASK
-                    ) {
+                    if (config.visionEnabled && findMissStreak >= AUTO_SCREENSHOT_AFTER_FIND_MISSES) {
                         val shot = ToolRegistry.getInstance().executeTool("take_screenshot", emptyMap())
                         val shotPath = shot.data
                         if (shot.isSuccess && shotPath != null) {
                             val encoded = ScreenshotEncoder.encode(File(shotPath))
-                            if (encoded != null) {
+                            if (encoded != null && ContextBudget.makeRoomForImage(messages, charBudget)) {
                                 screenshotCount++
                                 XLog.i(TAG, "Auto screenshot injected after $findMissStreak find_node_info misses")
                                 messages.add(ScreenshotEncoder.autoTriggeredMessage(encoded, screenshotCount))
@@ -605,16 +658,41 @@ class DefaultAgentService : AgentService {
                 XLog.d(TAG, "displayName:$displayName toolName:$toolName")
             }
 
-            // 死循环检测
-            if (isStuckInLoop(loopHistory)) {
-                XLog.w(TAG, "Dead loop detected at iteration $iterations")
-                messages.add(
-                    UserMessage.from(
-                        "[系统提示] 检测到你连续多轮执行了相同的操作且屏幕没有变化，你可能陷入了死循环。" +
-                        "请尝试完全不同的方法：按 system_key(key=\"back\") 回退、滑动页面寻找目标、或重新打开 App。" +
-                        "如果确实无法完成任务，请调用 finish 说明原因。"
+            // ④⑤ 观察阶梯：连续纯观察轮（模型只看不做）按 NUDGE → RESTRICT → FORCE_FINISH 升级。
+            // 真机实证：仅提示不设约束时，模型曾连续 50 轮纯截图、无视全部提示、0 次操作。
+            val roundCalls = llmResponse.toolExecutionRequests.map { it.name() ?: "" }
+            val roundAllObservation = LoopGuard.isPureObservation(roundCalls)
+            if (roundAllObservation) observationStreak++ else observationStreak = 0
+            when (LoopGuard.escalationFor(observationStreak)) {
+                LoopGuard.Escalation.NUDGE ->
+                    messages.add(UserMessage.from(LoopGuard.nudgeMessage(loopHistory.map { it.toolCall })))
+                LoopGuard.Escalation.RESTRICT -> {
+                    if (!restrictedRound) {
+                        restrictedRound = true
+                        messages.add(UserMessage.from(LoopGuard.restrictionMessage(observationStreak)))
+                    }
+                }
+                LoopGuard.Escalation.FORCE_FINISH -> {
+                    XLog.w(TAG, "Force finish: $observationStreak consecutive observation rounds without action")
+                    callback.onError(
+                        iterations,
+                        RuntimeException(ClawApplication.instance.getString(R.string.agent_loop_force_finish, observationStreak)),
+                        totalTokens
                     )
-                )
+                    return
+                }
+                LoopGuard.Escalation.NONE -> {}
+            }
+            // 模型在受限轮后恢复了行动 → 解除限制并告知
+            if (restrictedRound && LoopGuard.escalationFor(observationStreak) != LoopGuard.Escalation.RESTRICT) {
+                restrictedRound = false
+                messages.add(UserMessage.from(LoopGuard.restoreMessage()))
+            }
+
+            // 操作类死循环检测（指纹重复）：纯观察循环已由上面的阶梯接管，避免重复提示
+            if (!roundAllObservation && isStuckInLoop(loopHistory)) {
+                XLog.w(TAG, "Dead loop detected at iteration $iterations")
+                messages.add(UserMessage.from(LoopGuard.nudgeMessage(loopHistory.map { it.toolCall })))
                 loopHistory.clear()
             }
             XLog.d(TAG, "轮数:$iterations all=$totalTokens 本轮=${llmResponse.tokenUsage?.totalTokenCount()}")

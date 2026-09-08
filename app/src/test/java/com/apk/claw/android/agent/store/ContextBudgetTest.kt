@@ -153,4 +153,171 @@ class ContextBudgetTest {
         assertTrue((msgs[2] as UserMessage).contents().any { it is ImageContent })
         assertTrue((msgs[1] as ToolExecutionResultMessage).text().length <= 100)
     }
+
+    // ==================== makeRoomForImage：预算驱动的截图注入 ====================
+
+    @Test
+    fun makeRoomForImage_passesWithoutFoldingWhenBudgetAllows() {
+        val msgs = mutableListOf<ChatMessage>(
+            SystemMessage.from("s"),
+            imageMessage("shot"),
+            UserMessage.from("t")
+        )
+        val budget = ContextBudget.estimateChars(msgs) + ContextBudget.IMAGE_COST_CHARS
+        // 预算恰好容纳新图：不折叠任何已有图
+        assertTrue(ContextBudget.makeRoomForImage(msgs, budget))
+        assertTrue((msgs[1] as UserMessage).contents().any { it is ImageContent })
+    }
+
+    @Test
+    fun makeRoomForImage_foldsOldestFirstAndKeepsNewer() {
+        val msgs = mutableListOf<ChatMessage>(
+            imageMessage("shot1"),
+            UserMessage.from("x"),
+            imageMessage("shot2"),
+            UserMessage.from("y"),
+            imageMessage("shot3")
+        )
+        // 初始 ≈9017；折叠 1 张后 ≈6027，折叠 2 张后 ≈3037。
+        // budget=7000 → 需求 estimate ≤ 4000：折叠 2 张最旧后满足，shot3（最新）保留
+        assertTrue(ContextBudget.makeRoomForImage(msgs, 7000))
+        assertFalse((msgs[0] as UserMessage).contents().any { it is ImageContent })
+        assertFalse((msgs[2] as UserMessage).contents().any { it is ImageContent })
+        assertTrue((msgs[4] as UserMessage).contents().any { it is ImageContent })
+    }
+
+    @Test
+    fun makeRoomForImage_foldsOnlyAsManyAsNeeded() {
+        val msgs = mutableListOf<ChatMessage>(
+            imageMessage("shot1"),
+            UserMessage.from("x"),
+            imageMessage("shot2"),
+            UserMessage.from("y"),
+            imageMessage("shot3")
+        )
+        // budget=9100 → 需求 estimate ≤ 6100：折叠 1 张最旧（6027 ≤ 6100）即停，不误伤中间图
+        assertTrue(ContextBudget.makeRoomForImage(msgs, 9100))
+        assertFalse((msgs[0] as UserMessage).contents().any { it is ImageContent })
+        assertTrue((msgs[2] as UserMessage).contents().any { it is ImageContent })
+        assertTrue((msgs[4] as UserMessage).contents().any { it is ImageContent })
+    }
+
+    @Test
+    fun makeRoomForImage_foldsAllWhenDesperate_thenReportsFalse() {
+        val msgs = mutableListOf<ChatMessage>(
+            imageMessage("shot1"),
+            imageMessage("shot2")
+        )
+        // 预算连一张图都放不下（系统提示词都放不下）：全折叠后仍返回 false
+        val budget = 10
+        assertFalse(ContextBudget.makeRoomForImage(msgs, budget))
+        assertFalse(ContextBudget.hasImages(msgs))
+    }
+
+    // ==================== BudgetCalibrator：实测 token 校准预算 ====================
+
+    @Test
+    fun calibrator_initialBudgetMatchesLegacy() {
+        // 未实测时与静态公式完全一致（旧行为），保证升级无行为跳变
+        val c = ContextBudget.BudgetCalibrator()
+        assertEquals(ContextBudget.charBudget(30000), c.effectiveCharBudget(30000))
+        assertEquals(36000, c.effectiveCharBudget(0))
+    }
+
+    @Test
+    fun calibrator_usesMeasuredRatio() {
+        val c = ContextBudget.BudgetCalibrator()
+        // 估算 24000 字符，实测 24000 token → 换算系数 1.0（先验 1.5 高估了字符密度）
+        assertTrue(c.onMeasured(estimateChars = 24000, actualInputTokens = 24000))
+        assertEquals(1.0, c.charsPerToken, 0.0001)
+        // 新预算 = 30000 × 0.8 × 1.0 = 24000
+        assertEquals(24000, c.effectiveCharBudget(30000))
+    }
+
+    @Test
+    fun calibrator_keepsBudgetWhenEstimateAccurate() {
+        val c = ContextBudget.BudgetCalibrator()
+        // 估算 36000 字符对应实测 24000 token（比例恰为 1.5）：预算不收紧
+        assertFalse(c.onMeasured(estimateChars = 36000, actualInputTokens = 24000))
+        assertEquals(ContextBudget.charBudget(30000), c.effectiveCharBudget(30000))
+    }
+
+    @Test
+    fun calibrator_clampsExtremeRatios() {
+        val c = ContextBudget.BudgetCalibrator()
+        c.onMeasured(estimateChars = 100_000, actualInputTokens = 10)    // 10000 → clamp 上限 4.0
+        assertEquals(4.0, c.charsPerToken, 0.0001)
+        c.onMeasured(estimateChars = 100, actualInputTokens = 100_000)   // 0.001 → clamp 下限 0.6
+        assertEquals(0.6, c.charsPerToken, 0.0001)
+    }
+
+    @Test
+    fun calibrator_ignoresInvalidMeasurements() {
+        val c = ContextBudget.BudgetCalibrator()
+        assertFalse(c.onMeasured(estimateChars = 1000, actualInputTokens = 0))
+        assertFalse(c.onMeasured(estimateChars = 1000, actualInputTokens = -5))
+        assertFalse(c.onMeasured(estimateChars = 0, actualInputTokens = 100))
+        assertEquals(ContextBudget.charBudget(30000), c.effectiveCharBudget(30000))
+    }
+
+    // ==================== ① 单请求图片数上限 ====================
+
+    @Test
+    fun countImages_countsOnlyImageMessages() {
+        val msgs = mutableListOf<ChatMessage>(
+            UserMessage.from("task"),
+            imageMessage("s1"),
+            UserMessage.from("mid"),
+            imageMessage("s2")
+        )
+        assertEquals(2, ContextBudget.countImages(msgs))
+        ContextBudget.stripImages(msgs)
+        assertEquals(0, ContextBudget.countImages(msgs))
+    }
+
+    @Test
+    fun foldOldestImagesTo_keepsNewestAndReturnsFoldedCount() {
+        val msgs = mutableListOf<ChatMessage>(
+            imageMessage("s1"),
+            UserMessage.from("mid"),
+            imageMessage("s2"),
+            UserMessage.from("tail"),
+            imageMessage("s3")
+        )
+        val folded = ContextBudget.foldOldestImagesTo(msgs, keepCount = 1)
+        assertEquals(2, folded)
+        assertEquals(1, ContextBudget.countImages(msgs))
+        // 折叠的最旧消息替换为占位
+        assertTrue((msgs[0] as UserMessage).singleText().contains("早期截图已省略"))
+        // 保留的是最新一张（s3）
+        val kept = msgs.filterIsInstance<UserMessage>()
+            .first { it.contents().any { c -> c is ImageContent } }
+        assertTrue(kept.contents().filterIsInstance<TextContent>().any { it.text().contains("s3") })
+    }
+
+    @Test
+    fun foldOldestImagesTo_noopWhenAlreadyWithinLimit() {
+        val msgs = mutableListOf<ChatMessage>(imageMessage("s1"), imageMessage("s2"))
+        assertEquals(0, ContextBudget.foldOldestImagesTo(msgs, keepCount = 2))
+        assertEquals(2, ContextBudget.countImages(msgs))
+    }
+
+    @Test
+    fun makeRoomForImage_enforcesImageCountCapEvenWithinBudget() {
+        val msgs = mutableListOf<ChatMessage>()
+        repeat(ContextBudget.MAX_IMAGES_PER_REQUEST) { msgs.add(imageMessage("s$it")) }
+        // 字符预算充裕也必须受张数上限约束：为新图腾位后总数不得超过上限
+        assertTrue(ContextBudget.makeRoomForImage(msgs, charBudget = Int.MAX_VALUE))
+        assertTrue(ContextBudget.countImages(msgs) < ContextBudget.MAX_IMAGES_PER_REQUEST)
+    }
+
+    @Test
+    fun makeRoomForImage_stillFoldsByBudgetFirst() {
+        // 原有行为保持：超字符预算时逐张折叠到放得下
+        // 1000 文本 + (2 截图文本 + 3000 图像成本) = 4002，再加新图 3000 = 7002 > 预算 5000
+        // → 折叠 s1 后 1014 + 3000(新图) = 4014 ≤ 5000 → 放行
+        val msgs = mutableListOf<ChatMessage>(UserMessage.from("x".repeat(1000)), imageMessage("s1"))
+        assertTrue(ContextBudget.makeRoomForImage(msgs, charBudget = 5000))
+        assertEquals(0, ContextBudget.countImages(msgs))
+    }
 }

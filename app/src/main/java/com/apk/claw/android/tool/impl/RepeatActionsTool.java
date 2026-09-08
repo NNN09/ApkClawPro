@@ -65,7 +65,7 @@ public class RepeatActionsTool extends BaseTool {
                 + "By default, a random delay of 3~10s is added between rounds to simulate human-like timing. "
                 + "ONLY set interval_min_ms=interval_max_ms to a fixed value when the user EXPLICITLY requests a specific interval (e.g. 'every 10 seconds'). "
                 + "Otherwise, always use the default random interval or customize the range via interval_min_ms/interval_max_ms. "
-                + "Example: actions=[{\"tool\":\"swipe\",\"params\":{\"start_x\":540,\"start_y\":1600,\"end_x\":540,\"end_y\":400}}], repeat_count=30. "
+                + "Example: actions=[{\"tool\":\"swipe\",\"params\":{\"start_x\":500,\"start_y\":700,\"end_x\":500,\"end_y\":300}}], repeat_count=30. "
                 + "Cannot call 'repeat_actions' or 'finish' inside actions.";
     }
 
@@ -78,7 +78,7 @@ public class RepeatActionsTool extends BaseTool {
                 + "仅当用户明确要求固定间隔时（如「每隔10秒刷一次」），才将 interval_min_ms 和 interval_max_ms 设为相同的固定值。"
                 + "否则请使用默认的随机间隔，或自定义随机范围。"
                 + "示例 - 刷抖音30次（默认随机间隔）: "
-                + "actions=[{\"tool\":\"swipe\",\"params\":{\"start_x\":540,\"start_y\":1600,\"end_x\":540,\"end_y\":400}}], repeat_count=30。"
+                + "actions=[{\"tool\":\"swipe\",\"params\":{\"start_x\":500,\"start_y\":700,\"end_x\":500,\"end_y\":300}}], repeat_count=30。"
                 + "actions 中不能调用 repeat_actions 和 finish。";
     }
 
@@ -87,7 +87,7 @@ public class RepeatActionsTool extends BaseTool {
         return Arrays.asList(
                 new ToolParameter("actions", "string",
                         "JSON array of action steps. Each step: {\"tool\": \"tool_name\", \"params\": {param_key: param_value}}. "
-                                + "Example: [{\"tool\":\"swipe\",\"params\":{\"start_x\":540,\"start_y\":1600,\"end_x\":540,\"end_y\":400}}]",
+                                + "Example: [{\"tool\":\"swipe\",\"params\":{\"start_x\":500,\"start_y\":700,\"end_x\":500,\"end_y\":300}}]",
                         true),
                 new ToolParameter("repeat_count", "integer",
                         "Number of times to repeat the entire action sequence (default: 1)", false),

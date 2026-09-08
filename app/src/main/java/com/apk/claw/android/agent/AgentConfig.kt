@@ -20,8 +20,21 @@ data class AgentConfig(
     /** 核心操作执行后回读设备状态断言，失败自动重试一次（F4） */
     val verifyResults: Boolean = true,
     /** 截图作为图像注入 LLM 上下文（F10，需要模型支持视觉输入） */
-    val visionEnabled: Boolean = true
+    val visionEnabled: Boolean = true,
+    /** 独立视觉模型开关：打开后带图请求可路由到单独的模型 */
+    val visionModelEnabled: Boolean = false,
+    /** 独立视觉模型名；空或与主模型相同 = 仍用主模型（开关打开默认主模型，单独设置才生效） */
+    val visionModel: String = ""
 ) {
+
+    /**
+     * 带图请求的生效视觉模型名。规则：开关打开 + 单独设置了模型（非空、非主模型）+ 本次请求含图像
+     * → 返回该模型名；其余情况返回 null（继续用主模型）。hasImages 由调用方传入，保持本类零 langchain4j 依赖。
+     */
+    fun effectiveVisionModel(hasImages: Boolean): String? {
+        if (!visionModelEnabled || !hasImages) return null
+        return visionModel.trim().takeIf { it.isNotEmpty() && it != modelName }
+    }
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
             """## ROLE
@@ -51,7 +64,11 @@ data class AgentConfig(
   - 不要盲目堆叠操作：如果后一步依赖前一步的屏幕变化，必须分开执行
 
 规则 3：点击使用 tap(x, y, text)。
-  从 get_screen_info 返回的 bounds 中计算目标元素的中心坐标，然后 tap。
+  全局坐标约定：所有坐标参数与 get_screen_info / find_node_info / scroll_to_find 返回的 bounds、center
+  一律是 **0-1000 千分比**（x 为屏宽的千分之几，y 为屏高的千分之几），观察与动作同空间，无需任何像素换算。
+  从 bounds 计算中心 ((左+右)/2, (上+下)/2) 后直接 tap。
+  直接依据截图点击时：目标在图像中的相对位置（如"横向约 1/8、纵向约 1/4 处"）就是千分比坐标（125, 250），
+  **绝不要使用截图的像素值，也不要乘分辨率**。
   必须传 text 参数：目标元素的可见文字（如 "发送"、"删除"、"立即支付"）。
   它用于不可逆操作的安全审查（含发送/支付/删除等字样的点击会先请求用户确认）与执行轨迹记录，不传会导致安全审查失效。
 
@@ -136,6 +153,8 @@ data class AgentConfig(
         private var confirmDangerousOps: Boolean = true
         private var verifyResults: Boolean = true
         private var visionEnabled: Boolean = true
+        private var visionModelEnabled: Boolean = false
+        private var visionModel: String = ""
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -149,10 +168,12 @@ data class AgentConfig(
         fun confirmDangerousOps(confirmDangerousOps: Boolean) = apply { this.confirmDangerousOps = confirmDangerousOps }
         fun verifyResults(verifyResults: Boolean) = apply { this.verifyResults = verifyResults }
         fun visionEnabled(visionEnabled: Boolean) = apply { this.visionEnabled = visionEnabled }
+        fun visionModelEnabled(visionModelEnabled: Boolean) = apply { this.visionModelEnabled = visionModelEnabled }
+        fun visionModel(visionModel: String) = apply { this.visionModel = visionModel }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults, visionEnabled)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults, visionEnabled, visionModelEnabled, visionModel)
         }
     }
 }
