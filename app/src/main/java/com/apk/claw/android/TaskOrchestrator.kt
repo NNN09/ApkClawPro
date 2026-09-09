@@ -4,6 +4,7 @@ import com.apk.claw.android.agent.AgentCallback
 import com.apk.claw.android.agent.AgentConfig
 import com.apk.claw.android.agent.AgentService
 import com.apk.claw.android.agent.AgentServiceFactory
+import com.apk.claw.android.agent.TaskRejectedException
 import com.apk.claw.android.agent.TaskRequest
 import com.apk.claw.android.agent.UserDecisionGate
 import com.apk.claw.android.agent.ReplyKeywords
@@ -47,6 +48,10 @@ class TaskOrchestrator(
     @Volatile
     var inProgressTaskChannel: Channel? = null
         private set
+
+    /** 已对当前任务发过取消信号：Agent 线程收尾窗口内不重复广播取消消息 */
+    @Volatile
+    private var cancelSignalled = false
 
     /** 任务结束（完成/失败/取消/弹窗终止）且锁已释放后回调。注意：回调在后台线程执行。 */
     @Volatile
@@ -161,6 +166,7 @@ class TaskOrchestrator(
             if (inProgressTaskMessageId.isNotEmpty()) return false
             inProgressTaskMessageId = messageId
             inProgressTaskChannel = channel
+            cancelSignalled = false
             return true
         }
     }
@@ -178,6 +184,11 @@ class TaskOrchestrator(
         }
     }
 
+    /** 只读当前任务锁信息（发取消通知用），不释放 */
+    private fun peekTask(): Pair<Channel?, String> = synchronized(taskLock) {
+        inProgressTaskChannel to inProgressTaskMessageId
+    }
+
     fun isTaskRunning(): Boolean {
         synchronized(taskLock) {
             return inProgressTaskMessageId.isNotEmpty()
@@ -188,19 +199,25 @@ class TaskOrchestrator(
 
     fun cancelCurrentTask() {
         if (!isTaskRunning()) return
+        if (cancelSignalled) return   // 已发过取消信号：Agent 线程尚在收尾，勿重复广播
+        cancelSignalled = true
         // 若正在等待用户决策（F1/F2），先放行门控以免 Agent 线程滞留在等待中
         synchronized(gateLock) { activeGate?.resolve(false) }
         if (::agentService.isInitialized) {
             agentService.cancel()
         }
-        val (channel, messageId) = releaseTask()
+        val (channel, messageId) = peekTask()
         if (channel != null && messageId.isNotEmpty()) {
             ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_cancelled), messageId)
         }
         FloatingCircleManager.setErrorState()
         onTaskFinished()
-        // 不在此处 notifyIdle：Agent 线程尚未空闲，排队排空由任务收尾的 onSettled 触发
-        XLog.d(TAG, "Current task cancelled by user")
+        // 任务锁不在此处释放：Agent 线程可能仍卡在途 LLM 调用（OkHttp 不响应中断，
+        // 最长 read-timeout 300s），此刻放锁会让窗口期内的新任务拿到锁却被 executeTask
+        // 以"已在运行"弹回（且每次弹回误记 FAILED、连弹 5 次即顶开 C3 熔断）。
+        // 锁延迟到本任务收尾的 onSettled 释放（executeTask 契约保证必调），
+        // 两个忙标志从此同步；窗口期内新消息进 pendingQueue，由 onSettled 排空
+        XLog.d(TAG, "Current task cancelled by user, lock held until agent settles")
     }
 
     fun startNewTask(channel: Channel, senderId: String, task: String, messageID: String) {
@@ -365,6 +382,15 @@ class TaskOrchestrator(
             override fun onError(round: Int, error: Exception, totalTokens: Int) {
                 XLog.e(TAG, "onError: ${error.message}, totalTokens=$totalTokens", error)
                 flushRoundBuffer()
+                if (error is TaskRejectedException) {
+                    // 任务从未真正执行（Agent 忙弹回/executor 关闭/配置更新丢弃）：
+                    // 不写历史、不计失败熔断——重试噪音不该顶开熔断
+                    ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_refused, error.message), messageID)
+                    ChannelManager.flushMessages(channel)
+                    FloatingCircleManager.setErrorState()
+                    onTaskFinished()
+                    return
+                }
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_error, error.message), messageID)
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()
@@ -406,10 +432,11 @@ class TaskOrchestrator(
             }
 
             override fun onVisionDegraded(reason: String) {
-                // 视觉降级必须让用户看见：任务从此靠节点树感知，自绘界面将不可见
+                // 视觉降级必须让用户看见：任务从此靠节点树感知，自绘界面将不可见。
+                // 带上真实原因——瞬时中转站故障与"模型不支持视觉"的处置完全不同
                 XLog.w(TAG, "onVisionDegraded: $reason")
                 toolTrace.add("vision-degraded($reason)")
-                ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_vision_degraded), messageID)
+                ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_vision_degraded, reason), messageID)
             }
 
             override fun onSettled() {

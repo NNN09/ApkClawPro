@@ -36,6 +36,7 @@ import java.io.File
 import java.util.LinkedList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DefaultAgentService : AgentService {
@@ -46,6 +47,9 @@ class DefaultAgentService : AgentService {
 
         /** LLM API 调用失败时的最大重试次数 */
         private const val MAX_API_RETRIES = 3
+
+        /** 中转站瞬时拒绝（400001 类坏通道）的退避基数：短退避撞不进下一个好窗口 */
+        private const val TRANSIENT_REJECT_BACKOFF_MS = 10_000L
         /** 死循环检测：滑动窗口大小 */
         private const val LOOP_DETECT_WINDOW = 4
 
@@ -72,6 +76,10 @@ class DefaultAgentService : AgentService {
     private val running = AtomicBoolean(false)
     private val cancelled = AtomicBoolean(false)
 
+    /** 当前已提交任务的回调：executor 被关闭丢弃任务时代为收尾用（否则调用方任务锁泄漏） */
+    @Volatile
+    private var activeCallback: AgentCallback? = null
+
     override fun initialize(config: AgentConfig) {
         this.config = config
         this.llmClient = LlmClientFactory.create(config)
@@ -85,14 +93,14 @@ class DefaultAgentService : AgentService {
             cancel()
             XLog.w(TAG, "Task was running during config update, cancelled")
         }
-        executor?.shutdownNow()
+        settleDiscardedTasks(executor?.shutdownNow()?.size ?: 0)
         initialize(config)
         XLog.i(TAG, "Agent config updated, new model: ${config.modelName}")
     }
 
     override fun executeTask(request: TaskRequest, callback: AgentCallback) {
         if (running.get()) {
-            callback.onError(0, IllegalStateException("Agent is already running a task"), 0)
+            callback.onError(0, TaskRejectedException("Agent is already running a task"), 0)
             // 契约：每次 executeTask 的回调链都以 onSettled 收尾，否则调用方的任务锁会泄漏
             callback.onSettled()
             return
@@ -101,27 +109,53 @@ class DefaultAgentService : AgentService {
         val ex = executor
         if (ex == null) {
             // initialize 中途抛异常时 executor 为 null：置位 running 却无人清零，会永久卡死
-            callback.onError(0, IllegalStateException("Agent executor is not initialized"), 0)
+            callback.onError(0, TaskRejectedException("Agent executor is not initialized"), 0)
             callback.onSettled()
             return
         }
 
         running.set(true)
         cancelled.set(false)
+        activeCallback = callback
 
-        ex.submit {
-            try {
-                runAgentLoop(request, callback)
-            } catch (e: Exception) {
-                XLog.e(TAG, "Agent execution error", e)
-                callback.onError(0, e, 0)
-            } finally {
-                running.set(false)
-                TaskContext.clear()
+        try {
+            ex.submit {
+                try {
+                    runAgentLoop(request, callback)
+                } catch (e: Exception) {
+                    XLog.e(TAG, "Agent execution error", e)
+                    callback.onError(0, e, 0)
+                } finally {
+                    running.set(false)
+                    activeCallback = null
+                    TaskContext.clear()
+                }
+                // running 已清除、线程即将空闲；此时再触发空闲联动才不会与下一任务竞态
+                callback.onSettled()
             }
-            // running 已清除、线程即将空闲；此时再触发空闲联动才不会与下一任务竞态
+        } catch (e: RejectedExecutionException) {
+            // executor 已被 updateConfig/initAgent 关闭：任务从未启动，代为收尾防任务锁泄漏
+            running.set(false)
+            activeCallback = null
+            XLog.w(TAG, "executeTask rejected (executor shut down): ${e.message}")
+            callback.onError(0, TaskRejectedException("Agent executor is shutting down"), 0)
             callback.onSettled()
         }
+    }
+
+    /**
+     * executor 关闭时，已提交未启动的任务会被 shutdownNow 丢弃——其回调链无人收尾，
+     * 调用方的任务锁将永久泄漏（后续任务全被排队且永不排空）。这里代为清账。
+     * 正在运行的任务不受影响：线程被中断后仍会走完自己的 finally + onSettled。
+     */
+    private fun settleDiscardedTasks(discardedCount: Int) {
+        if (discardedCount <= 0) return
+        running.set(false)
+        val cb = activeCallback ?: return
+        activeCallback = null
+        XLog.w(TAG, "Discarded $discardedCount queued task(s) during executor shutdown, settling callback")
+        cb.onError(0, TaskRejectedException("Task aborted: agent was reconfigured"), 0)
+        cb.onSettled()
     }
 
     // ==================== 环境预检 ====================
@@ -196,12 +230,19 @@ class DefaultAgentService : AgentService {
                 }
             } catch (e: Exception) {
                 lastException = e
+                val kind = LlmErrorKind.classify(e.message)
                 // ③ 确定性错误（参数/配额/认证/超限）重试必然同结果，立即上抛走分类兜底
-                if (LlmErrorKind.classify(e.message) == LlmErrorKind.NON_RETRYABLE) {
+                if (kind == LlmErrorKind.NON_RETRYABLE) {
                     throw e
                 }
-                val delay = (Math.pow(2.0, attempt.toDouble()) * 1000).toLong()
-                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES), retrying in ${delay}ms: ${e.message}")
+                // 中转站瞬时拒绝（400001 类坏通道）按 10s 级线性退避；
+                // 普通暂时性故障维持指数退避
+                val delay = if (kind == LlmErrorKind.TRANSIENT_REJECT) {
+                    TRANSIENT_REJECT_BACKOFF_MS * (attempt + 1)
+                } else {
+                    (Math.pow(2.0, attempt.toDouble()) * 1000).toLong()
+                }
+                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES, kind=$kind), retrying in ${delay}ms: ${e.message}")
                 try {
                     Thread.sleep(delay)
                 } catch (ie: InterruptedException) {
@@ -406,6 +447,9 @@ class DefaultAgentService : AgentService {
         var findMissStreak = 0    // F10：find_node_info 连续失败计数（视觉兜底触发器）
         var observationStreak = 0 // ④⑤：连续"纯观察轮"计数（全部工具调用都是观察类）
         var restrictedRound = false // ④：下一轮临时禁用观察工具（RESTRICT 阶梯生效中）
+        // 独立视觉路由生效（开关开 + 单独设了模型 + 与主模型不同）：带图请求走视觉模型；
+        // 识别轮结束后折叠消费过的截图（见循环内），其余轮次一律主模型
+        val visionRoutingActive = config.effectiveVisionModel(true) != null
 
         loop@ while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -431,6 +475,9 @@ class DefaultAgentService : AgentService {
                 }
                 estimateAtSend = ContextBudget.estimateChars(messages)
             }
+
+            // 本轮请求是否带图（与 LlmClient 内的路由判定同源同刻）：决定响应后是否折叠消费
+            val requestHadImages = ContextBudget.hasImages(messages)
 
             // LLM 调用（带重试）；失败时按错误分类分级兜底：
             // 图片数超限 → 折叠最旧一半截图带图重试（保住视觉）；仍失败 → 全剥降级为纯文本
@@ -467,6 +514,13 @@ class DefaultAgentService : AgentService {
                 AiMessage.from(llmResponse.text ?: "")
             }
             messages.add(aiMessage)
+
+            // 独立视觉路由：本请求的截图已由视觉模型识别完毕，折叠为文本——
+            // 下一轮请求不再带图，因而回落主模型（视觉模型只承担"看图"的轮次）。
+            // 识别结论已随上面的 aiMessage 文本留存，跨轮推理不受影响
+            if (visionRoutingActive && requestHadImages) {
+                ContextBudget.foldConsumedImages(messages)
+            }
 
             // 非流式模式下推送思考内容
             if (!config.streaming && !llmResponse.text.isNullOrEmpty()) {
@@ -711,7 +765,7 @@ class DefaultAgentService : AgentService {
 
     override fun shutdown() {
         cancel()
-        executor?.shutdownNow()
+        settleDiscardedTasks(executor?.shutdownNow()?.size ?: 0)
     }
 
     override fun isRunning(): Boolean = running.get()

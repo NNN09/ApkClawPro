@@ -140,6 +140,32 @@ class ContextBudgetTest {
     }
 
     @Test
+    fun foldConsumedImages_keepsCaptionStripsImage() {
+        // 独立视觉路由：识别轮结束后把消费过的截图折叠为文本，下一轮请求回落主模型
+        val msgs = mutableListOf<ChatMessage>(
+            UserMessage.from("task"),
+            imageMessage("[截图 #1] 已附当前屏幕图像"),
+            AiMessage.from("看到登录按钮")
+        )
+        val folded = ContextBudget.foldConsumedImages(msgs)
+        assertEquals(1, folded)
+        assertFalse(ContextBudget.hasImages(msgs))
+        // 原文本说明保留（截图编号/尺寸提示仍在），仅剥离图像部分
+        val consumed = msgs[1] as UserMessage
+        assertTrue(consumed.singleText().contains("[截图 #1]"))
+        // 其余消息不动
+        assertEquals("task", (msgs[0] as UserMessage).singleText())
+        assertEquals("看到登录按钮", (msgs[2] as AiMessage).text())
+    }
+
+    @Test
+    fun foldConsumedImages_noopWithoutImages() {
+        val msgs = mutableListOf<ChatMessage>(UserMessage.from("task"), AiMessage.from("ok"))
+        assertEquals(0, ContextBudget.foldConsumedImages(msgs))
+        assertEquals("task", (msgs[0] as UserMessage).singleText())
+    }
+
+    @Test
     fun compressAllToolResults_alsoFoldsOldImages() {
         val long = """{"isSuccess":true,"data":"${"x".repeat(300)}"}"""
         val msgs = mutableListOf<ChatMessage>(

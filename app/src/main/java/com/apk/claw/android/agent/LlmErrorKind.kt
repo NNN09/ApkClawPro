@@ -13,6 +13,13 @@ enum class LlmErrorKind {
     /** 图片数超限：丢弃最旧的几张图、带图重试即可恢复，不能放弃视觉 */
     IMAGE_LIMIT,
 
+    /**
+     * 中转站/网关瞬时拒绝（真机实证：nnn09.top 坏上游通道对带图请求间歇 400/500
+     * "inference request is invalid"(400001)，同请求重试即恢复）：值得长退避重试，
+     * 重试耗尽后即使降级也必须把真实原因告诉用户，不能谎报"模型不支持视觉"。
+     */
+    TRANSIENT_REJECT,
+
     /** 确定性拒绝（参数/配额/认证/内容超限）：重试必然同结果，必须立即走对应兜底 */
     NON_RETRYABLE,
 
@@ -25,6 +32,10 @@ enum class LlmErrorKind {
             "image num", "exceeds limit", "too many images", "image count"
         )
 
+        private val TRANSIENT_REJECT_MARKERS = listOf(
+            "inference request is invalid", "400001"
+        )
+
         private val NON_RETRYABLE_MARKERS = listOf(
             "invalid_request_error", "invalid_request", "context length", "context_length",
             "maximum context", "max_tokens", "reduce the length",
@@ -33,11 +44,13 @@ enum class LlmErrorKind {
 
         /**
          * 按异常 message（langchain4j 的 HttpException 会带上服务端响应 body）分类。
-         * 顺序敏感：图片超限的 body 通常也带 invalid_request_error，必须先判。
+         * 顺序敏感：图片超限与瞬时拒绝的 body 通常也带 invalid_request_error 等确定性
+         * 标记，必须先于 NON_RETRYABLE 判定。
          */
         fun classify(message: String?): LlmErrorKind {
             val msg = message?.lowercase() ?: return RETRYABLE
             if (IMAGE_LIMIT_MARKERS.any { msg.contains(it) }) return IMAGE_LIMIT
+            if (TRANSIENT_REJECT_MARKERS.any { msg.contains(it) }) return TRANSIENT_REJECT
             if (NON_RETRYABLE_MARKERS.any { msg.contains(it) }) return NON_RETRYABLE
             return RETRYABLE
         }

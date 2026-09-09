@@ -102,6 +102,30 @@ object ContextBudget {
     }
 
     /**
+     * 独立视觉路由：识别轮结束后，把请求携带过的截图折叠为纯文本。
+     * 保留原文本说明（截图编号/尺寸/坐标约定提示仍可追溯），只剥离图像 content——
+     * 下一轮请求不再带图，因而回落主模型；视觉模型只承担"看图"的轮次。
+     * 与 [stripImages]（降级：告知模型不可用）不同，这是正常消费后的回收。
+     * @return 实际折叠的消息数（0 = 本就没有图像）
+     */
+    fun foldConsumedImages(messages: MutableList<ChatMessage>): Int {
+        var folded = 0
+        for (i in messages.indices) {
+            val msg = messages[i]
+            if (msg is UserMessage && msg.contents().any { it is ImageContent }) {
+                val caption = msg.contents().filterIsInstance<TextContent>()
+                    .joinToString("\n") { it.text() }
+                    .ifEmpty { "[截图]" }
+                messages[i] = UserMessage.from(
+                    caption + "\n[系统提示] 该截图已经过视觉识别，图像内容已移除；如需再次查看屏幕请重新调用 take_screenshot。"
+                )
+                folded++
+            }
+        }
+        return folded
+    }
+
+    /**
      * 激进压缩：对所有轮次（含保护区）的超长工具结果做一行摘要，
      * 但始终保留最新一条 get_screen_info 完整内容（Agent 依赖它感知当前屏幕）。
      * F10：同时把更早的截图图像折叠为文本占位，只保留最新一张（控制视觉 token）。
