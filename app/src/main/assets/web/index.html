@@ -272,6 +272,10 @@ button { font: inherit; cursor: pointer; }
         <label data-i18n="llm_vision_model_enabled"></label>
         <input type="checkbox" id="visionModelEnabled">
       </div>
+      <div class="switch-row">
+        <label data-i18n="llm_digest_trajectory"></label>
+        <input type="checkbox" id="digestTrajectoryEnabled">
+      </div>
       <div class="field">
         <label data-i18n="llm_vision_model_name"></label>
         <input type="text" id="llmVisionModel" data-i18n-placeholder="ph_llm_vision_model" autocomplete="off">
@@ -717,6 +721,7 @@ const i18nMessages = {
     sched_everyday: '每天',
     llm_vision_enabled: '视觉输入（截图注入上下文，需模型支持）',
     llm_vision_model_enabled: '独立视觉模型（仅识别新截图的请求使用，识别后回落主模型）',
+    llm_digest_trajectory: '任务轨迹进会话摘要（跨任务记住进行到哪；关闭省一次摘要调用）',
     llm_vision_model_name: '视觉模型名',
     ph_llm_vision_model: '如 glm-5.3-flash，留空使用主模型',
     skills_import_file: '从文件导入（.md 直接保存，.zip 解包导入，自动安全扫描）',
@@ -874,6 +879,7 @@ const i18nMessages = {
     sched_everyday: 'daily',
     llm_vision_enabled: 'Vision input (inject screenshots, model must support it)',
     llm_vision_model_enabled: 'Separate vision model (only rounds viewing a fresh screenshot; falls back to main model)',
+    llm_digest_trajectory: 'Distill task trajectory into session summary (remembers where it left off; off saves one summary call)',
     llm_vision_model_name: 'Vision model name',
     ph_llm_vision_model: 'e.g. glm-5.3-flash; leave empty to use the main model',
     skills_import_file: 'Import from file (.md saves directly, .zip unpacked; security-scanned)',
@@ -1031,6 +1037,7 @@ const i18nMessages = {
     sched_everyday: '毎日',
     llm_vision_enabled: '視覚入力（スクリーンショット注入、モデル対応必要）',
     llm_vision_model_enabled: '個別の視覚モデル（新規スクリーンショット認識ラウンドのみ、認識後はメインモデルへ）',
+    llm_digest_trajectory: 'タスク軌跡をセッション要約に反映（どこまで進んだかを記憶；オフで要約呼び出しを節約）',
     llm_vision_model_name: '視覚モデル名',
     ph_llm_vision_model: '例: glm-5.3-flash（空欄でメインモデル）',
     skills_import_file: 'ファイルからインポート（.md は直接保存、.zip は展開、安全スキャン付き）',
@@ -1123,7 +1130,7 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults', 'visionEnabled', 'visionModelEnabled', 'llmVisionModel'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmContextWindow', 'confirmDangerousOps', 'verifyResults', 'visionEnabled', 'visionModelEnabled', 'llmVisionModel', 'digestTrajectoryEnabled'];
 // C3/C5：合规设置（与 /api/compliance 键一一对应）
 const complianceFields = ['thirdPartyAutomationEnabled', 'quietHoursEnabled', 'quietStart', 'quietEnd', 'cooldownSec', 'rateGlobalPerMin', 'rateChannelPerMin', 'breakerThreshold'];
 

@@ -90,8 +90,8 @@ class SessionStoreTest {
     @Test fun updateDigest_capsLength() {
         SessionStore.init(tmp.root)
         SessionStore.appendTurn(Channel.TELEGRAM, "u", "q", "a")
-        SessionStore.updateDigest(Channel.TELEGRAM, "u", "x".repeat(1000))
-        assertEquals(600, SessionStore.digest(Channel.TELEGRAM, "u").length)
+        SessionStore.updateDigest(Channel.TELEGRAM, "u", "x".repeat(1200))
+        assertEquals(1000, SessionStore.digest(Channel.TELEGRAM, "u").length)
     }
 
     @Test fun clearPendingDigest_emptiesQueue() {
@@ -108,6 +108,87 @@ class SessionStoreTest {
         SessionStore.init(tmp.root)
         assertEquals(1, SessionStore.history(Channel.TELEGRAM, "u").size)
         assertEquals("", SessionStore.digest(Channel.TELEGRAM, "u"))
+        assertEquals("", SessionStore.pendingTranscript(Channel.TELEGRAM, "u"))
+    }
+
+    // ==================== 任务轨迹转写（蒸馏进 digest 的原料） ====================
+
+    @Test fun transcript_appendThenClear() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "翻开卡片(375,260) → 文字A")
+        assertEquals("翻开卡片(375,260) → 文字A", SessionStore.pendingTranscript(Channel.TELEGRAM, "u"))
+        SessionStore.clearPendingTranscript(Channel.TELEGRAM, "u")
+        assertEquals("", SessionStore.pendingTranscript(Channel.TELEGRAM, "u"))
+    }
+
+    @Test fun transcript_appendsAcrossCalls() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "第一段")
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "第二段")
+        val t = SessionStore.pendingTranscript(Channel.TELEGRAM, "u")
+        assertTrue(t.contains("第一段"))
+        assertTrue(t.contains("第二段"))
+    }
+
+    @Test fun transcript_capsAtMaxCharsKeepTail() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "a".repeat(3900))
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "b".repeat(500))
+        val t = SessionStore.pendingTranscript(Channel.TELEGRAM, "u")
+        assertEquals(4000, t.length)
+        assertTrue(t.endsWith("b".repeat(100)))
+    }
+
+    @Test fun transcript_emptySenderIdIgnored() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTranscript(Channel.TELEGRAM, "", "x")
+        assertEquals("", SessionStore.pendingTranscript(Channel.TELEGRAM, ""))
+    }
+
+    @Test fun transcript_persistAcrossReinit() {
+        SessionStore.init(tmp.root)
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "轨迹内容")
+        SessionStore.init(tmp.root)  // 模拟进程重启
+        assertEquals("轨迹内容", SessionStore.pendingTranscript(Channel.TELEGRAM, "u"))
+    }
+
+    @Test fun transcript_appendsRefreshLastActive() {
+        // 修复回归保护：失败任务靠 transcript/turn 刷新 lastActive，
+        // 否则 30 分钟不活跃误判会在用户连续互动中途清空会话
+        SessionStore.init(tmp.root)
+        SessionStore.appendTurn(Channel.TELEGRAM, "u", "q", "a")
+        SessionStore.nowProviderForTest = { System.currentTimeMillis() + 20 * 60 * 1000L }
+        SessionStore.appendTranscript(Channel.TELEGRAM, "u", "后续任务的轨迹")
+        SessionStore.nowProviderForTest = { System.currentTimeMillis() + 45 * 60 * 1000L }
+        // 若 appendTranscript 未刷新 lastActive，这里会因超过 30 分钟而清空会话
+        assertTrue(SessionStore.history(Channel.TELEGRAM, "u").isNotEmpty())
+    }
+
+    @Test fun touch_keepsSessionAliveWithoutAddingTurns() {
+        // dispatch 层拒绝（无障碍未开启）只刷活跃度：会话不清空、也不造假 turn
+        SessionStore.init(tmp.root)
+        SessionStore.appendTurn(Channel.TELEGRAM, "u", "q", "a")
+        SessionStore.nowProviderForTest = { System.currentTimeMillis() + 20 * 60 * 1000L }
+        SessionStore.touch(Channel.TELEGRAM, "u")
+        SessionStore.nowProviderForTest = { System.currentTimeMillis() + 45 * 60 * 1000L }
+        val h = SessionStore.history(Channel.TELEGRAM, "u")
+        assertEquals(1, h.size)
+        assertEquals("q", h[0].user)
+    }
+
+    @Test fun touch_onUnknownSender_createsEmptySession() {
+        SessionStore.init(tmp.root)
+        SessionStore.touch(Channel.TELEGRAM, "newguy")
+        assertTrue(SessionStore.history(Channel.TELEGRAM, "newguy").isEmpty())
+        assertEquals("", SessionStore.pendingTranscript(Channel.TELEGRAM, "newguy"))
+        SessionStore.appendTurn(Channel.TELEGRAM, "newguy", "q", "a")
+        assertEquals(1, SessionStore.history(Channel.TELEGRAM, "newguy").size)
+    }
+
+    @Test fun touch_emptySenderIdIgnored() {
+        SessionStore.init(tmp.root)
+        SessionStore.touch(Channel.TELEGRAM, "")
+        assertTrue(SessionStore.history(Channel.TELEGRAM, "").isEmpty())
     }
 
     @Test fun concurrentAppendTurns_noLostSessions() {

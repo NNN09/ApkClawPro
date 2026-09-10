@@ -85,6 +85,9 @@ class ChannelSetup(
 
         val app = ClawApplication.instance
         if (!ClawAccessibilityService.isRunning()) {
+            // 拒绝发生在任务链之前，也要把会话标记为活跃：用户在真实互动，
+            // 不能因为环境故障就让 30 分钟超时清掉既有会话
+            SessionStore.touch(channel, senderId)
             ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)
             ChannelManager.flushMessages(channel)
             return

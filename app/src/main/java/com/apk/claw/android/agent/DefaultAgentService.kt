@@ -406,13 +406,19 @@ class DefaultAgentService : AgentService {
             return
         }
 
-        // 摘要沉淀：把上一批被裁剪的会话轮次合并进 digest（失败则退化为丢弃）
+        // 摘要沉淀：把上一批被裁剪的会话轮次与上次任务的执行轨迹合并进 digest（失败则退化为丢弃）
         val pending = SessionStore.pendingDigest(request.channel, request.senderId)
-        if (pending.isNotEmpty()) {
-            summarizeDigest(SessionStore.digest(request.channel, request.senderId), pending)?.let {
+        var transcript = SessionStore.pendingTranscript(request.channel, request.senderId)
+        if (!config.digestTrajectoryEnabled && transcript.isNotBlank()) {
+            SessionStore.clearPendingTranscript(request.channel, request.senderId)
+            transcript = ""
+        }
+        if (pending.isNotEmpty() || transcript.isNotBlank()) {
+            summarizeDigest(SessionStore.digest(request.channel, request.senderId), pending, transcript)?.let {
                 SessionStore.updateDigest(request.channel, request.senderId, it)
             }
             SessionStore.clearPendingDigest(request.channel, request.senderId)
+            SessionStore.clearPendingTranscript(request.channel, request.senderId)
         }
 
         // 构建 System Prompt（人格 → 执行协议 → 记忆 → 技能目录 → 设备上下文）
@@ -781,22 +787,28 @@ class DefaultAgentService : AgentService {
         }
     }
 
-    /** 用一次无工具的 LLM 调用合并旧摘要与新增轮次；失败返回 null（退化为丢弃，即现状行为） */
-    private fun summarizeDigest(oldDigest: String, turns: List<SessionStore.Turn>): String? {
+    /** 用一次无工具的 LLM 调用合并旧摘要、新增轮次与任务执行轨迹；失败返回 null（退化为丢弃，即现状行为） */
+    private fun summarizeDigest(oldDigest: String, turns: List<SessionStore.Turn>, transcript: String): String? {
         val sb = StringBuilder()
         if (oldDigest.isNotBlank()) sb.append("既有摘要：\n").append(oldDigest).append("\n\n")
-        sb.append("新增对话：\n")
-        turns.forEach {
-            sb.append("用户：").append(it.user).append("\n")
-            sb.append("助手：").append(it.assistant).append("\n\n")
+        if (turns.isNotEmpty()) {
+            sb.append("新增对话：\n")
+            turns.forEach {
+                sb.append("用户：").append(it.user).append("\n")
+                sb.append("助手：").append(it.assistant).append("\n\n")
+            }
+        }
+        if (transcript.isNotBlank()) {
+            sb.append("上次任务的工具执行轨迹（含中间状态）：\n").append(transcript).append("\n\n")
         }
         val msgs = listOf<ChatMessage>(
             SystemMessage.from(
-                "你是会话摘要器。把既有摘要与新增对话合并为一份结构化摘要（Claude Code compact 同款格式），" +
-                    "只保留对后续任务有用的信息，总长不超过 300 字，直接输出正文：\n" +
+                "你是会话摘要器。把既有摘要、新增对话与任务执行轨迹合并为一份结构化摘要（Claude Code compact 同款格式），" +
+                    "只保留对后续任务有用的信息，总长不超过 500 字，直接输出正文：\n" +
                     "## 背景与目标\n（用户在做什么、为什么）\n" +
                     "## 用户偏好与关键事实\n（稳定的事实、偏好、约定）\n" +
-                    "## 未完成事项\n（待办与悬而未决的问题；没有则写\"无\"）"
+                    "## 任务状态与未完成事项\n（上次任务进行到哪一步、值得保留的中间状态" +
+                    "（如界面元素的位置与文字、已收集的数据、当前进度）、下一步该做什么；没有则写\"无\"）"
             ),
             UserMessage.from(sb.toString())
         )

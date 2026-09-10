@@ -37,6 +37,12 @@ class TaskOrchestrator(
         private val PROGRESS_SILENT_TOOLS = setOf(
             "get_screen_info", "find_node_info", "take_screenshot", "get_installed_apps", "wait"
         )
+
+        /** 工具调用数达到该值的任务，其执行轨迹才值得蒸馏进会话摘要（纯问答任务跳过） */
+        private const val DIGEST_MIN_TOOL_CALLS = 5
+
+        /** 单条轨迹行里结果摘录的最大长度 */
+        private const val TRANSCRIPT_RESULT_EXCERPT = 200
     }
 
     private lateinit var agentService: AgentService
@@ -270,6 +276,17 @@ class TaskOrchestrator(
         var toolCallCount = 0
         var verifyFailures = 0
 
+        // 会话摘要用的执行轨迹原文（含结果摘录）：Agent 的 messages 在循环中会被压缩，
+        // 任务结束时已失真，只有回调流里是全量；任务结束时按 toolCallCount 决定是否入库
+        val transcriptBuf = StringBuilder()
+
+        /** 轨迹入库：够重才存，纯问答任务的轨迹没有蒸馏价值 */
+        fun maybeStoreTranscript() {
+            if (toolCallCount >= DIGEST_MIN_TOOL_CALLS && transcriptBuf.isNotEmpty()) {
+                SessionStore.appendTranscript(channel, senderId, transcriptBuf.toString())
+            }
+        }
+
         fun recordHistory(status: TaskHistoryStore.Status, totalTokens: Int, error: String = "") {
             // C3 熔断计数与 F3 历史同点落账：失败 +1、成功清零；等待超时/取消不计入失败
             when (status) {
@@ -337,6 +354,7 @@ class TaskOrchestrator(
                 XLog.d(TAG, "onToolCall: $toolId($toolName), $parameters")
                 toolCallCount++
                 toolTrace.add("$toolName($parameters)")
+                transcriptBuf.append("第${round}轮 ").append(toolName).append("(").append(parameters).append(")\n")
             }
 
             override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
@@ -350,6 +368,8 @@ class TaskOrchestrator(
                     XLog.e(TAG, "!!!!!!!!!!Fail: $toolName, $parameters $data")
                 }
                 XLog.e(TAG, "onToolResult: $toolName, $status $data")
+                val excerpt = (if (result.isSuccess) result.data else result.error).orEmpty().take(TRANSCRIPT_RESULT_EXCERPT)
+                transcriptBuf.append("  → ").append(if (excerpt.isEmpty()) "ok" else excerpt).append("\n")
                 if (toolId == "finish" && (result.data?.isNotEmpty() ?: false)) {
                     // finish 的结果单独发，不合并（这是最终回复）；待执行列表由 onComplete 统一追加
                     flushRoundBuffer()
@@ -364,6 +384,7 @@ class TaskOrchestrator(
             override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
                 XLog.i(TAG, "onComplete: 轮数=$round, totalTokens=$totalTokens, answer=$finalAnswer")
                 SessionStore.appendTurn(channel, senderId, task, finalAnswer)
+                maybeStoreTranscript()
                 // 任务结束：待执行列表挂在最后一条消息尾部（无论模型以文字结束还是走 finish 工具，
                 // onComplete 都是必经点）；缓冲为空时单独发一条列表
                 buildTaskListFooter(includeRunning = false)?.let {
@@ -391,6 +412,14 @@ class TaskOrchestrator(
                     onTaskFinished()
                     return
                 }
+                // 失败任务也进会话史：否则用户连续互动（如长任务打满轮次失败）期间
+                // SessionStore.lastActive 不刷新，30 分钟超时会把还"热着"的会话整条清掉
+                // （2026-09-10 事故：两局 60 轮失败的游戏把会话"冻"在最后一次成功任务上）
+                val failureText = ClawApplication.instance
+                    .getString(R.string.agent_task_failed_turn, error.message ?: "unknown")
+                    .take(300)
+                SessionStore.appendTurn(channel, senderId, task, failureText)
+                maybeStoreTranscript()
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_error, error.message), messageID)
                 ChannelManager.flushMessages(channel)
                 FloatingCircleManager.setErrorState()

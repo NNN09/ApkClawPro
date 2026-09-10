@@ -76,6 +76,7 @@ class AppViewModel : ViewModel() {
             .visionEnabled(KVUtils.getVisionEnabled())
             .visionModelEnabled(KVUtils.getVisionModelEnabled())
             .visionModel(KVUtils.getLlmVisionModel())
+            .digestTrajectoryEnabled(KVUtils.getDigestTrajectoryEnabled())
             .temperature(0.1)
             .maxIterations(60)
             .build()

@@ -198,6 +198,7 @@ object KVUtils {
     private const val KEY_VISION_ENABLED = "KEY_VISION_ENABLED"
     private const val KEY_VISION_MODEL_ENABLED = "KEY_VISION_MODEL_ENABLED"
     private const val KEY_LLM_VISION_MODEL = "KEY_LLM_VISION_MODEL"
+    private const val KEY_DIGEST_TRAJECTORY_ENABLED = "KEY_DIGEST_TRAJECTORY_ENABLED"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -229,6 +230,10 @@ object KVUtils {
     /** 独立视觉模型名；空 = 仍用主模型（开关打开默认主模型，单独设置才生效） */
     fun getLlmVisionModel(): String = getString(KEY_LLM_VISION_MODEL, "")
     fun setLlmVisionModel(value: String) = putString(KEY_LLM_VISION_MODEL, value)
+
+    /** 任务收尾把执行轨迹蒸馏进会话摘要，默认开启；关闭可省每次重任务后的一次摘要调用 */
+    fun getDigestTrajectoryEnabled(): Boolean = getBoolean(KEY_DIGEST_TRAJECTORY_ENABLED, true)
+    fun setDigestTrajectoryEnabled(value: Boolean) = putBoolean(KEY_DIGEST_TRAJECTORY_ENABLED, value)
 
     // ==================== C3/C5/C6 合规与自动化策略（ROADMAP §6） ====================
     private const val KEY_THIRD_PARTY_AUTOMATION_ENABLED = "KEY_THIRD_PARTY_AUTOMATION_ENABLED"

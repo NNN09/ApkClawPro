@@ -24,7 +24,9 @@ data class AgentConfig(
     /** 独立视觉模型开关：打开后带图请求可路由到单独的模型 */
     val visionModelEnabled: Boolean = false,
     /** 独立视觉模型名；空或与主模型相同 = 仍用主模型（开关打开默认主模型，单独设置才生效） */
-    val visionModel: String = ""
+    val visionModel: String = "",
+    /** 任务收尾把执行轨迹蒸馏进会话摘要（跨任务记住"进行到哪"）；关闭可省每次重任务后的一次摘要调用 */
+    val digestTrajectoryEnabled: Boolean = true
 ) {
 
     /**
@@ -155,6 +157,7 @@ data class AgentConfig(
         private var visionEnabled: Boolean = true
         private var visionModelEnabled: Boolean = false
         private var visionModel: String = ""
+        private var digestTrajectoryEnabled: Boolean = true
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -170,10 +173,11 @@ data class AgentConfig(
         fun visionEnabled(visionEnabled: Boolean) = apply { this.visionEnabled = visionEnabled }
         fun visionModelEnabled(visionModelEnabled: Boolean) = apply { this.visionModelEnabled = visionModelEnabled }
         fun visionModel(visionModel: String) = apply { this.visionModel = visionModel }
+        fun digestTrajectoryEnabled(digestTrajectoryEnabled: Boolean) = apply { this.digestTrajectoryEnabled = digestTrajectoryEnabled }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults, visionEnabled, visionModelEnabled, visionModel)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, contextWindowTokens, confirmDangerousOps, verifyResults, visionEnabled, visionModelEnabled, visionModel, digestTrajectoryEnabled)
         }
     }
 }

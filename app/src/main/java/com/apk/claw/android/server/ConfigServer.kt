@@ -280,6 +280,7 @@ class ConfigServer(
             addProperty("visionEnabled", KVUtils.getVisionEnabled())
             addProperty("visionModelEnabled", KVUtils.getVisionModelEnabled())
             addProperty("llmVisionModel", KVUtils.getLlmVisionModel())
+            addProperty("digestTrajectoryEnabled", KVUtils.getDigestTrajectoryEnabled())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -341,6 +342,9 @@ class ConfigServer(
         }
         if (json.has("llmVisionModel")) {
             KVUtils.setLlmVisionModel(json.get("llmVisionModel").asString.trim())
+        }
+        if (json.has("digestTrajectoryEnabled")) {
+            KVUtils.setDigestTrajectoryEnabled(json.get("digestTrajectoryEnabled").asBoolean)
         }
 
         ConfigServerManager.notifyConfigChanged()

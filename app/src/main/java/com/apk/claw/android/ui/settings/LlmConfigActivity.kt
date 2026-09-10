@@ -33,6 +33,7 @@ class LlmConfigActivity : BaseActivity() {
         val swVerifyResults = findViewById<SwitchCompat>(R.id.switchVerifyResults)
         val swVisionEnabled = findViewById<SwitchCompat>(R.id.switchVisionEnabled)
         val swVisionModelEnabled = findViewById<SwitchCompat>(R.id.switchVisionModelEnabled)
+        val swDigestTrajectory = findViewById<SwitchCompat>(R.id.switchDigestTrajectory)
         val layoutVisionModel = findViewById<android.view.View>(R.id.layoutVisionModel)
         val etVisionModel = findViewById<EditText>(R.id.etVisionModel)
 
@@ -44,6 +45,7 @@ class LlmConfigActivity : BaseActivity() {
         swVerifyResults.isChecked = KVUtils.getVerifyResults()
         swVisionEnabled.isChecked = KVUtils.getVisionEnabled()
         swVisionModelEnabled.isChecked = KVUtils.getVisionModelEnabled()
+        swDigestTrajectory.isChecked = KVUtils.getDigestTrajectoryEnabled()
         etVisionModel.setText(KVUtils.getLlmVisionModel())
         layoutVisionModel.visibility = if (swVisionModelEnabled.isChecked) android.view.View.VISIBLE else android.view.View.GONE
         swVisionModelEnabled.setOnCheckedChangeListener { _, checked ->
@@ -74,6 +76,7 @@ class LlmConfigActivity : BaseActivity() {
             KVUtils.setVisionEnabled(swVisionEnabled.isChecked)
             KVUtils.setVisionModelEnabled(swVisionModelEnabled.isChecked)
             KVUtils.setLlmVisionModel(etVisionModel.text.toString().trim())
+            KVUtils.setDigestTrajectoryEnabled(swDigestTrajectory.isChecked)
 
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()

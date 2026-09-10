@@ -132,6 +132,8 @@
     <string name="llm_config_vision_desc">截图注入模型上下文（需模型支持视觉）</string>
     <string name="llm_config_vision_model_separate">独立视觉模型</string>
     <string name="llm_config_vision_model_separate_desc">仅需要识别新截图的请求走视觉模型，识别完成即回落主模型；留空则用主模型</string>
+    <string name="llm_config_digest_trajectory">任务轨迹进会话摘要</string>
+    <string name="llm_config_digest_trajectory_desc">任务结束后把执行轨迹蒸馏进会话摘要，跨任务记住"进行到哪"；关闭可省一次摘要调用</string>
     <string name="llm_config_vision_model_name">视觉模型名</string>
     <string name="llm_config_vision_model_name_hint">如 glm-5.3-flash，留空使用主模型</string>
 
@@ -358,6 +360,7 @@
     <string name="agent_task_cancel">任务取消</string>
     <string name="agent_api_call_failed">AI 服务调用失败: %s</string>
     <string name="agent_max_iterations">在未完成任务的情况下达到了最大迭代次数 (%d)</string>
+    <string name="agent_task_failed_turn">任务失败：%s</string>
     <string name="agent_loop_force_finish">已连续 %1 轮仅观察屏幕而未执行任何操作，任务已自动终止</string>
     <string name="agent_verify_failed">结果验证失败（已自动重试一次）：%s</string>
 

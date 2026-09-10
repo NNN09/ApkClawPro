@@ -132,6 +132,8 @@
     <string name="llm_config_vision_desc">Inject screenshots into model context (needs a vision model)</string>
     <string name="llm_config_vision_model_separate">Separate vision model</string>
     <string name="llm_config_vision_model_separate_desc">Only rounds that must view a fresh screenshot go to the vision model; once recognized, it falls back to the main model. Empty = main model</string>
+    <string name="llm_config_digest_trajectory">Distill task trajectory into session summary</string>
+    <string name="llm_config_digest_trajectory_desc">After each task, distill its execution trajectory into the session summary so the next task remembers where it left off. Off = save one summary call</string>
     <string name="llm_config_vision_model_name">Vision model name</string>
     <string name="llm_config_vision_model_name_hint">e.g. glm-5.3-flash; leave empty to use the main model</string>
 
@@ -358,6 +360,7 @@
     <string name="agent_task_cancel">Task cancelled</string>
     <string name="agent_api_call_failed">AI service call failed: %s</string>
     <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
+    <string name="agent_task_failed_turn">Task failed: %s</string>
     <string name="agent_loop_force_finish">Task auto-terminated: %1 consecutive rounds of screen observation without any action</string>
     <string name="agent_verify_failed">Result verification failed after one retry: %s</string>
 

@@ -17,13 +17,16 @@ object SessionStore {
         val turns: MutableList<Turn>,
         var lastActive: Long,
         var digest: String = "",
-        var pendingDigest: MutableList<Turn> = mutableListOf()
+        var pendingDigest: MutableList<Turn> = mutableListOf(),
+        /** 上次任务的工具执行轨迹原文（已截尾），下次任务开始时蒸馏进 digest */
+        var transcript: String = ""
     )
 
     const val SESSION_TIMEOUT_MS: Long = 30 * 60 * 1000L
     const val MAX_TURNS = 10
     const val MAX_PENDING_DIGEST = 20
-    const val MAX_DIGEST_CHARS = 600
+    const val MAX_DIGEST_CHARS = 1000
+    const val MAX_TRANSCRIPT_CHARS = 4000
 
     private lateinit var file: File
     private val gson = Gson()
@@ -55,6 +58,7 @@ object SessionStore {
             sessions.values.forEach {
                 if (it.digest == null) it.digest = ""
                 if (it.pendingDigest == null) it.pendingDigest = mutableListOf()
+                if (it.transcript == null) it.transcript = ""
             }
         }
     }
@@ -110,6 +114,51 @@ object SessionStore {
                 s.pendingDigest.clear()
                 persist()
             }
+        }
+    }
+
+    /**
+     * 追加任务执行轨迹（任务收尾时一次性写入）。截尾保留最近的 [MAX_TRANSCRIPT_CHARS] 字符，
+     * 同时刷新 lastActive——失败任务不产生 turn，这里是它们维持会话"活跃"的关键路径之一。
+     */
+    fun appendTranscript(channel: Channel, senderId: String, text: String) {
+        synchronized(lock) {
+            if (senderId.isEmpty() || text.isBlank()) return
+            val s = sessions.getOrPut(key(channel, senderId)) {
+                SessionData(mutableListOf(), now(), "", mutableListOf(), "")
+            }
+            s.transcript = (if (s.transcript.isEmpty()) text else s.transcript + "\n" + text).takeLast(MAX_TRANSCRIPT_CHARS)
+            s.lastActive = now()
+            persist()
+        }
+    }
+
+    fun pendingTranscript(channel: Channel, senderId: String): String = synchronized(lock) {
+        sessions[key(channel, senderId)]?.transcript ?: ""
+    }
+
+    fun clearPendingTranscript(channel: Channel, senderId: String) {
+        synchronized(lock) {
+            val s = sessions[key(channel, senderId)] ?: return
+            if (s.transcript.isNotEmpty()) {
+                s.transcript = ""
+                persist()
+            }
+        }
+    }
+
+    /**
+     * 仅刷新会话活跃度，不产生 turn。用于任务未进入执行链就被拒的场景
+     * （如无障碍未开启在 dispatch 层拦截）——用户在真实互动，若不刷新 lastActive，
+     * 30 分钟超时会在交互中途把还"热着"的会话整条清掉（2026-09-10 事故的同族问题）。
+     */
+    fun touch(channel: Channel, senderId: String) {
+        synchronized(lock) {
+            if (senderId.isEmpty()) return
+            sessions.getOrPut(key(channel, senderId)) {
+                SessionData(mutableListOf(), now(), "", mutableListOf(), "")
+            }.lastActive = now()
+            persist()
         }
     }
 
