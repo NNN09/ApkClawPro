@@ -166,6 +166,17 @@ class ContextBudgetTest {
     }
 
     @Test
+    fun foldConsumedImages_placeholderIsDescriptiveNotParrotable() {
+        // 占位文案不得含"已移除/重新调用"类可被弱模型复述的断言与指令（2026-09-11 事故）
+        val msgs = mutableListOf<ChatMessage>(imageMessage("shot"))
+        ContextBudget.foldConsumedImages(msgs)
+        val text = (msgs[0] as UserMessage).singleText()
+        assertFalse(text.contains("已移除"))
+        assertFalse(text.contains("重新调用"))
+        assertTrue(text.contains("已省略"))
+    }
+
+    @Test
     fun compressAllToolResults_alsoFoldsOldImages() {
         val long = """{"isSuccess":true,"data":"${"x".repeat(300)}"}"""
         val msgs = mutableListOf<ChatMessage>(

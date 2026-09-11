@@ -117,7 +117,7 @@ object ContextBudget {
                     .joinToString("\n") { it.text() }
                     .ifEmpty { "[截图]" }
                 messages[i] = UserMessage.from(
-                    caption + "\n[系统提示] 该截图已经过视觉识别，图像内容已移除；如需再次查看屏幕请重新调用 take_screenshot。"
+                    caption + "\n[系统提示] 该截图原图已省略，视觉识别的结论已记录在上方的助手回复文字中。"
                 )
                 folded++
             }
@@ -186,7 +186,7 @@ object ContextBudget {
             val msg = messages[i]
             if (msg is UserMessage && msg.contents().any { it is ImageContent }) {
                 messages[i] = UserMessage.from(
-                    "[系统提示] 当前模型不支持视觉输入，截图已移除，请改用 get_screen_info 获取屏幕信息。"
+                    "[系统提示] 当前模型不支持视觉输入，截图未附上；屏幕状态请通过 get_screen_info 获取。"
                 )
                 changed = true
             }

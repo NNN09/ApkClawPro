@@ -59,7 +59,7 @@ object LoopGuard {
 
     /** 被禁用轮里模型仍输出观察工具调用时，回给它的工具错误结果 */
     fun restrictedToolError(): String =
-        "{\"error\":\"观察类工具本轮已被系统禁用，请执行操作类工具或 finish\",\"isSuccess\":false}"
+        "{\"error\":\"观察类工具本轮不可用（防死循环限制），请改用操作类工具，或调用 finish 说明原因结束任务\",\"isSuccess\":false}"
 
     /** 观察工具恢复可用时注入的说明 */
     fun restoreMessage(): String =
