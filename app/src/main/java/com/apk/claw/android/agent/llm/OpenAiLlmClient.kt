@@ -117,6 +117,8 @@ internal fun ChatResponse.toLlmResponse(): LlmResponse {
     val aiMessage = aiMessage()
     return LlmResponse(
         text = aiMessage.text(),
+        // 非流式：poll 与 HTTP 层 set 同线程对齐；流式路径线程不对齐，拿到 null 属预期
+        reasoning = ReasoningCapture.poll(),
         toolExecutionRequests = aiMessage.toolExecutionRequests() ?: emptyList(),
         tokenUsage = tokenUsage()
     )

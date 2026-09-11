@@ -509,15 +509,18 @@ class DefaultAgentService : AgentService {
             // 累加 token 用量
             llmResponse.tokenUsage?.totalTokenCount()?.let { totalTokens += it }
 
-            // 将 AI 消息添加到历史（需要构造 AiMessage）
+            // 将 AI 消息添加到历史（需要构造 AiMessage）。
+            // durableText：content 空白而 reasoning 有观察时转录为可见文本——
+            // "观察必须落在可见文本"，否则截图折叠后视觉知识随图丢失（2026-09-11 事故）
             val aiMessage = if (llmResponse.hasToolExecutionRequests()) {
-                if (llmResponse.text.isNullOrEmpty()) {
+                val visible = llmResponse.durableText()
+                if (visible.isNullOrEmpty()) {
                     AiMessage.from(llmResponse.toolExecutionRequests)
                 } else {
-                    AiMessage.from(llmResponse.text, llmResponse.toolExecutionRequests)
+                    AiMessage.from(visible, llmResponse.toolExecutionRequests)
                 }
             } else {
-                AiMessage.from(llmResponse.text ?: "")
+                AiMessage.from(llmResponse.durableText() ?: "")
             }
             messages.add(aiMessage)
 
