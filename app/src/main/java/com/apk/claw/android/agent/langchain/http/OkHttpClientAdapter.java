@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.apk.claw.android.agent.llm.ReasoningCapture;
+
 import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpRequest;
@@ -38,13 +40,23 @@ public class OkHttpClientAdapter implements HttpClient {
 
     @Override
     public SuccessfulHttpResponse execute(HttpRequest request) throws HttpException, RuntimeException {
+        ReasoningCapture.clear();
         Request okRequest = toOkHttpRequest(request);
         try (Response response = okHttpClient.newCall(okRequest).execute()) {
             if (!response.isSuccessful()) {
                 String body = response.body() != null ? response.body().string() : "";
                 throw new HttpException(response.code(), body);
             }
-            return toSuccessfulResponse(response);
+            // 内联读 body（原来在 toSuccessfulResponse 里），抽取零额外 IO；
+            // 同步 execute 在调用线程运行，ThreadLocal 与 OpenAiLlmClient 的 poll 同线程对齐
+            String body = response.body() != null ? response.body().string() : "";
+            SuccessfulHttpResponse success = SuccessfulHttpResponse.builder()
+                    .statusCode(response.code())
+                    .headers(toHeaderMap(response))
+                    .body(body)
+                    .build();
+            ReasoningCapture.set(ReasoningCapture.extract(body));
+            return success;
         } catch (HttpException e) {
             throw e;
         } catch (IOException e) {
@@ -54,6 +66,7 @@ public class OkHttpClientAdapter implements HttpClient {
 
     @Override
     public void execute(HttpRequest request, ServerSentEventParser parser, ServerSentEventListener listener) {
+        ReasoningCapture.clear();
         Request okRequest = toOkHttpRequest(request);
         okHttpClient.newCall(okRequest).enqueue(new Callback() {
             @Override
@@ -135,15 +148,6 @@ public class OkHttpClientAdapter implements HttpClient {
         }
 
         return builder.build();
-    }
-
-    private SuccessfulHttpResponse toSuccessfulResponse(Response response) throws IOException {
-        String body = response.body() != null ? response.body().string() : "";
-        return SuccessfulHttpResponse.builder()
-                .statusCode(response.code())
-                .headers(toHeaderMap(response))
-                .body(body)
-                .build();
     }
 
     private Map<String, List<String>> toHeaderMap(Response response) {
