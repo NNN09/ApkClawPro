@@ -117,7 +117,7 @@ object ContextBudget {
                     .joinToString("\n") { it.text() }
                     .ifEmpty { "[截图]" }
                 messages[i] = UserMessage.from(
-                    caption + "\n[系统提示] 该截图原图已省略，视觉识别的结论已记录在上方的助手回复文字中。"
+                    caption + "\n[系统提示] 该截图原图已省略，视觉识别的结论已记录在本条消息之后的助手回复文字中。"
                 )
                 folded++
             }

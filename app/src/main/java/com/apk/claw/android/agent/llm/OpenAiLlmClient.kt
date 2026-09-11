@@ -113,6 +113,8 @@ class OpenAiLlmClient(
     }
 }
 
+// 由 OpenAiLlmClient 与 AnthropicLlmClient 共用：Anthropic 响应体没有 choices 字段，
+// aiMessage() 抽取为空 → reasoning poll 到 null（Anthropic 无 reasoning 属预期）
 internal fun ChatResponse.toLlmResponse(): LlmResponse {
     val aiMessage = aiMessage()
     return LlmResponse(

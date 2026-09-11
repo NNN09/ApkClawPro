@@ -174,6 +174,7 @@ class ContextBudgetTest {
         assertFalse(text.contains("已移除"))
         assertFalse(text.contains("重新调用"))
         assertTrue(text.contains("已省略"))
+        assertTrue(text.contains("助手回复"))
     }
 
     @Test
