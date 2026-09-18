@@ -21,8 +21,9 @@ class OpenAiLlmClient(
     private val httpClientBuilder: OkHttpClientBuilderAdapter
 ) : LlmClient {
 
-    private val chatModel: ChatModel by lazy { buildChatModel(config.modelName) }
-    private val streamingChatModel: StreamingChatModel by lazy { buildStreamingChatModel(config.modelName) }
+    // internal：供单测强制 lazy 初始化，验证超时贯通（OpenAiLlmClientTimeoutTest）
+    internal val chatModel: ChatModel by lazy { buildChatModel(config.modelName) }
+    internal val streamingChatModel: StreamingChatModel by lazy { buildStreamingChatModel(config.modelName) }
 
     // 独立视觉模型：带图请求路由到单独的模型实例，按模型名缓存（未启用时永不触碰）
     private val visionChatModels = ConcurrentHashMap<String, ChatModel>()
@@ -44,6 +45,7 @@ class OpenAiLlmClient(
             .apiKey(config.apiKey)
             .modelName(modelName)
             .temperature(config.temperature)
+            .timeout(LlmClientFactory.REQUEST_TIMEOUT)
             // ③ 库内默认还会静默重试 3 次（对确定性 500 也照重），重试策略统一上收
             // 到 DefaultAgentService.chatWithRetry 的错误分类，这里只发一次
             .maxRetries(1)
@@ -59,6 +61,7 @@ class OpenAiLlmClient(
             .apiKey(config.apiKey)
             .modelName(modelName)
             .temperature(config.temperature)
+            .timeout(LlmClientFactory.REQUEST_TIMEOUT)
         if (config.baseUrl.isNotEmpty()) {
             builder.baseUrl(config.baseUrl)
         }

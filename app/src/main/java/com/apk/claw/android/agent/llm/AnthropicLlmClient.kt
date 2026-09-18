@@ -44,6 +44,7 @@ class AnthropicLlmClient(
             .apiKey(config.apiKey)
             .modelName(modelName)
             .temperature(config.temperature)
+            .timeout(LlmClientFactory.REQUEST_TIMEOUT)
             // ③ 与 OpenAi 客户端同理：重试策略统一上收到 chatWithRetry 的错误分类
             .maxRetries(1)
         if (config.baseUrl.isNotEmpty()) {
@@ -58,6 +59,7 @@ class AnthropicLlmClient(
             .apiKey(config.apiKey)
             .modelName(modelName)
             .temperature(config.temperature)
+            .timeout(LlmClientFactory.REQUEST_TIMEOUT)
         if (config.baseUrl.isNotEmpty()) {
             builder.baseUrl(config.baseUrl)
         }
